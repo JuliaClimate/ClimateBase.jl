@@ -1,0 +1,4 @@
+name = "ClimateBase"
+uuid = "35604d93-0fb8-4872-9436-495b01d137e2"
+authors = ["Philippe Roy <borghor@yahoo.ca>"]
+version = "0.1.0"
