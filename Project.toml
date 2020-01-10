@@ -2,3 +2,6 @@ name = "ClimateBase"
 uuid = "35604d93-0fb8-4872-9436-495b01d137e2"
 authors = ["Philippe Roy <borghor@yahoo.ca>"]
 version = "0.1.0"
+
+[deps]
+AxisArrays = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
