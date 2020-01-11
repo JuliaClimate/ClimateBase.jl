@@ -1,6 +1,8 @@
 module ClimateBase
 
 using AxisArrays
+using ArgCheck
+using Images
 
 # TYPES
 
@@ -99,6 +101,18 @@ function ClimGrid(data; longrid=[], latgrid=[], msk=[], grid_mapping=Dict(), dim
     ClimGrid(data, longrid, latgrid, msk, grid_mapping, dimension_dict, timeattrib, model, frequency, experiment, run, project, institute, filename, dataunits, latunits, lonunits, variable, typeofvar, typeofcal, varattribs, globalattribs)
 end
 
+include("functions.jl")
+
 export ClimGrid
+export periodmean
+export temporalsubset
+export get_timevec
+export buildtimetype
+export timeindex
+export buildarray_climato
+export buildarrayinterface
+export buildarray_annual
+export buildarray_resample
+
 
 end # module
