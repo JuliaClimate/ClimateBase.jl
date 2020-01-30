@@ -39,7 +39,7 @@ end
 function buildarray_climato(C::ClimGrid, dataout)
     lonsymbol = Symbol(C.dimension_dict["lon"])
     latsymbol = Symbol(C.dimension_dict["lat"])
-    FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}][:]), Axis{latsymbol}(C[1][Axis{latsymbol}][:]))
+    FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}].val), Axis{latsymbol}(C[1][Axis{latsymbol}].val))
     return FD
 end
 
@@ -47,11 +47,11 @@ function buildarrayinterface(axisArraytmp, A)
     latsymbol = Symbol(A.dimension_dict["lat"])
     lonsymbol = Symbol(A.dimension_dict["lon"])
     if ndims(axisArraytmp) == 2
-        axisArray = AxisArray(axisArraytmp, Axis{lonsymbol}(A[1][Axis{lonsymbol}][:]), Axis{latsymbol}(A[1][Axis{latsymbol}][:]))
+        axisArray = AxisArray(axisArraytmp, Axis{lonsymbol}(A[1][Axis{lonsymbol}].val), Axis{latsymbol}(A[1][Axis{latsymbol}].val))
     elseif ndims(axisArraytmp) == 3
-        axisArray = AxisArray(axisArraytmp, Axis{lonsymbol}(A[1][Axis{lonsymbol}][:]), Axis{latsymbol}(A[1][Axis{latsymbol}][:]), Axis{:time}(A[1][Axis{:time}][:]))
+        axisArray = AxisArray(axisArraytmp, Axis{lonsymbol}(A[1][Axis{lonsymbol}].val), Axis{latsymbol}(A[1][Axis{latsymbol}].val), Axis{:time}(A[1][Axis{:time}].val))
     elseif ndims(axisArraytmp) == 4
-        axisArray = AxisArray(axisArraytmp, Axis{lonsymbol}(A[1][Axis{lonsymbol}][:]), Axis{latsymbol}(A[1][Axis{latsymbol}][:]), Axis{:plev}(A[1][Axis{:plev}][:]), Axis{:time}(A[1][Axis{:time}][:]))
+        axisArray = AxisArray(axisArraytmp, Axis{lonsymbol}(A[1][Axis{lonsymbol}].val), Axis{latsymbol}(A[1][Axis{latsymbol}].val), Axis{:plev}(A[1][Axis{:plev}].val), Axis{:time}(A[1][Axis{:time}].val))
     end
     return axisArray
 end
@@ -59,7 +59,7 @@ end
 function buildarray_annual(C::ClimGrid, dataout, numYears)
     lonsymbol = Symbol(C.dimension_dict["lon"])
     latsymbol = Symbol(C.dimension_dict["lat"])
-    FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}][:]), Axis{latsymbol}(C[1][Axis{latsymbol}][:]), Axis{:time}(Dates.year.(DateTime.(numYears))))
+    FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}].val), Axis{latsymbol}(C[1][Axis{latsymbol}].val), Axis{:time}(Dates.year.(DateTime.(numYears))))
     return FD
 end
 
@@ -68,7 +68,7 @@ end
 function buildarray_resample(C::ClimGrid, dataout, newtime)
     lonsymbol = Symbol(C.dimension_dict["lon"])
     latsymbol = Symbol(C.dimension_dict["lat"])
-    FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}][:]), Axis{latsymbol}(C[1][Axis{latsymbol}][:]), Axis{:time}(newtime))
+    FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}].val), Axis{latsymbol}(C[1][Axis{latsymbol}].val), Axis{:time}(newtime))
     return FD
 end
 
@@ -100,7 +100,7 @@ function temporalsubset(C::ClimGrid, datebeg::Tuple, dateend::Tuple)
         lonsymbol = Symbol(C.dimension_dict["lon"])
         data2 = fill(NaN, (size(dataOut,1), size(dataOut, 2), 1))
         data2[:,:,1] = dataOut
-        dataOut = AxisArray(data2, Axis{lonsymbol}(C[1][Axis{lonsymbol}][:]), Axis{latsymbol}(C[1][Axis{latsymbol}][:]), Axis{:time}(C[1][Axis{:time}][:]))
+        dataOut = AxisArray(data2, Axis{lonsymbol}(C[1][Axis{lonsymbol}].val), Axis{latsymbol}(C[1][Axis{latsymbol}].val), Axis{:time}(C[1][Axis{:time}].val))
 
     end
 
