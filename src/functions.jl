@@ -3,7 +3,7 @@
 
 Mean of array data over a given period.
 """
-function periodmean(C::ClimGrid; start_date::Tuple=(Inf, ), end_date::Tuple=(Inf,), level=1)
+function periodmean(C::ClimGrid; start_date::Tuple=(Inf, ), end_date::Tuple=(Inf,))
 
     if start_date != (Inf,) || end_date != (Inf,)
         C = temporalsubset(C, start_date, end_date)
@@ -22,12 +22,11 @@ function periodmean(C::ClimGrid; start_date::Tuple=(Inf, ), end_date::Tuple=(Inf
         end
     elseif ndims(datain) == 4
         if size(datain, 4) == 1
-            dataout = dropdims(datain[:, :, level, :], dims = 3)
+            dataout = dropdims(datain[:, :, :, :], dims = 3)
         else
-            dataout = dropdims(Images.meanfinite(datain, 3), dims=3)
+            dataout = dropdims(Images.meanfinite(datain, 4), dims=4)
         end
     end
-
 
     # Build output AxisArray
     FD = buildarray_climato(C, dataout)
@@ -36,10 +35,51 @@ function periodmean(C::ClimGrid; start_date::Tuple=(Inf, ), end_date::Tuple=(Inf
     return ClimGrid(FD, longrid=C.longrid, latgrid=C.latgrid, msk=C.msk, grid_mapping=C.grid_mapping, dimension_dict=C.dimension_dict, timeattrib=C.timeattrib, model=C.model, frequency=C.frequency, experiment=C.experiment, run=C.run, project=C.project, institute=C.institute, filename=C.filename, dataunits=C.dataunits, latunits=C.latunits, lonunits=C.lonunits, variable="periodmean", typeofvar=C.typeofvar, typeofcal="climatology", varattribs=C.varattribs, globalattribs=C.globalattribs)
 end
 
+"""
+    verticalmean(C::ClimGrid; startdate::Tuple, enddate::Tuple)
+
+Mean of array data over all vertical levels.
+"""
+function verticalmean(C::ClimGrid)
+
+    datain = C.data.data
+
+    if ndims(datain) < 4
+        error("There is no vertical levels in the dataset")
+    end
+
+    if size(datain, 3) == 1 # Only one vertical level
+        dataout = dropdims(datain[:, :, :, :], dims = 3)
+    else
+        dataout = dropdims(Images.meanfinite(datain, 3), dims=3)
+    end
+
+    # Build output AxisArray
+    FD = buildarray_verticalmean(C, dataout)
+
+    # Return climGrid type containing the indice
+    return ClimGrid(FD, longrid=C.longrid, latgrid=C.latgrid, msk=C.msk, grid_mapping=C.grid_mapping, dimension_dict=C.dimension_dict, timeattrib=C.timeattrib, model=C.model, frequency=C.frequency, experiment=C.experiment, run=C.run, project=C.project, institute=C.institute, filename=C.filename, dataunits=C.dataunits, latunits=C.latunits, lonunits=C.lonunits, variable="periodmean", typeofvar=C.typeofvar, typeofcal="climatology", varattribs=C.varattribs, globalattribs=C.globalattribs)
+end
+
 function buildarray_climato(C::ClimGrid, dataout)
     lonsymbol = Symbol(C.dimension_dict["lon"])
     latsymbol = Symbol(C.dimension_dict["lat"])
-    FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}].val), Axis{latsymbol}(C[1][Axis{latsymbol}].val))
+    if ndims(dataout) == 2 # original was a 3D field
+        FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}].val), Axis{latsymbol}(C[1][Axis{latsymbol}].val))
+    elseif ndims(dataout) == 3 # original was a 4D field
+        levsymbol = Symbol(C.dimension_dict["height"])
+        FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}].val), Axis{latsymbol}(C[1][Axis{latsymbol}].val), Axis{levsymbol}(C[1][Axis{levsymbol}].val))
+    end
+    return FD
+end
+
+function buildarray_verticalmean(C::ClimGrid, dataout)
+    lonsymbol = Symbol(C.dimension_dict["lon"])
+    latsymbol = Symbol(C.dimension_dict["lat"])
+    timesymbol = Symbol(C.dimension_dict["time"])
+
+    FD = AxisArray(dataout, Axis{lonsymbol}(C[1][Axis{lonsymbol}].val), Axis{latsymbol}(C[1][Axis{latsymbol}].val), Axis{timesymbol}(C[1][Axis{timesymbol}].val))
+
     return FD
 end
 
@@ -63,8 +103,6 @@ function buildarray_annual(C::ClimGrid, dataout, numYears)
     return FD
 end
 
-
-
 function buildarray_resample(C::ClimGrid, dataout, newtime)
     lonsymbol = Symbol(C.dimension_dict["lon"])
     latsymbol = Symbol(C.dimension_dict["lat"])
@@ -85,11 +123,11 @@ function temporalsubset(C::ClimGrid, datebeg::Tuple, dateend::Tuple)
     timeV = get_timevec(C)
     idxtimebeg, idxtimeend = timeindex(timeV, datebeg, dateend, T)
 
-    startdate = buildtimetype(datebeg, T)
-    enddate = buildtimetype(dateend, T)
+    # startdate = buildtimetype(datebeg, T)
+    # enddate = buildtimetype(dateend, T)
 
     # some checkups
-    @argcheck startdate <= enddate
+    @argcheck idxtimebeg <= idxtimeend
 
     dataOut = C[1][Axis{:time}(idxtimebeg:idxtimeend)]
 

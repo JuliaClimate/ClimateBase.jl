@@ -107,6 +107,7 @@ include("functions.jl")
 export ClimGrid
 export periodmean
 export temporalsubset
+export verticalmean
 export get_timevec
 export buildtimetype
 export timeindex
