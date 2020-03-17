@@ -2,7 +2,6 @@ module ClimateBase
 
 using AxisArrays
 using ArgCheck
-using Images
 using Dates
 
 # TYPES
