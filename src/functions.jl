@@ -1,3 +1,12 @@
+
+"""
+    finitemean(x,y)
+
+Calculate mean while omitting NaN, Inf, etc.
+"""
+finitemean(x) = mean(filter(x -> !isnan(x)&isfinite(x),x))
+finitemean(x,y) = mapslices(finitemean,x,dims=y)
+
 """
     periodmean(C::ClimGrid; startdate::Tuple, enddate::Tuple)
 
@@ -18,13 +27,13 @@ function periodmean(C::ClimGrid; start_date::Tuple=(Inf, ), end_date::Tuple=(Inf
         if size(datain, 3) == 1 # already an average on single value
             dataout = dropdims(datain, dims=3)
         else
-            dataout = dropdims(Images.meanfinite(datain, 3), dims=3)
+            dataout = dropdims(finitemean(datain, 3), dims=3)
         end
     elseif ndims(datain) == 4
         if size(datain, 4) == 1
             dataout = dropdims(datain[:, :, :, :], dims = 3)
         else
-            dataout = dropdims(Images.meanfinite(datain, 4), dims=4)
+            dataout = dropdims(finitemean(datain, 4), dims=4)
         end
     end
 
@@ -51,7 +60,7 @@ function verticalmean(C::ClimGrid)
     if size(datain, 3) == 1 # Only one vertical level
         dataout = dropdims(datain[:, :, :, :], dims = 3)
     else
-        dataout = dropdims(Images.meanfinite(datain, 3), dims=3)
+        dataout = dropdims(finitemean(datain, 3), dims=3)
     end
 
     # Build output AxisArray
