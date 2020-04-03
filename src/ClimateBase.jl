@@ -3,6 +3,7 @@ module ClimateBase
 using AxisArrays
 using ArgCheck
 using Dates
+using Statistics
 
 # TYPES
 
@@ -105,6 +106,7 @@ include("functions.jl")
 
 export ClimGrid
 export periodmean
+export finitemean
 export temporalsubset
 export verticalmean
 export get_timevec
