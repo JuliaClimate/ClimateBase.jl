@@ -12,7 +12,7 @@ finitemean(x,y) = mapslices(finitemean,x,dims=y)
 
 Mean of array data over a given period.
 """
-function periodmean(C::ClimGrid; start_date::Tuple=(Inf, ), end_date::Tuple=(Inf,))
+function periodmean(C::ClimGrid; level=1, start_date::Tuple=(Inf, ), end_date::Tuple=(Inf,))
 
     if start_date != (Inf,) || end_date != (Inf,)
         C = temporalsubset(C, start_date, end_date)
@@ -30,10 +30,11 @@ function periodmean(C::ClimGrid; start_date::Tuple=(Inf, ), end_date::Tuple=(Inf
             dataout = dropdims(finitemean(datain, 3), dims=3)
         end
     elseif ndims(datain) == 4
-        if size(datain, 4) == 1
-            dataout = dropdims(datain[:, :, :, :], dims = 3)
+        datain_lev = datain[:,:,level,:] # extract level
+        if size(datain_lev, 3) == 1
+            dataout = dropdims(datain_lev, dims=3)
         else
-            dataout = dropdims(finitemean(datain, 4), dims=4)
+            dataout = dropdims(finitemean(datain_lev, 3), dims=3)
         end
     end
 
