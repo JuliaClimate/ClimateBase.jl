@@ -6,6 +6,7 @@ Handling of time in data as a physical quantity, and time-related data processin
 #########################################################################
 # TODO: Identify monthly, daily, yearly or arbitrary spacing
 # to simplify this identification is done exclusively on first 3 time points
+# TODO: monthlymean funcion
 
 using Dates
 export yearly, maxyearspan, monthspan, daymonth, DAYS_IN_YEAR, monthamount
