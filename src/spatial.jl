@@ -1,7 +1,23 @@
+#=
+Functionality regarding spatial coordinates of an array, i.e. Longitude and Lattitude
+as well as equal area grid handling and anything else related to space.
+=#
 #########################################################################
 # Spatial indexing
 #########################################################################
 export spatialidxs
+
+"""
+    spatialidxs(a::DimensionalArray) → idxs
+Return an iterable that can be used to access all spatial points of `a` with the syntax
+```julia
+idxs = spatialidxs(a)
+for i in idxs
+    slice_at_give_space_point = a[i...]
+end
+```
+Works for standard grid as well as equal area grid.
+"""
 spatialidxs(A::AbDimArray) = spatialidxs(spacestructure(A), A)
 function spatialidxs(::Grid1Deg, A)
     lats = (Lat(i) for i in 1:size(A, Lat))
@@ -16,18 +32,27 @@ end
 #########################################################################
 # averaging functions over space or time
 #########################################################################
+using StatsBase
+
 export latmean, spacemean, zonalmean, spaceagg
+
+# TODO: Document what it means to be Coord space. We expect that the coordinates
+# are sorted by latitude
 
 """
     zonalmean(a::DimensionalArray [, r])
-Return the zonally-meand `a`.
-Optionally do the mean for the data in range `r` of that dimension.
-(`r` is fed into the dimension, `Dim(r)`, so it can be a range or an
-arbitrary selector).
+Return the zonal mean of `a`.
+Optionally do the mean for the data in range `r` of the longitude
+(`r` is fed into the dimension so it can be a range or an arbitrary selector).
+
+Works for both grid as well as equal-area spaces.
 """
 zonalmean(a::AbDimArray) = dropagg(mean, a, Lon)
 zonalmean(a::AbDimArray, r) = dropagg(mean, a[Lon(r)], Lon)
 
+# TODO: Extend this for `a` with more than 2 dimensions
+# possible way is to permute dims so that Lat is first dim, and let the rest dims
+# just be propagated?
 function zonalmean(a::AbDimArray{T, 2, <:Tuple{<:Coord, <: Time}}) where {T}
     idxs, lats = uniquelats(a)
     res = zeros(T, length(lats), size(a, 2))
@@ -138,3 +163,74 @@ function spaceagg(::EqArea, f, a, exw)
     w = pweights(Array(exw))
     dropagg(f, a, Coord)
 end
+
+#########################################################################
+# Hemispheric sum/difference
+#########################################################################
+export hemispheric_decomp, hemispheric_functions, latitudes
+export even_odd_decomp, even_odd_functions
+
+function even_odd_decomp(A)
+    nh, sh = hemispheric_decomp(A)
+    return (nh .+ sh)/2, (nh .- sh)/2
+end
+
+function even_odd_functions(A)
+    nh, sh = hemispheric_functions(A)
+    return (nh .+ sh)/2, (nh .- sh)/2
+end
+
+hemispheric_functions(A) = hemispheric_functions(spacestructure(A), A)
+function hemispheric_functions(::Grid1Deg, A)
+    nh = A[Lat(Between(0,  90))]
+    sh = A[Lat(Between(-90, 0))]
+    # TODO: this can be a function "reverse dim"
+    di = dimindex(sh, Lat)
+    newdims = [dims(sh)...]
+    newdims[di] = dims(nh, Lat)
+    data = reverse(Array(sh); dims = di)
+    sh = DimensionalArray(data, (newdims...,))
+    return nh, sh
+end
+
+function hemispheric_functions(::EqArea, A)
+    c = dims(A, Coord)
+    @assert issorted(c, by = x -> x[2])
+    shi, nhi = hemisphere_indices(c)
+    nh = A[Coord(nhi)]
+    sh = A[Coord(shi)]
+    oldc = Array(dims(sh, Coord))
+    si = sortperm(oldc, by = x -> x[2], rev = true)
+    newc = [SVector(x[1], abs(x[2])) for x in oldc[si]]
+    di = dimindex(sh, Coord)
+    newdims = Any[dims(sh)...]
+    newdims[di] = Coord(newc)
+    data = reverse(Array(sh); dims = di)
+    sh = DimensionalArray(data, (newdims...,))
+    return nh, sh
+end
+
+"""
+    hemispheric_decomp(A) → nh, sh
+Return the (proper) averages of `A` over the north and south hemispheres.
+"""
+hemispheric_decomp(A::AbDimArray) = hemispheric_decomp(spacestructure(A.dims), A)
+function hemispheric_decomp(::Grid1Deg, A)
+    nh = lataverage(A[Lat(Between(0,  90))])
+    sh = lataverage(A[Lat(Between(-90, 0))])
+    return nh, sh
+end
+
+function hemispheric_decomp(::EqArea, A)
+    nh, sh = hemispheric_functions(EqArea(), A)
+    return dropagg(mean, nh, Coord), dropagg(mean, sh, Coord)
+end
+
+function hemisphere_indices(c)
+    j = findfirst(x -> x[2] > 0, Array(c))
+    return 1:j-1, j:length(c)
+end
+
+latitudes(A) = latitudes(spacestructure(A), A)
+latitudes(::Grid1Deg, A) = Array(dims(A, Lat))
+latitudes(::EqArea, A) = unique!([x[2] for x in dims(A, Coord)])
