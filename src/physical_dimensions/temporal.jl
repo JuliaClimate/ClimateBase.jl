@@ -62,6 +62,27 @@ function monthspan(t)
     d = collect(Date(y, m, 1):Day(1):Date(u, n, 1))[1:end-1]
 end
 
+"""
+    daycount(t::AbstractArray{<:TimeType}, T = Float32)
+Convert a given date time array into measurement units of days:
+a real-valued array which counts time in days, always increasing.
+TODO: better description.
+"""
+function daycount(t::AbstractArray{<:TimeType}, T = Float32)
+    ts = temporal_sampling(t)
+    if ts == :monthly
+        truetime = daysinmonth.(t)
+        r = T.(cumsum(truetime))
+    elseif
+        ts == :yearly
+        # TODO
+    elseif ts == :daily
+        # TODO
+    end
+    return r
+end
+daycount(t::AbstractArray{<:Real}) = t
+
 #########################################################################
 # temporal statistics
 #########################################################################
