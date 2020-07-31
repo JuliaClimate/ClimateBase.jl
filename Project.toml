@@ -2,3 +2,11 @@ name = "ClimateBase"
 uuid = "464c662b-dc95-413d-a54a-f07a5fb14088"
 authors = ["Datseris <datseris.george@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+DimensionalData = "0703355e-b756-11e9-17c0-8b28908087d0"
+NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
+SignalDecomposition = "11a47235-7b84-4c7c-b885-fc3e2a9cf955"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
