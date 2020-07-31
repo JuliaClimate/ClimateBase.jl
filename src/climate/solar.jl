@@ -25,6 +25,7 @@ function insolation(t::Real, ϕ)
     Ya = DAYS_IN_YEAR # = 365.26 # days
     t_VE = 76.0 # days since Jan 1
     S_0 = 1362.0 # W/m^2
+
     γ=23.44
     ϖ=282.95
     e=0.017
@@ -71,13 +72,4 @@ function insolation(t::Real, ϕ)
     # step 9, calculate the flux
     F = S_0 * (1 / d)^2 * cosbar
     return F
-end
-
-"""
-    monthly_insolation(t::TimeType, args...)
-Average `insolation(τ, ...)` for `τ` in the month of given time.
-"""
-function monthly_insolation(t::TimeType, args...)
-    d = monthspan(t)
-    mean(insolation(τ, args...) for τ in d)
 end
