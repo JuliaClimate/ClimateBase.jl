@@ -3,33 +3,11 @@ Code related with loading .nc file data directly into a dimensional array
 An initial version of parts of this code was taken from:
 https://github.com/rafaqz/GeoData.jl
 =#
+using NCDatasets
 
 #########################################################################
 # NCDatasets → DimensionalArray convertions and loading
 #########################################################################
-export Time, Lon, Lat, dims, Coord
-export At, Between, Near # Selectors from DimensionalArrays.jl
-export hasdim, AbDimArray, DimensionalArray
-export get_var_as_dimarray, allkeys
-
-using DimensionalData
-using DimensionalData: @dim, Time, AbDimArray, hasdim, Dimension, IndependentDim
-@dim Lon IndependentDim "Longitude" "lon"
-@dim Lat IndependentDim "Latitude" "lat"
-@dim Coord IndependentDim "Coordinates"
-@dim Categ IndependentDim "Category"
-@dim Height IndependentDim "Height" "height"
-
-const COMMONNAMES = Dict(
-    "lat" => Lat,
-    "latitude" => Lat,
-    "lon" => Lon,
-    "long" => Lon,
-    "longitude" => Lon,
-    "time" => Time,
-    "height" => Height,
-)
-
 """
     create_dims(ds::NCDataset, dnames)
 Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
@@ -112,13 +90,3 @@ function reduced_grid_to_points(lat, reduced_points)
     end
     return lonlat
 end
-
-# the trait EqArea is for equal area grids. Functions can use the `spacestructure` and
-# dispatch on `EqArea` or `Nothing` while still being type-stable
-struct EqArea end
-struct Grid1Deg end
-spacestructure(a::AbDimArray) = spacestructure(dims(a))
-spacestructure(dims) = hasdim(dims, Coord) ? EqArea() : Grid1Deg()
-export EqArea, Grid1Deg, spacestructure, wrap_lon
-
-wrap_lon(x) = -180 + (360 + ((x+180) % 360)) % 360

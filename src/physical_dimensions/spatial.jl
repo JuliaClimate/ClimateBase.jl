@@ -2,6 +2,7 @@
 Functionality regarding spatial coordinates of an array, i.e. Longitude and Lattitude
 as well as equal area grid handling and anything else related to space.
 =#
+using Statistics, StatsBase
 #########################################################################
 # Spatial indexing
 #########################################################################
@@ -19,7 +20,7 @@ end
 Works for standard grid as well as equal area grid.
 """
 spatialidxs(A::AbDimArray) = spatialidxs(spacestructure(A), A)
-function spatialidxs(::Grid1Deg, A)
+function spatialidxs(::Grid, A)
     lats = (Lat(i) for i in 1:size(A, Lat))
     lons = (Lon(i) for i in 1:size(A, Lon))
     return Iterators.product(lons, lats)
@@ -28,6 +29,13 @@ end
 function spatialidxs(::EqArea, A)
     return ((Coord(i),) for i in 1:size(A, Coord))
 end
+
+
+"""
+    wrap_lon(x)
+Wrap given longitude to -180 to 180 degrees.
+"""
+wrap_lon(x) = @. -180 + (360 + ((x+180) % 360)) % 360
 
 #########################################################################
 # averaging functions over space or time
@@ -113,7 +121,7 @@ function _latweights(a::Lat)
 end
 
 spacemean(a::AbDimArray) = spacemean(spacestructure(a), a)
-spacemean(::Grid1Deg, a) = latmean(zonalmean(a))
+spacemean(::Grid, a) = latmean(zonalmean(a))
 spacemean(::EqArea, a) = dropagg(mean, a, Coord)
 
 using StatsBase
@@ -132,7 +140,7 @@ just an `AbDimArray` with same spatial dimensions as `a`, or the can be of exact
 same shape as `a`.
 """
 spaceagg(f, a::AbDimArray, exw=nothing) = spaceagg(spacestructure(a), f, a, exw)
-function spaceagg(::Grid1Deg, f, a, exw=nothing)
+function spaceagg(::Grid, f, a, exw=nothing)
     # This assumes that lon is first dim and lat is second dim.
     w = repeat(cosd.(Array(dims(a, Lat)))', length(dims(a, Lon)))
     if hasdim(a, Time)
@@ -167,11 +175,10 @@ end
 #########################################################################
 # Hemispheric sum/difference
 #########################################################################
-export hemispheric_decomp, hemispheric_functions, latitudes
-export even_odd_decomp, even_odd_functions
+export hemispheric_means, hemispheric_functions
 
 function even_odd_decomp(A)
-    nh, sh = hemispheric_decomp(A)
+    nh, sh = hemispheric_means(A)
     return (nh .+ sh)/2, (nh .- sh)/2
 end
 
@@ -181,7 +188,7 @@ function even_odd_functions(A)
 end
 
 hemispheric_functions(A) = hemispheric_functions(spacestructure(A), A)
-function hemispheric_functions(::Grid1Deg, A)
+function hemispheric_functions(::Grid, A)
     nh = A[Lat(Between(0,  90))]
     sh = A[Lat(Between(-90, 0))]
     # TODO: this can be a function "reverse dim"
@@ -211,26 +218,23 @@ function hemispheric_functions(::EqArea, A)
 end
 
 """
-    hemispheric_decomp(A) → nh, sh
+    hemispheric_means(A) → nh, sh
 Return the (proper) averages of `A` over the north and south hemispheres.
+Notice that this function explicitly does both zonal as well as meridional averaging.
+Use [`hemispheric_functions`](@ref) to just split `A` into two hemispheres.
 """
-hemispheric_decomp(A::AbDimArray) = hemispheric_decomp(spacestructure(A.dims), A)
-function hemispheric_decomp(::Grid1Deg, A)
-    nh = lataverage(A[Lat(Between(0,  90))])
-    sh = lataverage(A[Lat(Between(-90, 0))])
+function hemispheric_means(A::AbDimArray)
+    @assert hasdim(A, Lat)
+    if hasdim(A, Lon)
+        B = zonalmean(A)
+    else
+        B = A
+    end
+    nh = latmean(B[Lat(Between(0,  90))])
+    sh = latmean(B[Lat(Between(-90, 0))])
     return nh, sh
 end
 
-function hemispheric_decomp(::EqArea, A)
-    nh, sh = hemispheric_functions(EqArea(), A)
-    return dropagg(mean, nh, Coord), dropagg(mean, sh, Coord)
-end
-
-function hemisphere_indices(c)
-    j = findfirst(x -> x[2] > 0, Array(c))
-    return 1:j-1, j:length(c)
-end
-
 latitudes(A) = latitudes(spacestructure(A), A)
-latitudes(::Grid1Deg, A) = Array(dims(A, Lat))
+latitudes(::Grid, A) = Array(dims(A, Lat))
 latitudes(::EqArea, A) = unique!([x[2] for x in dims(A, Coord)])

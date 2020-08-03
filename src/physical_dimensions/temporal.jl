@@ -1,6 +1,7 @@
 #=
 Handling of time in data as a physical quantity, and time-related data processing
 =#
+using Statistics, StatsBase
 #########################################################################
 # Datetime related
 #########################################################################
@@ -73,8 +74,7 @@ function daycount(t::AbstractArray{<:TimeType}, T = Float32)
     if ts == :monthly
         truetime = daysinmonth.(t)
         r = T.(cumsum(truetime))
-    elseif
-        ts == :yearly
+    elseif ts == :yearly
         # TODO
     elseif ts == :daily
         # TODO
