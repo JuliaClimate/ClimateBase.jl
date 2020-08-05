@@ -1,0 +1,6 @@
+[deps]
+DimensionalData = "0703355e-b756-11e9-17c0-8b28908087d0"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DocumenterTools = "35a29f4d-8980-5a13-9543-d66fff28ecb8"
+NCDatasets = "85f8d34a-cbdd-5861-8df4-14fed0d494ab"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
