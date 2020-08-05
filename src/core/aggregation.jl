@@ -46,6 +46,8 @@ end
 #########################################################################
 # Extend some DimensionlArray stuff
 #########################################################################
+export otherdims
+
 nomissing(da::AbDimArray) = DimensionalData.rebuild(da, nomissing(da.data))
 
 # this method is necessary because of "reshaping" happening
@@ -63,8 +65,35 @@ end
 
 Base.ones(A::AbDimArray) = DimensionalArray(ones(size(A)), dims(A))
 
-# TODO: Define dropdim (use slop vector deleteat!) to use for global aggregation
+function otherdims(A, D)
+    x = dims(A)
+    n = dimindex(A, D)
+    ntuple(i -> i < n ? x[i] : x[i + 1], length(x) - 1)
+end
 
+
+# TODO: Better name
+"""
+    alongdimidxs(A::AbDimArray, D)
+Return an iterator of indices, that when used to access `A` will provide the variation of
+`A` along the given dimension `D`, for every other value of the remaining dimensions.
+
+For example, if `A` has dims `(Lon, Lat, Time)` and you can get all timeseries of `A`
+for every possible location doing
+```julia
+for i in alongdimidxs(A, Time)
+    x = A[i...] # this is a timeseries (Vector)
+end
+```
+"""
+function alongdimidxs(A, D)
+    z = otherdims(A, D)
+    az = DimensionalData.basetypeof.(z)
+    iters = [(Dim(i) for i in 1:size(A, Dim)) for Dim in az]
+    return Iterators.product(iters...)
+end
+
+export alongdimidxs
 
 #########################################################################
 # Dimensionwise
@@ -75,7 +104,7 @@ Apply bivariate function `f` (e.g. multiplication `*`) across the (first) matchi
 of `A` and `B`, where `B` has only one dimension.
 For normal Julia arrays match is done on the first matching dimension size.
 
-For example, if `A` has dimensions (Lon, Lat, Time) and `B` has dimensions (Lat,)
+For example, if `A` has dimensions (Lon, Lat, Time) and `B` has dimension (Lat,)
 (and of course both Lat are actually the same thing),
 then the result would be an array `C` with same structure as `A` but with values
 ```julia
@@ -116,6 +145,4 @@ function find_matching_dim(A::AbstractArray, B::AbstractVector)::Int
     return m
 end
 
-⊗(A, B) = dimwise(*, A, B)
-⊕(A, B) = dimwise(+, A, B)
-export dimwise, ⊗, ⊕
+export dimwise

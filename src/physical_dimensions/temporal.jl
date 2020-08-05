@@ -29,8 +29,9 @@ function maxyearspan(times)
     findlast(i -> month(times[i]) == m, 1:length(times)) - 1
 end
 
+# TODO: bad name
 """
-    yearly(times, date = times[1]) # TODO: bad name
+    yearly(times, date = times[1])
 Find the indices in `times` (which is a `Vector{Date}`) at which
 the date in `times` gives the same day and month as `date`.
 """
@@ -82,6 +83,22 @@ function daycount(t::AbstractArray{<:TimeType}, T = Float32)
     return r
 end
 daycount(t::AbstractArray{<:Real}) = t
+
+"""
+    temporal_sampling(x) → symbol
+Return the temporal sampling type of `x`, which is either an array of `Date`s or
+a dimensional array (with `Time` dimension). Possible return values are:
+- `:yearly`
+- `:monthly`
+- `:daily`
+- `:else`
+where `:else` covers the cases of either irregular sampling or sampling denser than
+daily. This function is used to perform proper temporal averages.
+"""
+temporal_sampling(a::AbDimArray) = temporal_sampling(Array(dims(a, Time)))
+function temporal_sampling(t)
+    error("TODO")
+end
 
 #########################################################################
 # temporal statistics

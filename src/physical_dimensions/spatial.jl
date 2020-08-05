@@ -17,12 +17,12 @@ for i in idxs
     slice_at_give_space_point = a[i...]
 end
 ```
-Works for standard grid as well as equal area grid.
+Works for standard grid as well as equal area.
 """
 spatialidxs(A::AbDimArray) = spatialidxs(spacestructure(A), A)
 function spatialidxs(::Grid, A)
-    lats = (Lat(i) for i in 1:size(A, Lat))
     lons = (Lon(i) for i in 1:size(A, Lon))
+    lats = (Lat(i) for i in 1:size(A, Lat))
     return Iterators.product(lons, lats)
 end
 
@@ -109,7 +109,7 @@ This function properly weights the mean by the cosine of the latitude.
 function latmean(a::AbDimArray, r = 1:size(a, Lat))
     a = a[Lat(r)]
     lw = _latweights(a)
-    dropagg(sum, a ⊗ lw, Lat)
+    dropagg(sum, dimwise(*, a, lw), Lat)
 end
 # Warning!!! `_latweights` divides by the weight sum, because it is intended to be
 # used only with the `sum` function (for a)
@@ -126,7 +126,11 @@ spacemean(::EqArea, a) = dropagg(mean, a, Coord)
 
 using StatsBase
 
-"`spacemean(a, exw=nothing) = spaceagg(mean, a, exw)`"
+"""
+    spacemean(a::DimensionalArray, w=nothing)
+Average given `a` over its spatial coordinates. Optionally provide statistical weights
+in `w`.
+"""
 spacemean(a, exw=nothing) = spaceagg(mean, a, exw)
 
 """

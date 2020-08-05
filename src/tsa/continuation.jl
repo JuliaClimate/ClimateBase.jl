@@ -4,20 +4,28 @@ Continuation of data, to e.g. fill missing values
 using SignalDecomposition
 export sinusoidal_continuation
 
+_numbertype(T) = _numbertype(eltype(T))
+_numbertype(::Type{Union{T, Missing}}) where T = T
+_numbertype(::Type{T}) where {T <: Real} = T
+
+
 """
-    sinusoidal_continuation(T::AbDimArray, fs = [1, 2]; Tmin = 0, Tmax = Inf)
+    sinusoidal_continuation(T::AbDimArray, fs = [1, 2]; Tmin = -Inf, Tmax = Inf)
 Fill-in the missing values of spatiotemporal field `T`, by fitting sinusoidals
 to the non-missing values, and then using the fitted sinusoidals for the missing values.
 
 Frequencies are given per year (frequency 2 means 1/2 of a year).
 
-`Tmin, Tmax` limits are used to clamp the result into this range.
+`Tmin, Tmax` limits are used to clamp the result into this range (no clamping in the
+default case).
 """
-function sinusoidal_continuation(T, frequencies = [1.0, 2.0]; Tmin = 0, Tmax = Inf)
-    lpv = Sinusoidal(Float32.(frequencies ./ DAYS_IN_YEAR))
+function sinusoidal_continuation(T, frequencies = [1.0, 2.0]; Tmin = -Inf, Tmax = Inf)
+    E = _numbertype(T)
+    lpv = Sinusoidal(E.(frequencies ./ DAYS_IN_YEAR))
     fullT = copy(T)
+    # TODO: this must be extended to a general "true time" function
     truetime = Float32.(cumsum(daysinmonth.(dims(T, Time))))
-    for i in spatialidxs(T)
+    for i in alongdimidxs(T, Time)
         x = T[i...]
         any(ismissing, x) || continue # this space needs no correction
         mi = findall(!ismissing, x)
@@ -29,7 +37,11 @@ function sinusoidal_continuation(T, frequencies = [1.0, 2.0]; Tmin = 0, Tmax = I
         x[imi] .= c[imi]
         fullT[i...] .= x
     end
-    return clamp.(fullT, Tmin, Tmax)
+    if !isinf(Tmin) && !isinf(Tmin)
+        return clamp.(fullT, Tmin, Tmax)
+    else
+        return fullT
+    end
 end
 
 function cosines(t, lpv::Sinusoidal)
