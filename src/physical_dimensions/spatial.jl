@@ -120,16 +120,12 @@ function _latweights(a::Lat)
     return DimensionalArray(we, (a,), "weights")
 end
 
-spacemean(a::AbDimArray) = spacemean(spacestructure(a), a)
-spacemean(::Grid, a) = latmean(zonalmean(a))
-spacemean(::EqArea, a) = dropagg(mean, a, Coord)
-
 using StatsBase
 
 """
     spacemean(a::DimensionalArray, w=nothing)
-Average given `a` over its spatial coordinates. Optionally provide statistical weights
-in `w`.
+Average given `a` over its spatial coordinates.
+Optionally provide statistical weights in `w`.
 """
 spacemean(a, exw=nothing) = spaceagg(mean, a, exw)
 
@@ -147,6 +143,8 @@ spaceagg(f, a::AbDimArray, exw=nothing) = spaceagg(spacestructure(a), f, a, exw)
 function spaceagg(::Grid, f, a, exw=nothing)
     # This assumes that lon is first dim and lat is second dim.
     w = repeat(cosd.(Array(dims(a, Lat)))', length(dims(a, Lon)))
+    # TODO: Extend this for abitrary matching weights.
+    # We can use matching dims...?
     if hasdim(a, Time)
         r = zeros(length(dims(a, Time)))
         for i in 1:length(r)
