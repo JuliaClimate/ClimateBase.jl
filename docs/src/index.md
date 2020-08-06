@@ -12,6 +12,7 @@ ClimArray
 
 Notice that (at the moment) we use a pre-defined mapping of common names to proper dimensions - please feel free to extend the following via a Pull Request:
 ```@example
+using ClimateBase # hide
 ClimateBase.COMMONNAMES
 ```
 
@@ -65,6 +66,7 @@ dimwise
 ## Timeseries Analysis
 ```@docs
 sinusoidal_continuation
+seasonal_decomposition
 ```
 
 ## Crash-course to DimensionalData.jl
@@ -74,9 +76,10 @@ DimensionalData
 ---
 
 There are some standard dimensions that we use within our functions, and it as assumed that if your data contains such dimensions (in concept) then they must match the appropriate type:
-```@setup
+```@example
+using ClimateBase, DimensionalData # hide
 for D in ClimateBase.ALLDIMS
-    println(D, "(full name = $(DimensionalData.name(D)))")
+    println(D, " (full name = $(DimensionalData.name(D)))")
 end
 ```
 We explicitly assume that `Lon, Lat` are measured in degrees and not radians or meters (extremely important for spatial averaging processes).

@@ -84,6 +84,8 @@ function daycount(t::AbstractArray{<:TimeType}, T = Float32)
 end
 daycount(t::AbstractArray{<:Real}) = t
 
+
+export temporal_sampling
 """
     temporal_sampling(x) → symbol
 Return the temporal sampling type of `x`, which is either an array of `Date`s or

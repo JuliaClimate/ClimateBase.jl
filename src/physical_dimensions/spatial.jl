@@ -189,6 +189,12 @@ function even_odd_functions(A)
     return (nh .+ sh)/2, (nh .- sh)/2
 end
 
+"""
+    hemispheric_functions(A::ClimArray) → north, south
+Return two arrays `north, south`, by splitting `A` to its northern and southern hemispheres,
+appropriately translating the latitudes of `south` so that both arrays have the same
+latitudinal dimension (and thus can be compared and do opperations between them).
+""" 
 hemispheric_functions(A) = hemispheric_functions(spacestructure(A), A)
 function hemispheric_functions(::Grid, A)
     nh = A[Lat(Between(0,  90))]

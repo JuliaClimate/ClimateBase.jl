@@ -1,13 +1,13 @@
 cd(@__DIR__)
 using Pkg
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
-CI && Pkg.activate(@__DIR__)
+Pkg.activate(@__DIR__)
 CI && Pkg.instantiate()
 using ClimateBase
 using Documenter, DimensionalData, NCDatasets, StatsBase
-using DocumenterTools: Themes
 
 # %%
+# using DocumenterTools: Themes
 # download the themes
 # for file in ("juliadynamics-lightdefs.scss", "juliadynamics-darkdefs.scss", "juliadynamics-style.scss")
 #     download("https://raw.githubusercontent.com/JuliaDynamics/doctheme/master/$file", joinpath(@__DIR__, file))
@@ -34,7 +34,7 @@ makedocs(modules = [ClimateBase, DimensionalData],
         #     "assets/logo.ico",
         #     asset("https://fonts.googleapis.com/css?family=Quicksand|Montserrat|Source+Code+Pro|Lora&display=swap", class=:css),
         #     ],
-        # ),
+        ),
     pages = [
         "Introduction" => "index.md",
         ],

@@ -73,6 +73,7 @@ Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I) = setindex!(data(A),
 DimensionalData.metadata(A::ClimArray) = A.attrib
 DimensionalData.rebuild(A::ClimArray, data, dims::Tuple=dims(A), refdims=DimensionalData.refdims(A),
 name="", attrib=nothing) = ClimArray(data, dims, refdims, name, attrib)
+DimensionalData.basetypeof(::ClimArray) = ClimArray
 
 # Remove reference dims from printing, and show attributes if any
 function Base.show(io::IO, A::ClimArray)
