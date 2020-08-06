@@ -42,3 +42,61 @@ function spacestructure(dims)
         nothing
     end
 end
+
+# ClimArray type
+export ClimArray
+struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,Me} <: AbstractDimensionalArray{T,N,D,A}
+    data::A
+    dims::D
+    refdims::R
+    name::Na
+    attrib::Me
+end
+
+"""
+    ClimArray(A, dims::Tuple; name = "", attrib = nothing)
+
+`ClimArray` is a simple wrapper of a standard dimensional array from DimensionalData.jl
+bundled with an extra `attrib` field (typically a dictionary) that holds general attributes.
+
+`ClimArray` is created by passing in standard array data `A` and a tuple of dimensions `dims`.
+"""
+ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
+ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
+
+rebuild(A::ClimArray, data, dims::Tuple, refdims, name, attrib = A.attrib) =
+ClimArray(data, dims, refdims, name, attrib)
+
+Base.parent(A::ClimArray) = A.data
+Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I) = setindex!(data(A), x, I...)
+
+DimensionalData.metadata(A::ClimArray) = A.attrib
+DimensionalData.rebuild(A::ClimArray, data, dims::Tuple=dims(A), refdims=DimensionalData.refdims(A),
+name="", attrib=nothing) = ClimArray(data, dims, refdims, name, attrib)
+
+# Remove reference dims from printing, and show attributes if any
+function Base.show(io::IO, A::ClimArray)
+    l = nameof(typeof(A))
+    printstyled(io, nameof(typeof(A)); color=:blue)
+    if A.name != ""
+        print(io, " (named ")
+        printstyled(io, A.name; color=:blue)
+        print(io, ")")
+    end
+
+    print(io, " with dimensions:\n")
+    for d in dims(A)
+        print(io, " ", d, "\n")
+    end
+    if !isnothing(A.attrib)
+        print(io, "and")
+        printstyled(io, " attributes: "; color=:magenta)
+        show(io, MIME"text/plain"(), A.attrib)
+        print(io, '\n')
+    end
+    print(io, "and")
+    printstyled(io, " data: "; color=:green)
+    dataA = data(A)
+    print(io, summary(dataA), "\n")
+    DimensionalData.custom_show(io, data(A))
+end

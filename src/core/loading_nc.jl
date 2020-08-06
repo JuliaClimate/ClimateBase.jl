@@ -33,9 +33,9 @@ allkeys(a::NCDataset) = keys(a)
 # and has only one extra field called attributes.
 
 """
-    get_var_as_dimarray(file::String, var::String; eqarea = false)) -> A, attrib
-Return the variable `var` from the `.nc` file located at path, by converting it
-into a `DimensionalArray`. In addition return its attributes as a dictionary.
+    ClimArray(file::String, var::String; eqarea = false)) -> A, attrib
+Load the variable `var` from the `.nc` file located at `file` and convert it
+into a `ClimArray` which contains the variable attributes as a dictionary.
 
 Notice that if there are no missing values in the data (according to CF standards), the
 returned array is automatically converted to a concrete type (i.e. `Union{Float32, Missing}`
@@ -43,12 +43,14 @@ becomes `Float32`).
 
 Keyword `eqarea` denotes if the underlying grid is structured or unstructured (equal area).
 """
-function get_var_as_dimarray(path, var;
-        eqarea = false, hasmissing = false)
+function ClimArray(path::String, var::String; eqarea = false)
     NCDataset(path) do ds
         svar = string(var)
         cfvar = ds[svar]
+        attrib = Dict(cfvar.attrib)
         A = cfvar |> Array
+        # TODO: I have to re-work this code to be more general and allow other dimensions
+        # as well!!!!
         if eqarea
             if haskey(ds, "ncells") # this is the equal area grid, so we make a Coord dimension
                 lon = ds["lon"] |> Array .|> wrap_lon
@@ -58,21 +60,23 @@ function get_var_as_dimarray(path, var;
                 # here we sort lonlat and A in ascending latitude order,
                 # because the CDO output has reverse or even totally unsorted order
                 si = sortperm(lonlat, by = x -> x[2])
-                data = DimensionalArray(A[si, :], (Coord(lonlat[si]), Time(time)), svar)
+                data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
+                attrib = attrib, name = svar)
             elseif haskey(ds, "reduced_points")
                 lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
                 si = sortperm(lonlat, by = x -> x[2])
                 time = ds["time"] |> Array
-                data = DimensionalArray(A[si, :], (Coord(lonlat[si]), Time(time)), svar)
+                data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
+                name = svar, attrib = attrib)
             end
         else # standard variables
             dnames = Tuple(NCDatasets.dimnames(cfvar))
-            data = DimensionalArray(A, create_dims(ds, dnames), svar)
+            data = ClimArray(A, create_dims(ds, dnames); name = svar, attrib = attrib)
         end
         if !any(ismissing, data)
             data = nomissing(data)
         end
-        return data, Dict(cfvar.attrib)
+        return data
     end
 end
 
