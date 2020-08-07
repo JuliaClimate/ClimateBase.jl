@@ -39,6 +39,7 @@ latmean
 spacemean
 timemean
 hemispheric_means
+hemispheric_functions
 ```
 
 General aggregation:

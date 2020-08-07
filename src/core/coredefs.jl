@@ -68,7 +68,9 @@ rebuild(A::ClimArray, data, dims::Tuple, refdims, name, attrib = A.attrib) =
 ClimArray(data, dims, refdims, name, attrib)
 
 Base.parent(A::ClimArray) = A.data
-Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I) = setindex!(data(A), x, I...)
+Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
+    setindex!(A.data, x, I...)
+
 
 DimensionalData.metadata(A::ClimArray) = A.attrib
 DimensionalData.rebuild(A::ClimArray, data, dims::Tuple=dims(A), refdims=DimensionalData.refdims(A),
