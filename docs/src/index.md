@@ -5,10 +5,10 @@ This project treats "climate data" as a `ClimArray`, which uses the DimensionalD
 A (very) brief introduction to DimensionalData.jl is copied here from its docs, because basic knowledge of how to handle a `ClimArray` is assumed in our docs.
 DimensionalData.jl allows truly convenient handling of climate data, where it is important to be able to dimensionally-index data by their values. E.g. you can do
 ```@example
-using ClimBase, Dates
+using ClimateBase, Dates
 ts = DateTime(2001,1):Month(1):DateTime(2001,12)
 lons = 0:90
-A = ClimArray(rand(12, 91), (Time(timespan), Lon(lons)))
+A = ClimArray(rand(12, 91), (Time(ts), Lon(lons)))
 A[Lon(Between(0, 30)), Time(At(DateTime(2001,5)))]
 ```
 
