@@ -2,7 +2,17 @@
 Basic tools for dealing with climate (spatiotemporal) data.
 
 This project treats "climate data" as a `ClimArray`, which uses the DimensionalData.jl interface and can be thought of as a syntactic equivalent to `DimensionalArray`.
-A (very) brief introduction to DimensionalData.jl is copied here from its docs, for clarity.
+A (very) brief introduction to DimensionalData.jl is copied here from its docs, because basic knowledge of how to handle a `ClimArray` is assumed in our docs.
+DimensionalData.jl allows truly convenient handling of climate data, where it is important to be able to dimensionally-index data by their values. E.g. you can do
+```@example
+using ClimBase, Dates
+ts = DateTime(2001,1):Month(1):DateTime(2001,12)
+lons = 0:90
+A = ClimArray(rand(12, 91), (Time(timespan), Lon(lons)))
+A[Lon(Between(0, 30)), Time(At(DateTime(2001,5)))]
+```
+
+**Notice: at the moment the entirety of this package relies on doing operations in-memory. In the future, doing operations on-disk is planned.**
 
 ## Making a `ClimArray`
 You can create a `ClimArray` yourself, or you can load data from an `.nc` file with CF-conventions, using `ClimArray`:
@@ -31,8 +41,7 @@ end
 ```
 
 
-## Aggregation
-Physically-inspired aggregation:
+## Physical averages
 ```@docs
 zonalmean
 latmean
@@ -42,11 +51,26 @@ hemispheric_means
 hemispheric_functions
 ```
 
-General aggregation:
+## Aggregation
+The physical averages of the previous section are done by taking advantage of a general aggregation syntax, which works with any aggregating function like `mean, sum, std`, etc.
 ```@docs
 dropagg
 collapse
 ```
+### Statistical weighting
+Functons like `timemean` and `spacemean` perform statistically-proper averaging by weighting each data point by its length in time or by the cosine of its latitude.
+Functional versions that can explicitly take *extra* weights (e.g. if you want to weight your data with e.g. the ice area fraction) are provided:
+```@docs
+timeagg
+spaceagg
+```
+**TODO: I need to improve the statistical weighting to work with all possible dimensional combinations.**
+
+These functions internally use the following function that can be used also outside of statistical weighting:
+```@docs
+dimwise
+```
+
 
 ## Time-handling
 ```@docs
@@ -55,14 +79,6 @@ yearly
 monthspan
 temporal_sampling
 ```
-
-## Statistical weighting
-
-General:
-```@docs
-dimwise
-```
-**TODO:  complete this section**
 
 ## Timeseries Analysis
 ```@docs
@@ -74,12 +90,13 @@ seasonal_decomposition
 ```@docs
 DimensionalData
 ```
+
 ---
 
 There are some standard dimensions that we use within our functions, and it as assumed that if your data contains such dimensions (in concept) then they must match the appropriate type:
 ```@example
 using ClimateBase, DimensionalData # hide
-for D in ClimateBase.ALLDIMS
+for D in ClimateBase.STANDARD_DIMS
     println(D, " (full name = $(DimensionalData.name(D)))")
 end
 ```

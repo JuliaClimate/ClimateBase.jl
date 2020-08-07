@@ -13,10 +13,10 @@ export EqArea, Grid, spacestructure, wrap_lon
 
 @dim Lon IndependentDim "Longitude" "lon"
 @dim Lat IndependentDim "Latitude" "lat"
-@dim Coord IndependentDim "Coordinates"
+@dim Coord IndependentDim "Coordinates (spatial)"
 @dim Hei IndependentDim "Height" "height"
 
-ALLDIMS = (Lon, Lat, Time, Hei, Coord)
+STANDARD_DIMS = (Lon, Lat, Time, Hei, Coord)
 
 const COMMONNAMES = Dict(
     "lat" => Lat,
@@ -70,7 +70,6 @@ ClimArray(data, dims, refdims, name, attrib)
 Base.parent(A::ClimArray) = A.data
 Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
     setindex!(A.data, x, I...)
-
 
 DimensionalData.metadata(A::ClimArray) = A.attrib
 DimensionalData.rebuild(A::ClimArray, data, dims::Tuple=dims(A), refdims=DimensionalData.refdims(A),

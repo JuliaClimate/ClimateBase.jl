@@ -2,6 +2,7 @@ module ClimateBase
 
 # TODO: Be sure all exported names have docstrings
 # TODO: Use always the same symbol, e.g. A, to represent a dimensional array
+# TODO: In all docstrings use `ClimArray` and not `AbDimArray`
 include("core/coredefs.jl")
 include("core/loading_nc.jl")
 include("core/aggregation.jl")

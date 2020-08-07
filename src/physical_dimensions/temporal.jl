@@ -125,7 +125,7 @@ If you don't want these features, just do `dropagg(f, a, Time)`.
 
 `w` are possible statistical weights that are used in conjuction to the monthly weighting.
 
-    timeagg(f, t, a::Vector, w = nothing)
+    timeagg(f, t::Vector, x::Vector, w = nothing)
 Same as above, but for arbitrary vector accompanied by time vector `t`.
 """
 function timeagg(f, a::AbDimArray, exw = nothing)
