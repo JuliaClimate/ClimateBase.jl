@@ -93,6 +93,14 @@ sinusoidal_continuation
 seasonal_decomposition
 ```
 
+## Climate quantities
+Functions that calculate climate-related quantities.
+```@docs
+insolation
+surface_atmosphere_contributions
+total_toa_albedo
+```
+
 ## Crash-course to DimensionalData.jl
 ```@docs
 DimensionalData
