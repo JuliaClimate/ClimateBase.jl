@@ -8,7 +8,7 @@ Time = DimensionalData.Ti
 export At, Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, AbDimArray, DimensionalArray
 export get_var_as_dimarray
-export Time, Lon, Lat, dims, Coord, Hei
+export Time, Lon, Lat, dims, Coord, Hei, Ti
 export EqArea, Grid, spacestructure, wrap_lon
 
 @dim Lon IndependentDim "Longitude" "lon"

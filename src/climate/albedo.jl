@@ -28,7 +28,7 @@ function surface_atmosphere_contributions(I, F_toa_⬆, F_s_⬆, F_s_⬇)
 end
 
 """
-    total_toa_albedo(a, s, t) → α
+    total_toa_albedo(a, s, t) = a + s*t^2/(1-a*s)
 Combine given atmosphere albedo `a`, surface albedo `s` and atmosphere transmittance `t`
 into a total top-of-the-atmosphere albedo `α` according to the model of Donohoe & Battisti (2011).
 """

@@ -30,12 +30,12 @@ e=0.017 # eccentricity
 """
 insolation(t::TimeType, φ; kwargs...) = insolation(float(dayofyear(t)), φ; kwargs...)
 function insolation(t::Real, ϕ;
-        Ya = DAYS_IN_YEAR # = 365.26 # days
-        t_VE = 76.0 # days since Jan 1
-        S_0 = 1362.0 # W/m^2
-        γ=23.44
-        ϖ=282.95
-        e=0.017
+        Ya = DAYS_IN_YEAR, # = 365.26 # days
+        t_VE = 76.0, # days since Jan 1
+        S_0 = 1362.0, # W/m^2
+        γ=23.44,
+        ϖ=282.95,
+        e=0.017,
     )
 
     # convert inputs from degrees to radians

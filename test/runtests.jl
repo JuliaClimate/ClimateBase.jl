@@ -1,6 +1,8 @@
 using ClimateBase, Test, Dates
 using Statistics
 
+Time = ClimateBase.Time
+
 # TODO: Report to DimemnsionalData.jl that `dropdim` does not retain type.
 
 # Create the artificial dimensional array A that will be used in tests
