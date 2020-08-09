@@ -14,21 +14,29 @@ http://climate-dynamics.org/wp-content/uploads/2017/04/Climate_Book.pdf
 =#
 export insolation, monthly_insolation
 """
-    insolation(t, ϕ)
+    insolation(t, ϕ; kwargs...)
 Calculate daily averaged insolation in W/m² at given time and latitude `t, φ`.
 `φ` is given in **degrees**, and `t` in **days** (real number or date).
-"""
-insolation(t::TimeType, φ) = insolation(dayofyear(t), φ)
-# Notice that parameters `γ, ϖ, e` change over the years!
-function insolation(t::Real, ϕ)
-    # constants for Earth
-    Ya = DAYS_IN_YEAR # = 365.26 # days
-    t_VE = 76.0 # days since Jan 1
-    S_0 = 1362.0 # W/m^2
 
-    γ=23.44
-    ϖ=282.95
-    e=0.017
+Keywords:
+```
+Ya = DAYS_IN_YEAR # = 365.26 # days
+t_VE = 76.0 # days of vernal equinox
+S_0 = 1362.0 # W/m^2
+γ=23.44
+ϖ=282.95
+e=0.017 # eccentricity
+```
+"""
+insolation(t::TimeType, φ; kwargs...) = insolation(float(dayofyear(t)), φ; kwargs...)
+function insolation(t::Real, ϕ;
+        Ya = DAYS_IN_YEAR # = 365.26 # days
+        t_VE = 76.0 # days since Jan 1
+        S_0 = 1362.0 # W/m^2
+        γ=23.44
+        ϖ=282.95
+        e=0.017
+    )
 
     # convert inputs from degrees to radians
     ϕ = ϕ * π / 180

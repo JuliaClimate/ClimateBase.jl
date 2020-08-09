@@ -26,6 +26,13 @@ using ClimateBase # hide
 ClimateBase.COMMONNAMES
 ```
 
+Also, two convenience functions are provided for examining the content of on-disk `.nc` files without loading all data on memory.
+```@docs
+nckeys
+ncdetails
+```
+
+
 ## Types of spatial coordinates
 Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array. Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
 

@@ -4,7 +4,7 @@ An initial version of parts of this code was taken from:
 https://github.com/rafaqz/GeoData.jl
 =#
 using NCDatasets
-
+export nckeys, ncdetails
 #########################################################################
 # NCDatasets → DimensionalArray convertions and loading
 #########################################################################
@@ -22,15 +22,26 @@ function globalattributes(file::String)
     # TODO
 end
 
-function allkeys(path::String)
+"""
+    nckeys(file::String)
+Return all keys of the `.nc` file in `file`.
+"""
+function nckeys(path::String)
     NCDataset(path) do ds
         return keys(ds)
     end
 end
-allkeys(a::NCDataset) = keys(a)
+nckeys(a::NCDataset) = keys(a)
 
-# TODO: Make a wrapper type, or just a new type that subtypes AbDimArray
-# and has only one extra field called attributes.
+"""
+    ncdetails(file::String, io = stdout)
+Print details about the `.nc` file in `file` on `io`.
+"""
+function ncdetails(file::String, io = stdout)
+    NCDataset(file) do ds
+        show(io, MIME"text/plain"(), ds)
+    end
+end
 
 """
     ClimArray(file::String, var::String; eqarea = false)) -> A, attrib

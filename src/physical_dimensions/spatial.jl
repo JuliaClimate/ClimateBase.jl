@@ -117,7 +117,7 @@ _latweights(a::AbDimArray) = _latweights(dims(a, Lat))
 function _latweights(a::Lat)
     we = cosd.(Array(a))
     we ./= sum(we)
-    return DimensionalArray(we, (a,), "weights")
+    return ClimArray(we, (a,))
 end
 
 using StatsBase
@@ -194,7 +194,7 @@ end
 Return two arrays `north, south`, by splitting `A` to its northern and southern hemispheres,
 appropriately translating the latitudes of `south` so that both arrays have the same
 latitudinal dimension (and thus can be compared and do opperations between them).
-""" 
+"""
 hemispheric_functions(A) = hemispheric_functions(spacestructure(A), A)
 function hemispheric_functions(::Grid, A)
     nh = A[Lat(Between(0,  90))]

@@ -7,7 +7,7 @@ Time = DimensionalData.Ti
 
 export At, Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, AbDimArray, DimensionalArray
-export get_var_as_dimarray, allkeys
+export get_var_as_dimarray
 export Time, Lon, Lat, dims, Coord, Hei
 export EqArea, Grid, spacestructure, wrap_lon
 
@@ -52,6 +52,7 @@ struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,
     name::Na
     attrib::Me
 end
+ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
 
 """
     ClimArray(A, dims::Tuple; name = "", attrib = nothing)
@@ -91,8 +92,7 @@ function Base.show(io::IO, A::ClimArray)
         print(io, " ", d, "\n")
     end
     if !isnothing(A.attrib)
-        print(io, "and")
-        printstyled(io, " attributes: "; color=:magenta)
+        printstyled(io, "attributes: "; color=:magenta)
         show(io, MIME"text/plain"(), A.attrib)
         print(io, '\n')
     end
