@@ -4,7 +4,7 @@ Basic tools for dealing with climate (spatiotemporal) data.
 This project treats "climate data" as a `ClimArray`, which uses the DimensionalData.jl interface and can be thought of as a syntactic equivalent to `DimensionalArray`.
 A (very) brief introduction to DimensionalData.jl is copied here from its docs, because basic knowledge of how to handle a `ClimArray` is assumed in our docs.
 DimensionalData.jl allows truly convenient handling of climate data, where it is important to be able to dimensionally-index data by their values. E.g. you can do
-```@example
+```@example main
 using ClimateBase, Dates
 Time = ClimateBase.Ti # more intuitive
 lats = -90:5:90
@@ -15,7 +15,7 @@ A = ClimArray(rand(36, 37, 241), dimensions)
 B = A[Lon(Between(0, 30)), Time(At(Date(2011,5,15)))]
 ```
 and use convenience, physically-inspired functions that do automatic (and correct) statistical weighting, like
-```@example
+```@example main
 C = latmean(B)
 ```
 where in this averaging process each data point is weighted by the cosine of its latitude.
@@ -29,7 +29,7 @@ ClimArray
 ```
 
 Notice that (at the moment) we use a pre-defined mapping of common names to proper dimensions - please feel free to extend the following via a Pull Request:
-```@example
+```@example main
 using ClimateBase # hide
 ClimateBase.COMMONNAMES
 ```
@@ -52,11 +52,9 @@ Physically inspired averaging functions, like [`spacemean`](@ref) below, work fo
 
 **TODO: Finish this section.**
 
-The function `spatialidxs` returns an iterator over the spatial coordinates of the data, and works for both types (grid or equal-area). It is used like so:
-```julia
-for i in spatialidxs(A)
-    x = A[i...] # each possible location slice
-end
+The function `spatialidxs` returns an iterator over the spatial coordinates of the data, and works for both types (grid or equal-area):
+```@docs
+spatialidxs
 ```
 
 
