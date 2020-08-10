@@ -14,6 +14,9 @@ nomissing(da::AbDimArray) = DimensionalData.rebuild(da, nomissing(da.data))
 #########################################################################
 # Aggregation of data, dropagg missings, dimensions, etc.
 #########################################################################
+# TODO: Define dropagg with weights as well (simple to do, same as timeagg but
+# without the complexity of temporal averaging)
+
 export dropagg, nomissing, collapse, drop
 
 """
@@ -88,13 +91,13 @@ belonging to dimension(s) `Dim`. This has two uses:
 For example, if `A` has dims `(Lon, Lat, Time)` and you can get all timeseries of `A`:
 ```julia
 for i in otheridxs(A, Time)
-    x = A[i...] # this is a timeseries (Vector)
+    x = A[i] # this is a timeseries (Vector)
 end
 ```
 or all time+latitude slices with
 ```julia
 for i in otheridxs(A, (Time, Lat))
-    x = A[i...] # matrix of time × latitude
+    x = A[i] # matrix of time × latitude
 end
 ```
 
@@ -133,7 +136,7 @@ function dimwise(f, A::AbDimArray, B::AbDimArray)
     m = find_matching_dim(A, B)
     # Array(data) necessary because reshapes somewhow fail to play well with the code...
     C = dimwise(f, Array(data(A)), Array(data(B)), m)
-    return DimensionalArray(C, dims(A))
+    return DimensionalData.basetypeof(A)(C, dims(A))
 end
 
 dimwise(f, A::AbstractArray, B, m::Int = find_matching_dim(A, B)) =

@@ -67,7 +67,7 @@ end
     @test d2 < -0.1
     x = B[:, :, 1]
     @test zonalmean(latmean(x)) ≈ latmean(zonalmean(x)) ≈ spacemean(x)
-    @test spacemean(B) - mean(B) > 50
+    @test spacemean(x) - mean(x) > 50
 end
 
 @testset "Temporal weighting" begin
@@ -82,6 +82,19 @@ end
     w[5] = 1.0
     res = timeagg(mean, A, w)
     @test all(res .≈ A[Time(5)])
+end
+
+@testset "Spatial weighting" begin
+    W = zero(A)
+    W[Lon(5)] .= 1.0
+    res = spaceagg(mean, A, W)
+    @test all(res .≈ latmean(A)[Lon(5)])
+
+    W = zeros(length(lons), length(lats))
+    W[5, :] .= 1.0
+    W = ClimArray(W, dims(A, (Lon, Lat)))
+    res = spaceagg(mean, A, W)
+    @test all(res .≈ latmean(A)[Lon(5)])
 end
 
 @testset "Insolation/Hemispheres" begin

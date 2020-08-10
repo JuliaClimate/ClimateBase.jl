@@ -14,7 +14,7 @@ Return an iterable that can be used to access all spatial points of `A` with the
 ```julia
 idxs = spatialidxs(A)
 for i in idxs
-    slice_at_give_space_point = A[i...]
+    slice_at_give_space_point = A[i]
 end
 ```
 Works for standard grid as well as equal area.
@@ -27,7 +27,7 @@ function spatialidxs(::Grid, A)
 end
 
 function spatialidxs(::EqArea, A)
-    return ((Coord(i),) for i in 1:size(A, Coord))
+    return (Coord(i) for i in 1:size(A, Coord))
 end
 
 
@@ -140,34 +140,54 @@ Aggregate `A` using function `f` (e.g. `mean`) over all available space (i.e.
 longitude and latitude) of `A`, weighting every part of `A` by its spatial area.
 The function works for grid as well as equal area space.
 
-`w` can be extra weights, to weight each spatial point with. They can either be
-just an `AbDimArray` with same space as `A`, or the can be of exactly same shape as `A`.
+`w` can be extra weights, to weight each spatial point with. `w` can either be
+just an `AbDimArray` with same space dimensions as `A`, or of exactly same shape as `A`.
 """
 spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
-function spaceagg(::Grid, f, A, exw=nothing)
-    # This assumes that lon is first dim and lat is second dim.
-    w = repeat(cosd.(Array(dims(A, Lat)))', length(dims(A, Lon)))
-    # TODO: Extend this for abitrary matching weights.
-    # We can use matching dims...?
-    if hasdim(A, Time)
-        r = zeros(length(dims(A, Time)))
-        for i in 1:length(r)
-            # The following codeblocks assume that `exw` can either have LonLat or LonLatTime
-            if !isnothing(exw) && hasdim(exw, Time)
-                w = w .* exw[Time(i)]
-            elseif !isnothing(exw)
-                w = w .* Array(exw)
-            end
-            r[i] = f(Array(view(A, Time(i))), pweights(w))
-        end
-        return DimensionalArray(r, (dims(A, Time),))
-    else
-        # TODO: We need code that also works if both `w` and `A` contain Time.
-        if !isnothing(exw)
-            w = w .* Array(exw)
-        end
-        return f(Array(A), pweights(w))
+function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
+    wtype = spaceweightassert(A, w)
+    cosweights = repeat(cosd.(dims(A, Lat).val)', size(A, Lon))
+    # in case Lat precedes Lon, transpose cosine weights
+    dimindex(A, Lat) < dimindex(A, Lon) && (cosweights = cosweights')
+    other = otherdims(A, (Lon, Lat))
+    n = A.name == "" ? "" : A.name*", spatially aggregated with $(string(f))"
+    R = ClimArray(zeros(eltype(A), size.(Ref(A), other)), other, n)
+    # pre-calculate weights if possible
+    if wtype == :no
+        W = weights(cosweights)
+    elseif wtype == :d2
+        W = weights(cosweights .* Array(w))
     end
+    # if A is only 2-dimensional, operation is trivial and single number
+    if ndims(A) == 2
+        return f(A, W)
+    end
+    # do the weighted average
+    for i in otheridxs(A, (Lon, Lat))
+        if wtype != :dany
+            R[i] = f(view(A, i), W)
+        else
+            W = weights(view(w, i) .* cosweights)
+            R[i] = f(view(A, i), W)
+        end
+    end
+    return R
+end
+
+function spaceweightassert(A, w)
+    if !isnothing(w)
+        wdims = dims(w)
+        if length(wdims) == 2
+            @assert wdims == dims(A, (Lon, Lat))
+            wtype = :d2
+        else
+            @assert wdims == dims(A)
+            wtype = :dany
+        end
+    else
+        wtype = :no
+    end
+    return wtype
 end
 
 spaceagg(::EqArea, f, A, ::Nothing) = dropagg(f, A, Coord)

@@ -76,6 +76,11 @@ DimensionalData.rebuild(A::ClimArray, data::Any, dims::Tuple=dims(A), refdims=Di
 name="", attrib=nothing) = ClimArray(data, dims, refdims, name, attrib)
 DimensionalData.basetypeof(::ClimArray) = ClimArray
 
+# The following basic methods allow indexing with tuples, (Time(5), Lon(3))
+Base.getindex(A::ClimArray, i::Tuple) = A[i...]
+Base.setindex!(A::ClimArray, x, i::Tuple) = setindex!(A, x, i...)
+Base.view(A::ClimArray, i::Tuple) = view(A, i...)
+
 # Remove reference dims from printing, and show attributes if any
 function Base.show(io::IO, A::ClimArray)
     l = nameof(typeof(A))

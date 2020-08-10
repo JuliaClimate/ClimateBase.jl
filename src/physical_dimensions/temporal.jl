@@ -149,19 +149,21 @@ function timeagg(f, A::AbDimArray, w = nothing)
         @view _w[Time(1:mys)]
     end
     other = otherdims(A, Time)
-    # TODO: y is probably type unstable
-    n = A.name == "" ? "" : A.name*" (temporal mean)"
-    y = ClimArray(zeros(eltype(A), size.(Ref(A), other)), other, n)
+    # TODO: R is probably type unstable
+    n = A.name == "" ? "" : A.name*" (temporally aggregated with $(string(f)))"
+    R = ClimArray(zeros(eltype(A), size.(Ref(A), other)), other, n)
     _A = @view A[Time(1:mys)]
     !(w isa AbDimArray) && (fw = weights(view(W, 1:mys)))
-    for i in otheridxs(A, Time) # TODO: This is not performant (type-instability of otheridxs)
+    # TODO: This is not performant (type-instability of otheridxs)
+    # (but a simple function barrier could solve this)
+    for i in otheridxs(A, Time)
         if w isa AbDimArray
-            y[i...] = f(view(_A, i...), weights(view(W, i...)))
+            R[i] = f(view(_A, i), weights(view(W, i)))
         else
-            y[i...] = f(view(_A, i...), fw)
+            R[i] = f(view(_A, i), fw)
         end
     end
-    return y
+    return R
 end
 
 function timeagg(f, a::AbDimArray{T, 1}, exw = nothing) where {T} # version with only time dimension
