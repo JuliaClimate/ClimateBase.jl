@@ -9,7 +9,7 @@ using Statistics, StatsBase
 export spatialidxs
 
 """
-    spatialidxs(A::DimensionalArray) → idxs
+    spatialidxs(A::ClimArray) → idxs
 Return an iterable that can be used to access all spatial points of `A` with the syntax
 ```julia
 idxs = spatialidxs(A)
@@ -53,16 +53,15 @@ Return the zonal mean of `A`.
 Optionally do the mean for the data in range `r` of the longitude
 (`r` is fed into the dimension so it can be A range or an arbitrary selector).
 
-Works for both grid as well as equal-area spaces.
+Also works for equal area space.
 """
-zonalmean(A::AbDimArray) = dropagg(mean, A, Lon)
-zonalmean(A::AbDimArray, r) = dropagg(mean, A[Lon(r)], Lon)
+zonalmean(A::AbDimArray, args...) = zonalmean(spacestructure(A), A, args...)
+zonalmean(::Grid, A::AbDimArray) = dropagg(mean, A, Lon)
+zonalmean(::Grid, A::AbDimArray, r) = dropagg(mean, A[Lon(r)], Lon)
 
+# Version of arbitrary dims (now assumes only 2, must fix)
 # TODO: Extend this for `A` with more than 2 dimensions
-# possible way is to permute dims so that Lat is first dim, and let the rest dims
-# just be propagated?
-# TODO: This function is extremely specific to the exact structure of Coords, no?
-function zonalmean(A::AbDimArray{T, 2, <:Tuple{<:Coord, <: Time}}) where {T}
+function zonalmean(::EqArea, A::AbDimArray) where {T}
     idxs, lats = uniquelats(A)
     res = zeros(T, length(lats), size(A, 2))
     for (i, r) in enumerate(idxs)
@@ -72,7 +71,7 @@ function zonalmean(A::AbDimArray{T, 2, <:Tuple{<:Coord, <: Time}}) where {T}
     end
     return ClimArray(res, (Lat(lats), dims(A, 2)), label(A))
 end
-function zonalmean(A::AbDimArray{T, 1, <:Tuple{<:Coord}}) where {T}
+function zonalmean(::EqArea, A::AbDimArray{T, 1, <:Tuple{<:Coord}}) where {T}
     idxs, lats = uniquelats(A)
     res = zeros(T, length(lats))
     for (i, r) in enumerate(idxs)
@@ -81,6 +80,11 @@ function zonalmean(A::AbDimArray{T, 1, <:Tuple{<:Coord}}) where {T}
     return ClimArray(res, (Lat(lats),))
 end
 
+"""
+    uniquelats(A::AbDimArray) → idxs, lats
+Find the unique latitudes of `A`. Return the indices (vector of ranges) that each latitude
+in `lats` covers, as well as the latitudes themselves.
+"""
 uniquelats(A::AbDimArray) = uniquelats(dims(A, Coord))
 function uniquelats(c)
     @assert issorted(c, by = x -> x[2])
@@ -101,7 +105,7 @@ end
 
 
 """
-    latmean(A::DimensionalArray [, r])
+    latmean(A::ClimArray [, r])
 Return the latitude-mean `A` (mean across dimension `Lat`).
 Optionally do the mean for the data in range `r` of that dimension.
 
@@ -124,21 +128,20 @@ end
 using StatsBase
 
 """
-    spacemean(A::DimensionalArray, w=nothing)
+    spacemean(A::ClimArray, w=nothing)
 Average given `A` over its spatial coordinates.
 Optionally provide statistical weights in `w`.
 """
 spacemean(A, exw=nothing) = spaceagg(mean, A, exw)
 
 """
-    spaceagg(f, A::DimensionalArray, w = nothing)
-Aggregate array `A` using function `f` (e.g. `mean`) over all available space (i.e.
+    spaceagg(f, A::ClimArray, w = nothing)
+Aggregate `A` using function `f` (e.g. `mean`) over all available space (i.e.
 longitude and latitude) of `A`, weighting every part of `A` by its spatial area.
-The function works for grid space layout as well as equal area.
+The function works for grid as well as equal area space.
 
 `w` can be extra weights, to weight each spatial point with. They can either be
-just an `AbDimArray` with same spatial dimensions as `A`, or the can be of exactly
-same shape as `A`.
+just an `AbDimArray` with same space as `A`, or the can be of exactly same shape as `A`.
 """
 spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
 function spaceagg(::Grid, f, A, exw=nothing)
@@ -167,7 +170,7 @@ function spaceagg(::Grid, f, A, exw=nothing)
     end
 end
 
-spaceagg(::EqArea, f, A) = dropagg(f, A, Coord)
+spaceagg(::EqArea, f, A, ::Nothing) = dropagg(f, A, Coord)
 # I think the best scenario is to modify `dropagg` to take in weights.
 function spaceagg(::EqArea, f, A, exw)
     error("TODO")

@@ -1,6 +1,15 @@
 #=
 Data aggregation of any kind
 =#
+function nomissing(da::AbstractArray{Union{T,Missing},N}) where {T,N}
+    any(ismissing, da) && error("array contains missing values")
+    return Array{T,N}(da)
+end
+nomissing(a::AbstractArray, args...) = a
+function nomissing(da::Array{Union{T,Missing},N}, value) where {T,N}
+    return replace(da, missing => T(value))
+end
+nomissing(da::AbDimArray) = DimensionalData.rebuild(da, nomissing(da.data))
 
 #########################################################################
 # Aggregation of data, dropagg missings, dimensions, etc.
@@ -33,23 +42,6 @@ function collapse(f, A, dim)
 end
 
 dimindex(A, i::Int) = i
-
-function nomissing(da::AbstractArray{Union{T,Missing},N}) where {T,N}
-    any(ismissing, da) && error("array contains missing values")
-    return Array{T,N}(da)
-end
-nomissing(a::AbstractArray, args...) = a
-function nomissing(da::Array{Union{T,Missing},N}, value) where {T,N}
-    return replace(da, missing => T(value))
-end
-
-#########################################################################
-# Extend some DimensionlArray stuff
-#########################################################################
-export otherdims
-
-nomissing(da::AbDimArray) = DimensionalData.rebuild(da, nomissing(da.data))
-
 # this method is necessary because of "reshaping" happening
 # in DimensionalData.jl...
 function dropagg(f, A::AbDimArray, dims)
@@ -63,31 +55,46 @@ function dimindex(A::AbDimArray, Dim)
     return findfirst(x -> x isa Dim, dims(A))
 end
 
-Base.ones(A::AbDimArray) = DimensionalArray(ones(size(A)), dims(A))
+Base.ones(A::AbDimArray) = basetypeof(A)(ones(size(A)), dims(A))
 
 
+#########################################################################
+# Other dimensions
+#########################################################################
+export otherdims
+
+# TODO: otherdims must be made type-stable.
 """
     otherdims(A::ClimArray, Dim)
 Return a tuple of all dimensions of `A` *except* `Dim`.
+`Dim` can also be a tuple of dimensions.
 """
 function otherdims(A::AbDimArray, D)
     x = dims(A)
     n = dimindex(A, D)
     ntuple(i -> i < n ? x[i] : x[i + 1], length(x) - 1)
 end
+function otherdims(A::AbDimArray, D::Tuple)
+    x = DimensionalData.basetypeof.(dims(A))
+    return tuple(setdiff(x, D)...)
+end
 
-
-# TODO: Better name
 """
     otheridxs(A::AbDimArray, Dim)
 Return an iterator of indices, that when used can access all indices of `A` *except* those
-belonging to dimension `Dim`. This has two uses:
+belonging to dimension(s) `Dim`. This has two uses:
 
 (1) You can get all signals of `A` along `Dim`.
 For example, if `A` has dims `(Lon, Lat, Time)` and you can get all timeseries of `A`:
 ```julia
 for i in otheridxs(A, Time)
     x = A[i...] # this is a timeseries (Vector)
+end
+```
+or all time+latitude slices with
+```julia
+for i in otheridxs(A, (Time, Lat))
+    x = A[i...] # matrix of time × latitude
 end
 ```
 

@@ -43,8 +43,12 @@ ncdetails
 
 ## Types of spatial coordinates
 Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array. Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
+This type of space is called "grid". It is assumed throughout that the Longitude dimension precedes the Latitude dimension, and both are measured in **degrees**.
 
-Another type of spatial coordinates is supported, and that is of **equal-area**. There, the spatial dimension is instead given by a single `Vector` of coordinate locations, i.e. 2-element `SVector(longitude, latitude)`. Each point in this vector corresponds to a polygon (typically triangle or trapezoid) that covers equal amount of spatial area as any other point.
+Another type of spatial coordinates is supported, and that is of **equal-area**. There, the spatial dimension is instead given by a single `Vector` of coordinate locations, i.e. 2-element `SVector(longitude, latitude)`.
+Each point in this vector corresponds to a polygon (typically triangle or trapezoid) that covers equal amount of spatial area as any other point.
+The actual limits of each polygon are not included in the dimension.
+Physically inspired averaging functions, like [`spacemean`](@ref) below, work for both types of spatial coordinates.
 
 **TODO: Finish this section.**
 
