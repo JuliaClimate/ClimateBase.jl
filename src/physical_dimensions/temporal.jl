@@ -16,7 +16,7 @@ millisecond2month(t) = Month(round(Int, t.value / 1000 / 60 / 60 / 24 / 30))
 daymonth(t) = day(t), month(t)
 
 maxyearspan(A::AbDimArray, tsamp = temporal_sampling(A)) =
-maxyearspan(dims(A, Tme).val, tsamp)
+maxyearspan(dims(A, Time).val, tsamp)
 
 """
     maxyearspan(t::AbstractVector) → i
@@ -95,10 +95,9 @@ Return the temporal sampling type of `x`, which is either an array of `Date`s or
 a dimensional array (with `Time` dimension). Possible return values are:
 - `:yearly`
 - `:monthly`
-- `:daily`
 - `:else`
-where `:else` covers the cases of either irregular sampling or sampling denser than
-daily. This function is used to perform proper temporal averages.
+where `:else` covers the cases of either irregular sampling or daily (or even shorter)
+sampling. This function is used to perform proper temporal averages.
 """
 temporal_sampling(a::AbDimArray) = temporal_sampling(Array(dims(a, Time)))
 function temporal_sampling(t)
@@ -135,7 +134,7 @@ array of same dimensional layout as `A` (a weight for each data point).
 Same as above, but for arbitrary vector `a` accompanied by time vector `t`.
 """
 function timeagg(f, A::AbDimArray, w = nothing)
-    t = dims(A, Tme).val
+    t = dims(A, Time).val
     w isa AbDimArray && @assert dims(w) == dims(A)
     w isa Vector && @assert length(w) == length(t)
     tsamp = temporal_sampling(t)

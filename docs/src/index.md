@@ -7,13 +7,20 @@ DimensionalData.jl allows truly convenient handling of climate data, where it is
 ```@example
 using ClimateBase, Dates
 Time = ClimateBase.Ti # more intuitive
-ts = DateTime(2001,1):Month(1):DateTime(2001,12)
-lons = 0:90
-A = ClimArray(rand(12, 91), (Time(ts), Lon(lons)))
-A[Lon(Between(0, 30)), Time(At(DateTime(2001,5)))]
+lats = -90:5:90
+lons = 0:10:359
+t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
+dimensions = (Lon(lons), Lat(lats), Time(t))
+A = ClimArray(rand(36, 37, 241), dimensions)
+B = A[Lon(Between(0, 30)), Time(At(Date(2011,5,15)))]
 ```
+and use convenience, physically-inspired functions that do automatic (and correct) statistical weighting, like
+```@example
+C = latmean(B)
+```
+where in this averaging process each data point is weighted by the cosine of its latitude.
 
-**Notice: at the moment the entirety of this package relies on doing operations in-memory. In the future, doing operations on-disk is planned.**
+**Notice: at the moment the entirety of this package relies on doing operations in-memory. In the future, doing operations from-disk is planned.**
 
 ## Making a `ClimArray`
 You can create a `ClimArray` yourself, or you can load data from an `.nc` file with CF-conventions, using `ClimArray`:
@@ -65,6 +72,7 @@ The physical averages of the previous section are done by taking advantage of a 
 dropagg
 collapse
 ```
+
 ### Statistical weighting
 Functons like `timemean` and `spacemean` perform statistically-proper averaging by weighting each data point by its length in time or by the cosine of its latitude.
 Functional versions that can explicitly take *extra* weights (e.g. if you want to weight your data with e.g. the ice area fraction) are provided:
