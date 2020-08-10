@@ -21,7 +21,7 @@ function seasonal_decomposition(t, A::AbDimArray, fs::Vector)
 
     # TODO: Fix this to use "real time"
     truetime = Float32.(cumsum(daysinmonth.(t)))
-    for i in alongdimidxs(T, Time)
+    for i in otheridxs(T, Time)
         y = Array(A[i...])
         sea, res = SignalDecomposition.decompose(truetime, y, method)
         seasonal[i...] .= sea

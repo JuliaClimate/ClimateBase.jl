@@ -25,7 +25,7 @@ function sinusoidal_continuation(T, frequencies = [1.0, 2.0]; Tmin = -Inf, Tmax 
     fullT = copy(T)
     # TODO: this must be extended to a general "true time" function
     truetime = Float32.(cumsum(daysinmonth.(dims(T, Time))))
-    for i in alongdimidxs(T, Time)
+    for i in otheridxs(T, Time)
         x = T[i...]
         any(ismissing, x) || continue # this space needs no correction
         mi = findall(!ismissing, x)

@@ -65,15 +65,12 @@ bundled with an extra `attrib` field (typically a dictionary) that holds general
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
 ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
 
-rebuild(A::ClimArray, data, dims::Tuple, refdims, name, attrib = A.attrib) =
-ClimArray(data, dims, refdims, name, attrib)
-
 Base.parent(A::ClimArray) = A.data
 Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
     setindex!(A.data, x, I...)
 
 DimensionalData.metadata(A::ClimArray) = A.attrib
-DimensionalData.rebuild(A::ClimArray, data, dims::Tuple=dims(A), refdims=DimensionalData.refdims(A),
+DimensionalData.rebuild(A::ClimArray, data::Any, dims::Tuple=dims(A), refdims=DimensionalData.refdims(A),
 name="", attrib=nothing) = ClimArray(data, dims, refdims, name, attrib)
 DimensionalData.basetypeof(::ClimArray) = ClimArray
 

@@ -147,7 +147,8 @@ function timeagg(f, a::AbDimArray, exw = nothing)
             y[i...] = f(view(Array(a), i..., 1:mys), w)
         end
     end
-    DimensionalArray(y, Base.front(dims(a)), a.name)
+    # TODO: Here I assume time dimension is last, which is terrible
+    ClimArray(y, Base.front(dims(a)), a.name)
 end
 
 function timeagg(f, a::AbDimArray{T, 1}, exw = nothing) where {T} # version with only time dimension

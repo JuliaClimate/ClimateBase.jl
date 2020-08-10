@@ -60,12 +60,17 @@ end
 
 function dimindex(A::AbDimArray, Dim)
     @assert hasdim(A, Dim)
-    return findfirst(x -> typeof(x) <: Dim, dims(A))
+    return findfirst(x -> x isa Dim, dims(A))
 end
 
 Base.ones(A::AbDimArray) = DimensionalArray(ones(size(A)), dims(A))
 
-function otherdims(A, D)
+
+"""
+    otherdims(A::ClimArray, Dim)
+Return a tuple of all dimensions of `A` *except* `Dim`.
+"""
+function otherdims(A::AbDimArray, D)
     x = dims(A)
     n = dimindex(A, D)
     ntuple(i -> i < n ? x[i] : x[i + 1], length(x) - 1)
@@ -74,26 +79,28 @@ end
 
 # TODO: Better name
 """
-    alongdimidxs(A::AbDimArray, D)
-Return an iterator of indices, that when used to access `A` will provide the variation of
-`A` along the given dimension `D`, for every other value of the remaining dimensions.
+    otheridxs(A::AbDimArray, Dim)
+Return an iterator of indices, that when used can access all indices of `A` *except* those
+belonging to dimension `Dim`. This has two uses:
 
-For example, if `A` has dims `(Lon, Lat, Time)` and you can get all timeseries of `A`
-for every possible location doing
+(1) You can get all signals of `A` along `Dim`.
+For example, if `A` has dims `(Lon, Lat, Time)` and you can get all timeseries of `A`:
 ```julia
-for i in alongdimidxs(A, Time)
+for i in otheridxs(A, Time)
     x = A[i...] # this is a timeseries (Vector)
 end
 ```
+
+(2) To do statistical weighting of a specific dimension, which drops that dimension.
 """
-function alongdimidxs(A, D)
+function otheridxs(A, D)
     z = otherdims(A, D)
     az = DimensionalData.basetypeof.(z)
     iters = [(Dim(i) for i in 1:size(A, Dim)) for Dim in az]
     return Iterators.product(iters...)
 end
 
-export alongdimidxs
+export otheridxs
 
 #########################################################################
 # Dimensionwise

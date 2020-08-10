@@ -35,20 +35,22 @@ B = ClimArray(B, d; name = "lon constant")
 
 @testset "Dropping dimensions" begin
     dt = timemean(A)
-    # @test dt isa ClimArray
+    @test dt isa ClimArray
     @test !hasdim(dt, Time)
     @test hasdim(dt, Lon)
+    @test hasdim(dt, Lat)
     dl = zonalmean(A)
-    # @test dl isa ClimArray
+    @test dl isa ClimArray
     @test !hasdim(dl, Lon)
     @test hasdim(dl, Time)
+    @test hasdim(dl, Lat)
     da = latmean(A)
-    # @test da isa ClimArray
+    @test da isa ClimArray
     @test !hasdim(da, Lat)
     @test hasdim(da, Lon)
     @test hasdim(da, Time)
     ds = spacemean(A)
-    # @test ds isa ClimArray
+    @test ds isa ClimArray
     @test !hasdim(ds, Lon)
     @test !hasdim(ds, Lat)
     @test hasdim(ds, Time)
