@@ -33,6 +33,8 @@ end
 A = ClimArray(A, d; name = "lon variation")
 B = ClimArray(B, d; name = "lon constant")
 
+# %%
+
 @testset "Dropping dimensions" begin
     dt = timemean(A)
     @test dt isa ClimArray
@@ -56,12 +58,30 @@ B = ClimArray(B, d; name = "lon constant")
     @test hasdim(ds, Time)
 end
 
-@testset "Proper physical weights" begin
-    x = spacemean(B)
+@testset "Default physical weights" begin
+    x, y = hemispheric_means(B)
     @test timemean(x) != dropagg(mean, x, Time)
+    d1 = timemean(x) - timemean(y)
+    @test abs(d1) < 0.01
+    d2 = dropagg(mean, x, Time) - dropagg(mean, y, Time)
+    @test d2 < -0.1
     x = B[:, :, 1]
     @test zonalmean(latmean(x)) ≈ latmean(zonalmean(x)) ≈ spacemean(x)
-    @test spacemean(x) - mean(x) > 50
+    @test spacemean(B) - mean(B) > 50
+end
+
+@testset "Temporal weighting" begin
+    # spatiotemporal weights:
+    W = zero(A)
+    W[Time(5)] .= 1.0
+    res = timeagg(mean, A, W)
+    @test all(res .≈ A[Time(5)])
+
+    # just time weight
+    w = zeros(length(t))
+    w[5] = 1.0
+    res = timeagg(mean, A, w)
+    @test all(res .≈ A[Time(5)])
 end
 
 @testset "Insolation/Hemispheres" begin

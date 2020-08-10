@@ -64,6 +64,8 @@ bundled with an extra `attrib` field (typically a dictionary) that holds general
 """
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
 ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
+ClimArray(A::AbstractArray, dims::Tuple, name::String; refdims=(), attrib=nothing) =
+ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
 
 Base.parent(A::ClimArray) = A.data
 Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
