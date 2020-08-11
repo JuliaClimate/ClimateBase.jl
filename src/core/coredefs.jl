@@ -15,8 +15,9 @@ export EqArea, Grid, spacestructure, wrap_lon
 @dim Lat IndependentDim "Latitude" "lat"
 @dim Coord IndependentDim "Coordinates (spatial)"
 @dim Hei IndependentDim "Height" "height"
+@dim Pre IndependentDim "Pressure" "pressure"
 
-STANDARD_DIMS = (Lon, Lat, Time, Hei, Coord)
+STANDARD_DIMS = (Lon, Lat, Time, Hei, Pre, Coord)
 
 const COMMONNAMES = Dict(
     "lat" => Lat,
@@ -26,6 +27,7 @@ const COMMONNAMES = Dict(
     "longitude" => Lon,
     "time" => Time,
     "height" => Hei,
+    "pressure" => Pre,
 )
 
 # the trait EqArea is for equal area grids. Functions can use the `spacestructure` and

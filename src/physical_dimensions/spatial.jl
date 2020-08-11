@@ -203,16 +203,6 @@ end
 #########################################################################
 export hemispheric_means, hemispheric_functions
 
-function even_odd_decomp(A)
-    nh, sh = hemispheric_means(A)
-    return (nh .+ sh)/2, (nh .- sh)/2
-end
-
-function even_odd_functions(A)
-    nh, sh = hemispheric_functions(A)
-    return (nh .+ sh)/2, (nh .- sh)/2
-end
-
 """
     hemispheric_functions(A::ClimArray) → north, south
 Return two arrays `north, south`, by splitting `A` to its northern and southern hemispheres,
@@ -228,7 +218,7 @@ function hemispheric_functions(::Grid, A)
     newdims = [dims(sh)...]
     newdims[di] = dims(nh, Lat)
     data = reverse(Array(sh); dims = di)
-    sh = DimensionalArray(data, (newdims...,))
+    sh = ClimArray(data, (newdims...,))
     return nh, sh
 end
 
@@ -245,17 +235,18 @@ function hemispheric_functions(::EqArea, A)
     newdims = Any[dims(sh)...]
     newdims[di] = Coord(newc)
     data = reverse(Array(sh); dims = di)
-    sh = DimensionalArray(data, (newdims...,))
+    sh = ClimArray(data, (newdims...,))
     return nh, sh
 end
 
 """
     hemispheric_means(A) → nh, sh
-Return the (proper) averages of `A` over the north and south hemispheres.
+Return the (proper) averages of `A` over the northern and southern hemispheres.
 Notice that this function explicitly does both zonal as well as meridional averaging.
 Use [`hemispheric_functions`](@ref) to just split `A` into two hemispheres.
 """
-function hemispheric_means(A::AbDimArray)
+hemispheric_means(A) = hemispheric_means(spacestructure(A), A)
+function hemispheric_means(::Grid, A::AbDimArray)
     @assert hasdim(A, Lat)
     if hasdim(A, Lon)
         B = zonalmean(A)
@@ -264,6 +255,13 @@ function hemispheric_means(A::AbDimArray)
     end
     nh = latmean(B[Lat(Between(0,  90))])
     sh = latmean(B[Lat(Between(-90, 0))])
+    return nh, sh
+end
+
+function hemispheric_means(::EqArea, A::AbDimArray)
+    shi, nhi = hemisphere_indices(c)
+    nh = dropagg(mean, A[Coord(nhi)], Coord)
+    sh = dropagg(mean, A[Coord(shi)], Coord)
     return nh, sh
 end
 

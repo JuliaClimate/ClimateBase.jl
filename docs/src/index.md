@@ -1,8 +1,9 @@
 # Introduction
 Basic tools for dealing with climate (spatiotemporal) data.
 
-This project treats "climate data" as a `ClimArray`, which uses the DimensionalData.jl interface and can be thought of as a syntactic equivalent to `DimensionalArray`.
-A (very) brief introduction to DimensionalData.jl is copied here from its docs, because basic knowledge of how to handle a `ClimArray` is assumed in our docs.
+This project treats "climate data" as a `ClimArray`, which uses the DimensionalData.jl interface.
+`ClimArray` is *almost* equivalent to `DimensionalArray`, but has some extra indexing methods that make statistical weighting simpler.
+A (brief) introduction to DimensionalData.jl is copied here from its docs, because basic knowledge of how to handle a `ClimArray` is assumed in our docs.
 DimensionalData.jl allows truly convenient handling of climate data, where it is important to be able to dimensionally-index data by their values. E.g. you can do
 ```@example main
 using ClimateBase, Dates
@@ -20,7 +21,7 @@ C = latmean(B)
 ```
 where in this averaging process each data point is weighted by the cosine of its latitude.
 
-**Notice: at the moment the entirety of this package relies on doing operations in-memory. In the future, doing operations from-disk is planned.**
+**Notice: at the moment the entirety of this package relies on doing operations in-memory. In the future, doing operations from-disk is a possibility.**
 
 ## Making a `ClimArray`
 You can create a `ClimArray` yourself, or you can load data from an `.nc` file with CF-conventions, using `ClimArray`:

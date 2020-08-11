@@ -12,7 +12,7 @@ function monthly_insolation(t::TimeType, args...)
 end
 
 lats = -90:5:90
-lons = 0:10:359
+lons = collect(0.5:10:360)
 t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
 
 d = (Lon(lons), Lat(lats), Time(t))
