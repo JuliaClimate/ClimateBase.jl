@@ -1,7 +1,7 @@
 using DimensionalData
 
 using DimensionalData: @dim, AbDimArray, hasdim, Dimension, IndependentDim
-using DimensionalData: basenameof
+using DimensionalData: basetypeof
 using Dates
 
 Time = DimensionalData.Ti

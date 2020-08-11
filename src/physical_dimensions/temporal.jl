@@ -114,13 +114,13 @@ export timemean, timeagg
     timemean(A::ClimArray [, w]) = timeagg(mean, A, w)
 Temporal average of `A` (with proper weighting).
 """
-timemean(A::ClimArray, w = nothing) = timeagg(mean, a, w)
+timemean(A::ClimArray, w = nothing) = timeagg(mean, A, w)
 
 
 """
     timeagg(f, A::ClimArray, w = nothing)
 Perform a proper temporal aggregation of the function `f` (e.g. `mean, std`)
-on `a` (assuming monthly spaced data) where:
+on `A` (assuming monthly spaced data) where:
 * Only full year spans of `a` are included.
 * Each month in `a` is weighted with its length in days.
 
@@ -151,7 +151,7 @@ function timeagg(f, A::AbDimArray, w = nothing)
     end
     other = otherdims(A, Time)
     # TODO: R is probably type unstable
-    n = A.name == "" ? "" : A.name*" (temporally aggregated with $(string(f)))"
+    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
     R = ClimArray(zeros(eltype(A), size.(Ref(A), other)), other, n)
     _A = @view A[Time(1:mys)]
     !(w isa AbDimArray) && (fw = weights(view(W, 1:mys)))

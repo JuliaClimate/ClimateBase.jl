@@ -4,6 +4,7 @@ using Statistics
 Time = ClimateBase.Time
 
 # TODO: Test `std` function (local fix is not online)
+# TODO: Further test spatial averaging by making one hemisphere 1 and other 0
 
 # Create the artificial dimensional array A that will be used in tests
 function monthly_insolation(t::TimeType, args...)
