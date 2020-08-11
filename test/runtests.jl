@@ -3,7 +3,7 @@ using Statistics
 
 Time = ClimateBase.Time
 
-# TODO: Report to DimemnsionalData.jl that `dropdim` does not retain type.
+# TODO: Test `std` function (local fix is not online)
 
 # Create the artificial dimensional array A that will be used in tests
 function monthly_insolation(t::TimeType, args...)
@@ -76,12 +76,14 @@ end
     W[Time(5)] .= 1.0
     res = timeagg(mean, A, W)
     @test all(res .≈ A[Time(5)])
+    @test dims(A, Lon) == dims(res, Lon)
 
     # just time weight
     w = zeros(length(t))
     w[5] = 1.0
     res = timeagg(mean, A, w)
     @test all(res .≈ A[Time(5)])
+    @test dims(A, Lon) == dims(res, Lon)
 end
 
 @testset "Spatial weighting" begin
@@ -89,12 +91,14 @@ end
     W[Lon(5)] .= 1.0
     res = spaceagg(mean, A, W)
     @test all(res .≈ latmean(A)[Lon(5)])
+    @test dims(A, Time) == dims(res, Time)
 
     W = zeros(length(lons), length(lats))
     W[5, :] .= 1.0
     W = ClimArray(W, dims(A, (Lon, Lat)))
     res = spaceagg(mean, A, W)
     @test all(res .≈ latmean(A)[Lon(5)])
+    @test dims(A, Time) == dims(res, Time)
 end
 
 @testset "Insolation/Hemispheres" begin

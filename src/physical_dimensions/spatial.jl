@@ -128,7 +128,7 @@ end
 using StatsBase
 
 """
-    spacemean(A::ClimArray, w=nothing)
+    spacemean(A::ClimArray [, w]) = spaceagg(mean, A, w)
 Average given `A` over its spatial coordinates.
 Optionally provide statistical weights in `w`.
 """
@@ -151,7 +151,7 @@ function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
     dimindex(A, Lat) < dimindex(A, Lon) && (cosweights = cosweights')
     other = otherdims(A, (Lon, Lat))
     n = A.name == "" ? "" : A.name*", spatially aggregated with $(string(f))"
-    R = ClimArray(zeros(eltype(A), size.(Ref(A), other)), other, n)
+    R = ClimArray(zeros(eltype(A), size.(Ref(A), basenameof.(other)), other, n)
     # pre-calculate weights if possible
     if wtype == :no
         W = weights(cosweights)

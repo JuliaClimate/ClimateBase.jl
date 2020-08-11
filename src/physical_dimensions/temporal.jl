@@ -109,11 +109,12 @@ end
 # temporal statistics
 #########################################################################
 export timemean, timeagg
-# TODO: Make this work for general arrays that do not have time as only
-# final dimension. Probably have a look at the "drop" code form DimensionalData.jl.
 
-"`timemean(a [, w]) = timeagg(mean, a, w)`"
-timemean(a::AbDimArray, w = nothing) = timeagg(mean, a, w)
+"""
+    timemean(A::ClimArray [, w]) = timeagg(mean, A, w)
+Temporal average of `A` (with proper weighting).
+"""
+timemean(A::ClimArray, w = nothing) = timeagg(mean, a, w)
 
 
 """

@@ -73,13 +73,15 @@ Return a tuple of all dimensions of `A` *except* `Dim`.
 `Dim` can also be a tuple of dimensions.
 """
 function otherdims(A::AbDimArray, D)
+    @assert hasdim(A, D)
     x = dims(A)
     n = dimindex(A, D)
     ntuple(i -> i < n ? x[i] : x[i + 1], length(x) - 1)
 end
 function otherdims(A::AbDimArray, D::Tuple)
-    x = DimensionalData.basetypeof.(dims(A))
-    return tuple(setdiff(x, D)...)
+    j = setdiff(1:ndims(A), dimindex.(Ref(A), D))
+    x = dims(A)
+    ntuple(i -> x[j[i]], ndims(A) - length(D))
 end
 
 """
