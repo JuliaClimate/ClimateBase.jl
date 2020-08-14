@@ -151,7 +151,7 @@ function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
     dimindex(A, Lat) < dimindex(A, Lon) && (cosweights = cosweights')
     other = otherdims(A, (Lon, Lat))
     n = A.name == "" ? "" : A.name*", spatially aggregated with $(string(f))"
-    R = ClimArray(zeros(eltype(A), size.(Ref(A), basenameof.(other)), other, n)
+    R = ClimArray(zeros(eltype(A), size.(Ref(A), basetypeof.(other))), other, n)
     # pre-calculate weights if possible
     if wtype == :no
         W = weights(cosweights)
