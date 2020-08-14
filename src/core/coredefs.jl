@@ -10,7 +10,7 @@ export At, Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, AbDimArray, DimensionalArray
 export get_var_as_dimarray
 export Time, Lon, Lat, dims, Coord, Hei, Ti
-export EqArea, Grid, spacestructure, wrap_lon
+export EqArea, Grid, spacestructure
 
 @dim Lon IndependentDim "Longitude" "lon"
 @dim Lat IndependentDim "Latitude" "lat"
@@ -28,6 +28,7 @@ const COMMONNAMES = Dict(
     "longitude" => Lon,
     "time" => Time,
     "height" => Hei,
+    "altitude" => Hei,
     "pressure" => Pre,
 )
 
@@ -46,7 +47,6 @@ function spacestructure(dims)
     end
 end
 
-# ClimArray type
 export ClimArray
 struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,Me} <: AbstractDimensionalArray{T,N,D,A}
     data::A
@@ -58,10 +58,10 @@ end
 ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
 
 """
-    ClimArray(A, dims::Tuple; name = "", attrib = nothing)
+    ClimArray(A::Array, dims::Tuple; name = "", attrib = nothing)
 
-`ClimArray` is a simple wrapper of a standard dimensional array from DimensionalData.jl
-bundled with an extra `attrib` field (typically a dictionary) that holds general attributes.
+`ClimArray` is a standard `DimensionalArray` from DimensionalData.jl
+with an extra `attrib` field (typically a dictionary) that holds general attributes.
 
 `ClimArray` is created by passing in standard array data `A` and a tuple of dimensions `dims`.
 """
