@@ -64,6 +64,18 @@ ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.
 with an extra `attrib` field (typically a dictionary) that holds general attributes.
 
 `ClimArray` is created by passing in standard array data `A` and a tuple of dimensions `dims`.
+
+## Example
+
+```julia
+using ClimateBase, Dates
+Time = ClimateBase.Ti # more intuitive
+lats = -90:5:90
+lons = 0:10:359
+t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
+dimensions = (Lon(lons), Lat(lats), Time(t))
+A = ClimArray(rand(36, 37, 241), dimensions)
+```
 """
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
 ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
