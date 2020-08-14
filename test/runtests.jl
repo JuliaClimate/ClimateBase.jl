@@ -78,6 +78,8 @@ end
     res = timeagg(mean, A, W)
     @test all(res .≈ A[Time(5)])
     @test dims(A, Lon) == dims(res, Lon)
+    res = timeagg(std, A, W)
+    @test all(x -> x > 0, res)
 
     # just time weight
     w = zeros(length(t))
@@ -93,6 +95,8 @@ end
     res = spaceagg(mean, A, W)
     @test all(res .≈ latmean(A)[Lon(5)])
     @test dims(A, Time) == dims(res, Time)
+    res = spaceagg(std, A, W)
+    @test all(x -> x > 0, res)
 
     W = zeros(length(lons), length(lats))
     W[5, :] .= 1.0
