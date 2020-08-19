@@ -89,12 +89,12 @@ function ClimArray(ds::NCDataset, var::String; eqarea = false)
             lonlat = [SVector(lon[i], lat[i]) for i in 1:length(lon)]
             # here we sort lonlat and A in ascending latitude order,
             # because the CDO output has reverse or even totally unsorted order
-            si = sortperm(lonlat, by = x -> x[2])
+            si = sortperm(lonlat, by = reverse)
             data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
             attrib = attrib, name = svar)
         elseif haskey(ds, "reduced_points")
             lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
-            si = sortperm(lonlat, by = x -> x[2])
+            si = sortperm(lonlat, by = reverse)
             time = ds["time"] |> Array
             data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
             name = svar, attrib = attrib)

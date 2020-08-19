@@ -31,19 +31,32 @@ function spatialidxs(::EqArea, A)
     return (Coord(i) for i in 1:size(A, Coord))
 end
 
-
+#########################################################################
+# Periodicity of longitude
+#########################################################################
+export lon_distance, wrap_lon
 """
     wrap_lon(x)
 Wrap given longitude to -180 to 180 degrees.
 """
 wrap_lon(x) = @. -180 + (360 + ((x+180) % 360)) % 360
 
+"""
+    lon_distance(λ1, λ2, Δλ = 360) → δ
+Calculate distance `δ` (also in degrees) between longitudes `λ1, λ2`, but taking into
+account the periodic nature of longitude, which has period 360ᵒ.
+"""
+function lon_distance(x, y, p = eltype(x)(360))
+    moddis = mod(abs(x - y), p)
+    min(moddis, p - moddis)
+end
+
 #########################################################################
 # averaging functions over space or time
 #########################################################################
 using StatsBase
 
-export latmean, spacemean, zonalmean, spaceagg
+export latmean, spacemean, zonalmean, spaceagg, uniquelats
 
 # TODO: Document what it means to be Coord space.
 # We expect that the coordinates are sorted by latitude
@@ -72,7 +85,7 @@ function zonalmean(::EqArea, A::AbDimArray) where {T}
     end
     return ClimArray(res, (Lat(lats), dims(A, 2)), label(A))
 end
-function zonalmean(::EqArea, A::AbDimArray{T, 1, <:Tuple{<:Coord}}) where {T}
+function zonalmean(::EqArea, A::AbDimArray{T, 1}) where {T}
     idxs, lats = uniquelats(A)
     res = zeros(T, length(lats))
     for (i, r) in enumerate(idxs)
