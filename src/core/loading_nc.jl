@@ -52,7 +52,7 @@ into a `ClimArray` which also contains the variable attributes as a dictionary.
 Notice that `file` should be an `NCDataset`, which allows you to lazily combine different
 `.nc` data (typically split by time), e.g.
 ```julia
-alldata = ["toa_fluxes_2020_$(i).nc" for i in 1:12]
+alldata = ["toa_fluxes_2020_\$(i).nc" for i in 1:12]
 file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
@@ -71,6 +71,9 @@ function ClimArray(path::Union{String, Vector{String}}, args...; kwargs...)
     end
 end
 
+# TODO: Allow this function to take as input a tuple of indices, e.g. (:, :, 1:5)
+# and only load this part, and correctly and instantly make it a ClimArray, which
+# can solve "large memory" or "large data" problems.
 function ClimArray(ds::NCDataset, var::String; eqarea = false)
     svar = string(var)
     cfvar = ds[svar]

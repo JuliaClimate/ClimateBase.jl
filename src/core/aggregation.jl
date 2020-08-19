@@ -10,6 +10,7 @@ function nomissing(da::Array{Union{T,Missing},N}, value) where {T,N}
     return replace(da, missing => T(value))
 end
 nomissing(da::AbDimArray) = DimensionalData.rebuild(da, nomissing(da.data))
+nomissing(da::ClimArray) = ClimArray(nomissing(da.data), da.dims, da.refdims, da.name, da.attrib)
 
 #########################################################################
 # Aggregation of data, dropagg missings, dimensions, etc.

@@ -2,7 +2,8 @@
 Functionality regarding spatial coordinates of an array, i.e. Longitude and Lattitude
 as well as equal area grid handling and anything else related to space.
 =#
-using Statistics, StatsBase
+using Statistics, StatsBase, StaticArrays
+export SVector # for equal area grid
 #########################################################################
 # Spatial indexing
 #########################################################################
@@ -82,6 +83,7 @@ end
 
 """
     uniquelats(A::AbDimArray) → idxs, lats
+    uniquelats(c::Vector{<:AbstractVector}) → idxs, lats
 Find the unique latitudes of `A`. Return the indices (vector of ranges) that each latitude
 in `lats` covers, as well as the latitudes themselves.
 """
@@ -90,6 +92,7 @@ function uniquelats(c)
     @assert issorted(c, by = x -> x[2])
     idxs = Vector{UnitRange{Int}}()
     lats = eltype(eltype(c))[]
+    sizehint!(lats, round(Int, sqrt(length(c))))
     iprev = 1
     for i in 2:length(c)
         if c[i][2] != c[i-1][2]
@@ -100,6 +103,7 @@ function uniquelats(c)
     end
     push!(lats, c[end][2])
     push!(idxs, iprev:length(c))
+    sizehint!(lats, length(lats))
     return idxs, lats
 end
 
@@ -141,7 +145,7 @@ longitude and latitude) of `A`, weighting every part of `A` by its spatial area.
 The function works for grid as well as equal area space.
 
 `w` can be extra weights, to weight each spatial point with. `w` can either be
-just an `AbDimArray` with same space dimensions as `A`, or of exactly same shape as `A`.
+just an `AbDimArray` with same space as `A`, or of exactly same shape as `A`.
 """
 spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
 function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
@@ -167,6 +171,8 @@ function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
         if wtype != :dany
             R[i] = f(view(A, i), W)
         else
+            # TODO: This multiplication .* here assumes that the lon-lat grid is the
+            # first dimension.
             W = weights(view(w, i) .* cosweights)
             R[i] = f(view(A, i), W)
         end
