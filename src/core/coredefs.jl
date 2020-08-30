@@ -1,13 +1,14 @@
 using DimensionalData
-
-using DimensionalData: @dim, AbDimArray, hasdim, Dimension, IndependentDim
+using DimensionalData: @dim, hasdim, Dimension, IndependentDim
 using DimensionalData: basetypeof
 using Dates
 
 Time = DimensionalData.Ti
 
+AbDimArray = DimensionalData.AbstractDimArray
+
 export At, Between, Near # Selectors from DimensionalArrays.jl
-export hasdim, AbDimArray, DimensionalArray
+export hasdim, DimensionalArray
 export get_var_as_dimarray
 export Time, Lon, Lat, dims, Coord, Hei, Ti
 export EqArea, Grid, spacestructure

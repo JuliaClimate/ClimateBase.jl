@@ -66,45 +66,26 @@ Base.ones(A::AbDimArray) = basetypeof(A)(ones(size(A)), dims(A))
 # Other dimensions
 #########################################################################
 export otherdims
-
-# TODO: otherdims must be made type-stable.
-"""
-    otherdims(A::ClimArray, Dim)
-Return a tuple of all dimensions of `A` *except* `Dim`.
-`Dim` can also be a tuple of dimensions.
-"""
-function otherdims(A::AbDimArray, D)
-    @assert hasdim(A, D)
-    x = dims(A)
-    n = dimindex(A, D)
-    ntuple(i -> i < n ? x[i] : x[i + 1], length(x) - 1)
-end
-function otherdims(A::AbDimArray, D::Tuple)
-    j = setdiff(1:ndims(A), dimindex.(Ref(A), D))
-    x = dims(A)
-    ntuple(i -> x[j[i]], ndims(A) - length(D))
-end
+export otheridxs
 
 """
-    otheridxs(A::AbDimArray, Dim)
+    otheridxs(A::ClimArray, Dim)
 Return an iterator of indices, that when used can access all indices of `A` *except* those
-belonging to dimension(s) `Dim`. This has two uses:
+belonging to dimension(s) `Dim`.
 
-(1) You can get all signals of `A` along `Dim`.
-For example, if `A` has dims `(Lon, Lat, Time)` and you can get all timeseries of `A`:
+For example, if `A` has dims `(Lon, Lat, Time)` you can get all timeseries of `A`:
 ```julia
-for i in otheridxs(A, Time)
-    x = A[i] # this is a timeseries (Vector)
+for i in otheridxs(A, Time())
+    x = A[i...] # this is a timeseries (Vector) for each lon × lat combination
 end
 ```
 or all time+latitude slices with
 ```julia
-for i in otheridxs(A, (Time, Lat))
-    x = A[i] # matrix of time × latitude
+for i in otheridxs(A, (Time(), Lat()))
+    x = A[i...] # matrix of time × latitude slice for each longitude
 end
 ```
-
-(2) To do statistical weighting of a specific dimension, which drops that dimension.
+(notice that splatting `i...` is necessary because `otheridxs` generates tuples)
 """
 function otheridxs(A, D)
     z = otherdims(A, D)
@@ -113,7 +94,9 @@ function otheridxs(A, D)
     return Iterators.product(iters...)
 end
 
-export otheridxs
+# This is the version @rafaqz suggested, but has 2x worse performance...
+# otheridxs(A, D) = map(identity, DimensionalData.dimwise_generators(otherdims(A, D)))
+
 
 #########################################################################
 # Dimensionwise
