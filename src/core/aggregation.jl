@@ -94,7 +94,7 @@ function otheridxs(A, D)
     return Iterators.product(iters...)
 end
 
-# This is the version @rafaqz suggested, but has 2x worse performance...
+# This is the version @rafaqz suggested, but has worse performance...
 # otheridxs(A, D) = map(identity, DimensionalData.dimwise_generators(otherdims(A, D)))
 
 

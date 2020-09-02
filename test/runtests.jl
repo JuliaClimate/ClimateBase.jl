@@ -3,7 +3,6 @@ using Statistics
 
 Time = ClimateBase.Time
 
-# TODO: Test `std` function (local fix is not online)
 # TODO: Further test spatial averaging by making one hemisphere 1 and other 0
 
 # Create the artificial dimensional array A that will be used in tests
@@ -18,7 +17,7 @@ t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
 
 d = (Lon(lons), Lat(lats), Time(t))
 A = zeros([length(x) for x in (lons, lats, t)]...)
-B = zeros([length(x) for x in (lons, lats, t)]...)
+B = copy(A)
 
 # generate solar rad
 for i in 1:length(lats)
@@ -31,8 +30,8 @@ for i in 1:length(lats)
     end
 end
 
-A = ClimArray(A, d; name = "lon variation")
-B = ClimArray(B, d; name = "lon constant")
+A = ClimArray(A, d; name = "lon-variation")
+B = ClimArray(B, d; name = "lon-constant")
 
 # %%
 

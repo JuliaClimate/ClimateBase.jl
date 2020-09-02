@@ -157,10 +157,12 @@ function timeagg(f, A::AbDimArray, w = nothing)
     !(w isa AbDimArray) && (fw = weights(view(W, 1:mys)))
     # TODO: This is not performant (type-instability of otheridxs)
     # (but a simple function barrier could solve this)
-    for i in otheridxs(A, Time)
-        if w isa AbDimArray
-            R[i] = f(view(_A, i), weights(view(W, i)))
-        else
+    if w isa AbDimArray
+        # TODO: perhaps I can even create R here on the spot and then make it a ClimArray!
+        R .= map(i -> f(view(_A, i), weights(view(W, i))), otheridxs(A, Time()))
+        # return ClimArray(R, )
+    else
+        for i in otheridxs(A, Time())
             R[i] = f(view(_A, i), fw)
         end
     end
