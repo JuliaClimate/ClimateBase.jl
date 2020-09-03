@@ -101,6 +101,7 @@ end
 #########################################################################
 # Dimensionwise
 #########################################################################
+#=
 """
     dimwise(f, A, B)
 Apply bivariate function `f` (e.g. multiplication `*`) across the (first) matching dimension
@@ -148,4 +149,5 @@ function find_matching_dim(A::AbstractArray, B::AbstractVector)::Int
     return m
 end
 
+=#
 export dimwise

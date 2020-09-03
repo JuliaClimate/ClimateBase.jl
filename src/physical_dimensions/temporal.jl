@@ -10,7 +10,7 @@ using Statistics, StatsBase
 # TODO: monthlymean funcion
 
 using Dates
-export yearly, maxyearspan, monthspan, daymonth, DAYS_IN_YEAR, monthamount
+export monthday_indices, maxyearspan, monthspan, daymonth, DAYS_IN_YEAR, monthamount
 const DAYS_IN_YEAR = 365.26
 millisecond2month(t) = Month(round(Int, t.value / 1000 / 60 / 60 / 24 / 30))
 daymonth(t) = day(t), month(t)
@@ -34,11 +34,11 @@ end
 
 # TODO: bad name
 """
-    yearly(times, date = times[1])
+    monthday_indices(times, date = times[1])
 Find the indices in `times` (which is a `Vector{Date}`) at which
 the date in `times` gives the same day and month as `date`.
 """
-function yearly(times, date = times[1])
+function monthday_indices(times, date = times[1])
     d1, m1 = daymonth(date)
     a = findall(i -> daymonth(times[i]) == (d1, m1), 1:length(times))
 end
@@ -112,27 +112,27 @@ export timemean, timeagg
 
 """
     timemean(A::ClimArray [, w]) = timeagg(mean, A, w)
-Temporal average of `A` (with proper weighting).
+Temporal average of `A`.
 """
 timemean(A::ClimArray, w = nothing) = timeagg(mean, A, w)
 
 
 """
-    timeagg(f, A::ClimArray, w = nothing)
+    timeagg(f, A::ClimArray, W = nothing)
 Perform a proper temporal aggregation of the function `f` (e.g. `mean, std`)
 on `A` (assuming monthly spaced data) where:
-* Only full year spans of `a` are included.
+* Only full year spans of `A` are included (because most processes are affected by yearly cycle)
 * Each month in `a` is weighted with its length in days.
 
-If you don't want these features, just do [`dropagg`](@ref)`(f, a, Time)`.
+If you don't want these features, just do [`dropagg`](@ref)`(f, A, Time)`.
 
-`w` are possible statistical weights that are used in conjuction to the temporal weighting,
+`W` are possible statistical weights that are used in conjuction to the temporal weighting,
 to weight each time point differently.
 If they are not a vector (a weight for each time point), then they have to be a dimensional
 array of same dimensional layout as `A` (a weight for each data point).
 
     timeagg(f, t::Vector, x::Vector, w = nothing)
-Same as above, but for arbitrary vector `a` accompanied by time vector `t`.
+Same as above, but for arbitrary vector `x` accompanied by time vector `t`.
 """
 function timeagg(f, A::AbDimArray, w = nothing)
     t = dims(A, Time).val
@@ -150,22 +150,15 @@ function timeagg(f, A::AbDimArray, w = nothing)
         @view _w[Time(1:mys)]
     end
     other = otherdims(A, Time)
-    # TODO: R is probably type unstable
-    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
-    R = ClimArray(zeros(eltype(A), size.(Ref(A), other)), other, n)
     _A = @view A[Time(1:mys)]
     !(w isa AbDimArray) && (fw = weights(view(W, 1:mys)))
-    # TODO: This is not performant (type-instability of otheridxs)
-    # (but a simple function barrier could solve this)
     if w isa AbDimArray
-        # TODO: perhaps I can even create R here on the spot and then make it a ClimArray!
-        R .= map(i -> f(view(_A, i), weights(view(W, i))), otheridxs(A, Time()))
-        # return ClimArray(R, )
+        r = map(i -> f(view(_A, i), weights(view(W, i))), otheridxs(A, Time()))
     else
-        for i in otheridxs(A, Time())
-            R[i] = f(view(_A, i), fw)
-        end
+        r = map(i -> f(view(_A, i), fw), otheridxs(A, Time()))
     end
+    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
+    R = ClimArray(r, other, n)
     return R
 end
 

@@ -44,22 +44,19 @@ ncdetails
 
 ## Types of spatial coordinates
 Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array. Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
-This type of space is called "grid". It is assumed throughout that the Longitude dimension precedes the Latitude dimension, and both are measured in **degrees**.
+This type of space is called `Grid`. It is assumed throughout that longitude and latitude are measured in **degrees**.
 
-Another type of spatial coordinates is supported, and that is of **equal-area**.
+Another type of spatial coordinates is supported, and that is of **equal-area**, called `EqArea`.
 There, the spatial dimension is instead given by a single `Vector` of coordinate locations, i.e. 2-element `SVector(longitude, latitude)`. The dimension of this vector is `Coord`.
 Each point in this vector corresponds to a polygon (typically triangle or trapezoid) that covers equal amount of spatial area as any other point.
 The actual limits of each polygon are not included in the dimension.
-Physically inspired averaging functions, like [`spacemean`](@ref) or [`zonalaverage`](@ref), work for both types of spatial coordinates.
-
 Typical examples of such equal area grids are reduced (or thinned) Gaussian grids or icosahedral-based grids.
 
-The function `spatialidxs` returns an iterator over the spatial coordinates of the data, and works for both types (grid or equal-area):
+Within ClimateBase.jl aims to work with either type of spatial coordinate system. Therefore, physically inspired averaging functions, like [`spacemean`](@ref) or [`zonalaverage`](@ref), work for both types of spatial coordinates.
+In addition, the function `spatialidxs` returns an iterator over the spatial coordinates of the data, and works for both types (grid or equal-area):
 ```@docs
 spatialidxs
 ```
-
-**TODO: Add an example of equal area grid**
 
 ## Physical averages
 ```@docs

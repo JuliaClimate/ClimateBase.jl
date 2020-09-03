@@ -58,7 +58,8 @@ If there are no missing values in the data (according to CF standards), the
 returned array is automatically converted to a concrete type (i.e. `Union{Float32, Missing}`
 becomes `Float32`).
 
-At the moment, support for auto-loading equal area space types does not exist, but
+At the moment, support for auto-loading equal area space types does not exist,
+see [Types of spatial coordinates](@ref). But
 you can easily transform them yourself into a `ClimArray` by doing e.g.:
 ```julia
 file = NCDataset("some_file_with_eqarea.nc")
