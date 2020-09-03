@@ -15,7 +15,7 @@ dimensions = (Lon(lons), Lat(lats), Time(t))
 A = ClimArray(rand(36, 37, 241), dimensions)
 ```
 and
-```
+```@example main
 B = A[Lon(Between(0, 30)), Time(At(Date(2011,5,15)))]
 ```
 and use convenience, physically-inspired functions that do automatic (and correct) statistical weighting, like
