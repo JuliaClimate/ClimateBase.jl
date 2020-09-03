@@ -68,6 +68,7 @@ end
     x = B[:, :, 1]
     @test zonalmean(latmean(x)) ≈ latmean(zonalmean(x)) ≈ spacemean(x)
     @test spacemean(x) - mean(x) > 50
+    @test all(y -> abs(y) < 1e-8, spacemean(A))
 end
 
 @testset "Temporal weighting" begin

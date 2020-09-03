@@ -131,7 +131,11 @@ This function properly weights the mean by the cosine of the latitude.
 function latmean(A::AbDimArray, r = 1:size(A, Lat))
     A = A[Lat(r)]
     lw = _latweights(A)
-    dropagg(sum, dimwise(*, A, lw), Lat)
+    if ndims(A) > 1
+        return dropagg(sum, dimwise(*, A, lw), Lat)
+    else
+        return sum(A .* lw)
+    end
 end
 # Warning!!! `_latweights` divides by the weight sum, because it is intended to be
 # used only with the `sum` function (for A)
@@ -164,11 +168,9 @@ spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
 function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
     wtype = spaceweightassert(A, w)
     cosweights = repeat(cosd.(dims(A, Lat).val)', size(A, Lon))
-    # in case Lat precedes Lon, transpose cosine weights
-    dimindex(A, Lat) < dimindex(A, Lon) && (cosweights = cosweights')
+    # TODO: Extends so that this assertion is not necessary:
+    @assert dimindex(A, Lon) < dimindex(A, Lat) "longitude must precede latitude"
     other = otherdims(A, (Lon, Lat))
-    n = A.name == "" ? "" : A.name*", spatially aggregated with $(string(f))"
-    R = ClimArray(zeros(eltype(A), size.(Ref(A), basetypeof.(other))), other, n)
     # pre-calculate weights if possible
     if wtype == :no
         W = weights(cosweights)
@@ -180,17 +182,16 @@ function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
         return f(A, W)
     end
     # do the weighted average
-    for i in otheridxs(A, (Lon, Lat))
-        if wtype != :dany
-            R[i] = f(view(A, i), W)
-        else
-            # TODO: This multiplication .* here assumes that the lon-lat grid is the
-            # first dimension.
-            W = weights(view(w, i) .* cosweights)
-            R[i] = f(view(A, i), W)
-        end
+    oidxs = otheridxs(A, (Lon(), Lat()))
+    if wtype != :dany
+        r = map(i -> f(view(A, i), W), oidxs)
+    else
+        # TODO: This multiplication .* here assumes that the lon-lat grid is the
+        # first dimension.
+        r = map(i -> f(view(A, i), weights(view(w, i) .* cosweights)), oidxs)
     end
-    return R
+    n = A.name == "" ? "" : A.name*", spatially aggregated with $(string(f))"
+    return ClimArray(r, other, n)
 end
 
 function spaceweightassert(A, w)
