@@ -13,6 +13,9 @@ lons = 0:10:359
 t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
 dimensions = (Lon(lons), Lat(lats), Time(t))
 A = ClimArray(rand(36, 37, 241), dimensions)
+```
+and
+```
 B = A[Lon(Between(0, 30)), Time(At(Date(2011,5,15)))]
 ```
 and use convenience, physically-inspired functions that do automatic (and correct) statistical weighting, like

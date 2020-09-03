@@ -15,10 +15,10 @@ Return an iterable that can be used to access all spatial points of `A` with the
 ```julia
 idxs = spatialidxs(A)
 for i in idxs
-    slice_at_give_space_point = A[i]
+    slice_at_give_space_point = A[i...]
 end
 ```
-Works for standard grid as well as equal area.
+Works for standard grid as well as equal area (`...` necessary because `i` is a `Tuple`).
 """
 spatialidxs(A::AbDimArray) = spatialidxs(spacestructure(A), A)
 function spatialidxs(::Grid, A)
@@ -28,7 +28,7 @@ function spatialidxs(::Grid, A)
 end
 
 function spatialidxs(::EqArea, A)
-    return (Coord(i) for i in 1:size(A, Coord))
+    return ((Coord(i),) for i in 1:size(A, Coord))
 end
 
 #########################################################################
@@ -62,28 +62,28 @@ export latmean, spacemean, zonalmean, spaceagg, uniquelats
 # We expect that the coordinates are sorted by latitude
 
 """
-    zonalmean(A::ClimArray [, r])
+    zonalmean(A::ClimArray)
 Return the zonal mean of `A`.
 Optionally do the mean for the data in range `r` of the longitude
 (`r` is fed into the dimension so it can be A range or an arbitrary selector).
 
-Also works for equal area space.
+Works for both grid and equal area space.
 """
 zonalmean(A::AbDimArray, args...) = zonalmean(spacestructure(A), A, args...)
 zonalmean(::Grid, A::AbDimArray) = dropagg(mean, A, Lon)
-zonalmean(::Grid, A::AbDimArray, r) = dropagg(mean, A[Lon(r)], Lon)
 
-# Version of arbitrary dims (now assumes only 2, must fix)
-# TODO: Extend this for `A` with more than 2 dimensions
 function zonalmean(::EqArea, A::AbDimArray) where {T}
     idxs, lats = uniquelats(A)
-    res = zeros(T, length(lats), size(A, 2))
+    other = otherdims(A, Coord())
+    n = A.name == "" ? "" : A.name*", zonally averaged"
+    r = zeros(eltype(A), (length(lats), size.(Ref(A), other)...), other)
+    R = ClimArray(r, (Lat(lats), other...), n)
     for (i, r) in enumerate(idxs)
-        for j in 1:size(A, 2)
-            res[i, j] = mean(view(A.data, r, j))
+        for j in otheridxs(A, Coord())
+            R[Lat(i), j...] = mean(view(A, Coord(r), j...))
         end
     end
-    return ClimArray(res, (Lat(lats), dims(A, 2)), label(A))
+    return R
 end
 function zonalmean(::EqArea, A::AbDimArray{T, 1}) where {T}
     idxs, lats = uniquelats(A)
