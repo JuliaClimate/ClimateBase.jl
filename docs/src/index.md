@@ -21,7 +21,7 @@ C = latmean(B)
 ```
 where in this averaging process each data point is weighted by the cosine of its latitude.
 
-**Notice: at the moment the entirety of this package relies on doing operations in-memory. In the future, doing operations from-disk is a possibility.**
+**Notice: at the moment this package relies on doing operations in-memory. In the future, doing operations from-disk is a possibility.**
 
 ## Making a `ClimArray`
 You can create a `ClimArray` yourself, or you can load data from an `.nc` file with CF-conventions, using `ClimArray`:

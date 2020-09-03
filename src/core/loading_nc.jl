@@ -19,10 +19,6 @@ function create_dims(ds::NCDataset, dnames)
     return dim_values .|> true_dims
 end
 
-function globalattributes(file::String)
-    # TODO
-end
-
 """
     nckeys(file::String)
 Return all keys of the `.nc` file in `file`.
@@ -45,7 +41,7 @@ function ncdetails(file::String, io = stdout)
 end
 
 """
-    ClimArray(file::NCDataset, var::String; eqarea = false)) -> A
+    ClimArray(file::NCDataset, var::String) -> A
 Load the variable `var` from the `file` and convert it
 into a `ClimArray` which also contains the variable attributes as a dictionary.
 
@@ -62,7 +58,18 @@ If there are no missing values in the data (according to CF standards), the
 returned array is automatically converted to a concrete type (i.e. `Union{Float32, Missing}`
 becomes `Float32`).
 
-Keyword `eqarea` denotes if the underlying grid is lon-lat or equal area.
+At the moment, support for auto-loading equal area space types does not exist, but
+you can easily transform them yourself into a `ClimArray` by doing e.g.:
+```julia
+file = NCDataset("some_file_with_eqarea.nc")
+lons = file["lon"]
+lats = file["lat"]
+coords = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+t = file["time"]
+dimensions = (Coord(coords), Time(t))
+data = file["actual_data_like_radiation"]
+A = ClimArray(data, dimensions)
+```
 """
 function ClimArray(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
