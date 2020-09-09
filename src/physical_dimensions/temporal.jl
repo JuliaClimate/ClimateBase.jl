@@ -207,7 +207,7 @@ function monthlymean(A::ClimArray)
     n = A.name == "" ? "" : A.name*", monthly averaged"
     B = ClimArray(zeros(eltype(A), length.(other)..., length(t)), (other..., Time(t)), n)
     for i in 1:length(tranges)
-        B[Time(i)] .= dropagg(mean, A[Time(tranges[i])], Time)
+        B[Time(i)] .= dropagg(mean, view(A, Time(tranges[i])), Time)
     end
     return B
 end
