@@ -186,3 +186,49 @@ function temporal_weights(t, tsamp = temporal_sampling(t))
     end
     return w
 end
+
+#########################################################################
+# Monthly/yearly/daily means
+#########################################################################
+export monthlymean, temporalrange
+
+"""
+    monthlymean(A::ClimArray) -> B
+Create a new array where the temporal daily information has been aggregated to months.
+By convention, the dates of the new array always have day number of `15`.
+"""
+function monthlymean(A::ClimArray)
+    t0 = dims(A, Time) |> Array
+    finaldate = Date(year(t0[end]), month(t0[end]), 16)
+    startdate = Date(year(t0[1]), month(t0[1]), 15)
+    t = startdate:Month(1):finaldate
+    tranges = temporalrange(t0, Dates.month)
+    other = otherdims(A, Time)
+    n = A.name == "" ? "" : A.name*", monthly averaged"
+    B = ClimArray(zeros(eltype(A), length.(other)..., length(t)), (other..., Time(t)), n)
+    for i in 1:length(tranges)
+        B[Time(i)] .= dropagg(mean, A[Time(tranges[i])], Time)
+    end
+    return B
+end
+
+"""
+    temporalrange(t::AbstractVector{<:TimeType}}, f = Dates.month) → r
+Return a vector of ranges so that each range of indices are values of `t` that
+belong in either the same month, year, or day, depending on `f`.
+`f` can take the values: `Dates.year, Dates.month, Dates.day` (functions).
+"""
+function temporalrange(t::AbstractArray{<:TimeType}, f = Dates.month)
+    @assert issorted(t) "Sorted time required."
+    L = length(t)
+    r = Vector{UnitRange{Int}}()
+    i, x = 1, f(t[1]) # previous entries
+    for j in 2:L
+        y = f(t[j])
+        x == y && continue
+        push!(r, i:(j-1))
+        i, x = j, y
+    end
+    push!(r, i:L) # final range not included in for loop
+    return r
+end

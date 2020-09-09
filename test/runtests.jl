@@ -14,6 +14,7 @@ end
 lats = -90:5:90
 lons = collect(0.5:10:360)
 t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
+tdense = Date(2000, 3, 15):Day(1):Date(2020, 3, 15)
 
 d = (Lon(lons), Lat(lats), Time(t))
 A = zeros([length(x) for x in (lons, lats, t)]...)
@@ -87,6 +88,45 @@ end
     res = timeagg(mean, A, w)
     @test all(res .≈ A[Time(5)])
     @test dims(A, Lon) == dims(res, Lon)
+end
+
+@testset "Advance temporal manipulation" begin
+    tdense = Date(2000, 3, 1):Day(1):Date(2020, 3, 31)
+    mdates = unique!([(year(d), month(d)) for d in tdense])
+    ydates = unique!([year(d) for d in tdense])
+    tranges = temporalrange(tdense, Dates.month)
+    yranges = temporalrange(tdense, Dates.year)
+    @test length(tranges) == length(mdates)
+    @test length(yranges) == length(ydates)
+
+    Bz = zonalmean(B)
+    # Generate an array that has daily insolation
+    C = ClimArray(zeros(length(lats), length(tdense)), (Lat(lats), Time(tdense)))
+
+    # First version: just count number of days
+    for j in 1:length(tdense)
+        for i in 1:length(lats)
+            C[i, j] = daysinmonth(tdense[j]) #1 #insolation(tdense[j], lats[i])
+        end
+    end
+    Cm = monthlymean(C)
+
+    @test length(unique(Array(Cm))) == 4 # there are four unique number of days
+    # test that each value when rounded to an integer is an integer (for first slice only
+    # all remaining slices are the same)
+    for e in Cm[:, 1]
+        @test round(Int, e) == e
+    end
+
+
+    # Second version: test actual physics
+    for j in 1:length(tdense)
+        for i in 1:length(lats)
+            C[i, j] = insolation(tdense[j], lats[i])
+        end
+    end
+    Cm = monthlymean(C)
+    @test all(Cm .≈ Bz)
 end
 
 @testset "Spatial weighting" begin
