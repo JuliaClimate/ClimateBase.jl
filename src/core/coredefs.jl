@@ -99,6 +99,16 @@ Base.view(A::ClimArray, i::Tuple) = view(A, i...)
 
 # Remove reference dims from printing, and show attributes if any
 function Base.show(io::IO, A::ClimArray)
+    summary(io, A)
+    print(io, "and")
+    printstyled(io, " data: "; color=:green)
+    dataA = data(A)
+    print(io, summary(dataA), "\n")
+    DimensionalData.custom_show(io, data(A))
+end
+
+# Define summary
+function Base.summary(io::IO, A::ClimArray)
     l = nameof(typeof(A))
     printstyled(io, nameof(typeof(A)); color=:blue)
     if A.name != ""
@@ -116,9 +126,4 @@ function Base.show(io::IO, A::ClimArray)
         show(io, MIME"text/plain"(), A.attrib)
         print(io, '\n')
     end
-    print(io, "and")
-    printstyled(io, " data: "; color=:green)
-    dataA = data(A)
-    print(io, summary(dataA), "\n")
-    DimensionalData.custom_show(io, data(A))
 end
