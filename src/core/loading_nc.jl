@@ -10,16 +10,6 @@ export nckeys, ncdetails
 # NCDatasets → DimensionalArray convertions and loading
 #########################################################################
 """
-    create_dims(ds::NCDataset, dnames)
-Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
-"""
-function create_dims(ds::NCDataset, dnames)
-    true_dims = getindex.(Ref(COMMONNAMES), dnames)
-    dim_values = Array.(getindex.(Ref(ds), dnames))
-    return dim_values .|> true_dims
-end
-
-"""
     nckeys(file::String)
 Return all keys of the `.nc` file in `file`.
 """
@@ -82,7 +72,7 @@ end
 # TODO: Allow this function to take as input a tuple of indices, e.g. (:, :, 1:5)
 # and only load this part, and correctly and instantly make it a ClimArray, which
 # can solve "large memory" or "large data" problems.
-function ClimArray(ds::NCDataset, var::String; eqarea = false)
+function ClimArray(ds::NCDatasets.AbstractDataset, var::String; eqarea = false)
     svar = string(var)
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)
@@ -117,6 +107,16 @@ function ClimArray(ds::NCDataset, var::String; eqarea = false)
         data = nomissing(data)
     end
     return data
+end
+
+"""
+    create_dims(ds::NCDatasets.AbstractDataset, dnames)
+Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
+"""
+function create_dims(ds::NCDatasets.AbstractDataset, dnames)
+    true_dims = getindex.(Ref(COMMONNAMES), dnames)
+    dim_values = Array.(getindex.(Ref(ds), dnames))
+    return dim_values .|> true_dims
 end
 
 #########################################################################
