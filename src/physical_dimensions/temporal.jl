@@ -7,7 +7,7 @@ using Statistics, StatsBase
 #########################################################################
 # TODO: Identify monthly, daily, yearly or arbitrary spacing
 # to simplify this identification is done exclusively on first 3 time points
-# TODO: monthlymean funcion
+# TODO: monthlyagg funcion
 
 using Dates
 export monthday_indices, maxyearspan, monthspan, daymonth, DAYS_IN_YEAR, monthamount
@@ -190,15 +190,15 @@ end
 #########################################################################
 # Monthly/yearly/daily means
 #########################################################################
-export monthlymean, temporalrange
+export monthlyagg, temporalrange
 
 """
-    monthlymean(A::ClimArray, f = mean) -> B
+    monthlyagg(A::ClimArray, f = mean) -> B
 Create a new array where the temporal daily information has been aggregated to months
 using the function `f`.
 By convention, the dates of the new array always have day number of `15`.
 """
-function monthlymean(A::ClimArray, f = mean)
+function monthlyagg(A::ClimArray, f = mean)
     t0 = dims(A, Time) |> Array
     finaldate = Date(year(t0[end]), month(t0[end]), 16)
     startdate = Date(year(t0[1]), month(t0[1]), 15)

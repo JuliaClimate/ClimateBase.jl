@@ -109,7 +109,7 @@ end
             C[i, j] = daysinmonth(tdense[j]) #1 #insolation(tdense[j], lats[i])
         end
     end
-    Cm = monthlymean(C)
+    Cm = monthlyagg(C)
 
     @test length(unique(Array(Cm))) == 4 # there are four unique number of days
     # test that each value when rounded to an integer is an integer (for first slice only
@@ -125,7 +125,7 @@ end
             C[i, j] = insolation(tdense[j], lats[i])
         end
     end
-    Cm = monthlymean(C)
+    Cm = monthlyagg(C)
     @test all(Cm .≈ Bz)
 end
 
