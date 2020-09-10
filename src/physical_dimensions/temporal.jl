@@ -193,11 +193,12 @@ end
 export monthlymean, temporalrange
 
 """
-    monthlymean(A::ClimArray) -> B
-Create a new array where the temporal daily information has been aggregated to months.
+    monthlymean(A::ClimArray, f = mean) -> B
+Create a new array where the temporal daily information has been aggregated to months
+using the function `f`.
 By convention, the dates of the new array always have day number of `15`.
 """
-function monthlymean(A::ClimArray)
+function monthlymean(A::ClimArray, f = mean)
     t0 = dims(A, Time) |> Array
     finaldate = Date(year(t0[end]), month(t0[end]), 16)
     startdate = Date(year(t0[1]), month(t0[1]), 15)
@@ -207,7 +208,7 @@ function monthlymean(A::ClimArray)
     n = A.name == "" ? "" : A.name*", monthly averaged"
     B = ClimArray(zeros(eltype(A), length.(other)..., length(t)), (other..., Time(t)), n)
     for i in 1:length(tranges)
-        B[Time(i)] .= dropagg(mean, view(A, Time(tranges[i])), Time)
+        B[Time(i)] .= dropagg(f, view(A, Time(tranges[i])), Time)
     end
     return B
 end
