@@ -61,21 +61,27 @@ ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.
 """
     ClimArray(A::Array, dims::Tuple; name = "", attrib = nothing)
 
-`ClimArray` is a standard `DimensionalArray` from DimensionalData.jl
-with an extra `attrib` field (typically a dictionary) that holds general attributes.
+`ClimArray` is a structure that contains numerical array data bundled with dimensional
+information, a name and an `attrib` field (typically a dictionary) that holds general
+attributes.
+You can think of `ClimArray` as a in-memory representation of a CFVariable.
+
+At the moment, a `ClimArray` is using `DimensionalArray` from DimensionalData.jl, and
+all basic handling of `ClimArray` is offered by [`DimensionalData`](@ref).
 
 `ClimArray` is created by passing in standard array data `A` and a tuple of dimensions `dims`.
 
 ## Example
-
 ```julia
 using ClimateBase, Dates
-Time = ClimateBase.Ti # more intuitive
+Time = ClimateBase.Ti # more intuitive name for time dimension
 lats = -90:5:90
 lons = 0:10:359
 t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
+# dimensional information:
 dimensions = (Lon(lons), Lat(lats), Time(t))
-A = ClimArray(rand(36, 37, 241), dimensions)
+data = rand(36, 37, 241) # numeric data
+A = ClimArray(data, dimensions)
 ```
 """
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =

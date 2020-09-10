@@ -200,8 +200,8 @@ By convention, the dates of the new array always have day number of `15`.
 """
 function monthlyagg(A::ClimArray, f = mean)
     t0 = dims(A, Time) |> Array
-    finaldate = Date(year(t0[end]), month(t0[end]), 16)
     startdate = Date(year(t0[1]), month(t0[1]), 15)
+    finaldate = Date(year(t0[end]), month(t0[end]), 16)
     t = startdate:Month(1):finaldate
     tranges = temporalrange(t0, Dates.month)
     other = otherdims(A, Time)
