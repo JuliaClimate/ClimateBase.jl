@@ -67,7 +67,7 @@ attributes.
 You can think of `ClimArray` as a in-memory representation of a CFVariable.
 
 At the moment, a `ClimArray` is using `DimensionalArray` from DimensionalData.jl, and
-all basic handling of `ClimArray` is offered by [`DimensionalData`](@ref).
+all basic handling of `ClimArray` is offered by `DimensionalData` (see below).
 
 `ClimArray` is created by passing in standard array data `A` and a tuple of dimensions `dims`.
 
