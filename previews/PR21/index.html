@@ -11,37 +11,37 @@ A = ClimArray(rand(36, 37, 241), dimensions)</code></pre><pre class="documenter-
  Time (type Ti): Dates.Date(&quot;2000-03-15&quot;):Dates.Month(1):Dates.Date(&quot;2020-03-15&quot;) (Sampled: Ordered Regular Points)
 and data: 36×37×241 Array{Float64,3}
 [:, :, 1]
- 0.149365   0.743411   0.787822   …  0.847637    0.412028   0.83151
- 0.103457   0.048963   0.582169      0.640385    0.797753   0.965387
- 0.145225   0.365095   0.570975      0.670227    0.791269   0.785646
- 0.0149027  0.653898   0.874525      0.420493    0.602038   0.687443
- 0.811291   0.839102   0.232513      0.636503    0.0875792  0.844763
- 0.373758   0.859848   0.562499   …  0.0751512   0.319605   0.626488
- 0.339781   0.641781   0.140076      0.341584    0.271429   0.0452297
- 0.74502    0.83996    0.139858      0.746108    0.563042   0.335674
- 0.0937823  0.057264   0.909354      0.508837    0.937994   0.583519
- 0.0723809  0.0760619  0.963584      0.324624    0.562242   0.174573
- ⋮                                ⋱              ⋮          
- 0.716301   0.670767   0.986317      0.185986    0.576146   0.501245
- 0.421427   0.785993   0.440303      0.0589947   0.779432   0.184288
- 0.84375    0.620093   0.125338      0.991281    0.703436   0.505126
- 0.145717   0.277184   0.125759   …  0.630427    0.0397814  0.350473
- 0.283303   0.786442   0.465662      0.51492     0.542091   0.578869
- 0.674792   0.504214   0.0468349     0.0593013   0.92406    0.782457
- 0.656617   0.0150389  0.674948      0.00215637  0.18221    0.414873
- 0.300288   0.596077   0.0967249     0.449589    0.816071   0.773365
- 0.17995    0.195107   0.606704   …  0.979163    0.826154   0.552527
+ 0.341199   0.178722   0.474645  0.467428  …  0.225152   0.910743   0.333897
+ 0.87583    0.254103   0.913664  0.112527     0.163299   0.749083   0.624487
+ 0.343879   0.220708   0.871683  0.786613     0.137041   0.779371   0.596814
+ 0.960287   0.403332   0.515995  0.815036     0.417984   0.934628   0.773373
+ 0.509918   0.0802095  0.631586  0.437128     0.782581   0.433895   0.168511
+ 0.19559    0.974304   0.191994  0.962042  …  0.272449   0.230226   0.245127
+ 0.758433   0.982068   0.557458  0.687491     0.861819   0.633568   0.255688
+ 0.724579   0.529365   0.365183  0.109396     0.0928932  0.35802    0.335705
+ 0.307596   0.819901   0.258291  0.694196     0.367111   0.651573   0.146001
+ 0.729246   0.459092   0.470939  0.976182     0.915654   0.180594   0.189151
+ ⋮                                         ⋱             ⋮          
+ 0.775663   0.770818   0.84878   0.475706     0.626818   0.238951   0.519544
+ 0.97373    0.520396   0.678668  0.560516     0.303861   0.0516132  0.367245
+ 0.572611   0.0617176  0.464664  0.798324     0.417918   0.489323   0.957414
+ 0.398526   0.521442   0.189292  0.338668  …  0.225354   0.73469    0.869747
+ 0.0973762  0.396248   0.154306  0.586571     0.641528   0.261185   0.492018
+ 0.844121   0.339238   0.45055   0.527902     0.797961   0.30438    0.622284
+ 0.771039   0.196966   0.639663  0.121998     0.843612   0.0344937  0.803039
+ 0.282212   0.648891   0.45936   0.296935     0.271293   0.736962   0.282176
+ 0.14369    0.94478    0.968754  0.980111  …  0.0467979  0.557532   0.503223
 [and 240 more slices...]</pre><p>and then select a specific timeslice at <code>Date(2011,5,15)</code> and a longitude interval between 0 and 30 degrees like so:</p><pre><code class="language-julia">B = A[Lon(Between(0, 30)), Time(At(Date(2011,5,15)))]</code></pre><pre class="documenter-example-output">ClimArray with dimensions:
  Longitude (type Lon): 0:10:30 (Sampled: Ordered Regular Points)
  Latitude (type Lat): -90:5:90 (Sampled: Ordered Regular Points)
 and data: 4×37 Array{Float64,2}
- 0.61238   0.897033  0.617479  0.545088  …  0.712263   0.271565  0.0697329
- 0.380467  0.216876  0.100054  0.559716     0.866002   0.496141  0.207405
- 0.391306  0.990885  0.587518  0.797044     0.634634   0.618138  0.731465
- 0.978574  0.966066  0.138884  0.848922     0.0613283  0.339645  0.990905</pre><p>With <code>ClimArray</code> you can use convenience, physically-inspired functions that do automatic (and correct) weighting. For example the latitudinal mean of <code>B</code> is simply</p><pre><code class="language-julia">C = latmean(B)</code></pre><pre class="documenter-example-output">ClimArray with dimensions:
+ 0.264883   0.627363   0.907489  0.543392  …  0.87079   0.223502   0.321406
+ 0.0589706  0.0257037  0.19837   0.687815     0.832592  0.695243   0.819607
+ 0.319192   0.554412   0.046619  0.081327     0.525469  0.0591169  0.833283
+ 0.0023042  0.902094   0.274905  0.981194     0.358091  0.0649895  0.764612</pre><p>With <code>ClimArray</code> you can use convenience, physically-inspired functions that do automatic (and correct) weighting. For example the latitudinal mean of <code>B</code> is simply</p><pre><code class="language-julia">C = latmean(B)</code></pre><pre class="documenter-example-output">ClimArray with dimensions:
  Longitude (type Lon): 0:10:30 (Sampled: Ordered Regular Points)
 and data: 4-element Array{Float64,1}
-[0.480636, 0.492553, 0.535504, 0.456645]</pre><p>where in this averaging process each data point is weighted by the cosine of its latitude.</p><h2 id="Making-a-ClimArray"><a class="docs-heading-anchor" href="#Making-a-ClimArray">Making a <code>ClimArray</code></a><a id="Making-a-ClimArray-1"></a><a class="docs-heading-anchor-permalink" href="#Making-a-ClimArray" title="Permalink"></a></h2><p>You can create a <code>ClimArray</code> yourself, or you can load data from an <code>.nc</code> file with CF-conventions, using <code>ClimArray</code>.</p><article class="docstring"><header><a class="docstring-binding" id="ClimateBase.ClimArray-Tuple{AbstractArray,Tuple}" href="#ClimateBase.ClimArray-Tuple{AbstractArray,Tuple}"><code>ClimateBase.ClimArray</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">ClimArray(A::Array, dims::Tuple; name = &quot;&quot;, attrib = nothing)</code></pre><p><code>ClimArray</code> is a structure that contains numerical array data bundled with dimensional information, a name and an <code>attrib</code> field (typically a dictionary) that holds general attributes. You can think of <code>ClimArray</code> as a in-memory representation of a CFVariable.</p><p>At the moment, a <code>ClimArray</code> is using <code>DimensionalArray</code> from DimensionalData.jl, and all basic handling of <code>ClimArray</code> is offered by <code>DimensionalData</code> (see below).</p><p><code>ClimArray</code> is created by passing in standard array data <code>A</code> and a tuple of dimensions <code>dims</code>.</p><p><strong>Example</strong></p><pre><code class="language-julia">using ClimateBase, Dates
+[0.589798, 0.558745, 0.508799, 0.524295]</pre><p>where in this averaging process each data point is weighted by the cosine of its latitude.</p><h2 id="Making-a-ClimArray"><a class="docs-heading-anchor" href="#Making-a-ClimArray">Making a <code>ClimArray</code></a><a id="Making-a-ClimArray-1"></a><a class="docs-heading-anchor-permalink" href="#Making-a-ClimArray" title="Permalink"></a></h2><p>You can create a <code>ClimArray</code> yourself, or you can load data from an <code>.nc</code> file with CF-conventions, using <code>ClimArray</code>.</p><article class="docstring"><header><a class="docstring-binding" id="ClimateBase.ClimArray-Tuple{AbstractArray,Tuple}" href="#ClimateBase.ClimArray-Tuple{AbstractArray,Tuple}"><code>ClimateBase.ClimArray</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">ClimArray(A::Array, dims::Tuple; name = &quot;&quot;, attrib = nothing)</code></pre><p><code>ClimArray</code> is a structure that contains numerical array data bundled with dimensional information, a name and an <code>attrib</code> field (typically a dictionary) that holds general attributes. You can think of <code>ClimArray</code> as a in-memory representation of a CFVariable.</p><p>At the moment, a <code>ClimArray</code> is using <code>DimensionalArray</code> from DimensionalData.jl, and all basic handling of <code>ClimArray</code> is offered by <code>DimensionalData</code> (see below).</p><p><code>ClimArray</code> is created by passing in standard array data <code>A</code> and a tuple of dimensions <code>dims</code>.</p><p><strong>Example</strong></p><pre><code class="language-julia">using ClimateBase, Dates
 Time = ClimateBase.Ti # more intuitive name for time dimension
 lats = -90:5:90
 lons = 0:10:359
@@ -196,4 +196,4 @@ and data: 4-element Array{Float64,1}
 size(A, Y)
 using Statistics
 mean(A, dims=X)
-std(A; dims=Y())</code></pre><p><strong>Alternate Packages</strong></p><p>There are a lot of similar Julia packages in this space. AxisArrays.jl, NamedDims.jl, NamedArrays.jl are registered alternative that each cover some of the functionality provided by DimensionalData.jl. DimensionalData.jl should be able to replicate any of their functionality, although with slightly more verbose syntax and less polish in some cases. If there is anything it doesn&#39;t do that these packages can do, put in an issue with the feature request.</p><p><a href="https://github.com/mcabbott/AxisRanges.jl">AxisRanges.jl</a> and <a href="https://github.com/Tokazama/AbstractIndices.jl">AbstractIndices.jl</a> are some other interesting developments. For more detail on why there are so many similar options and where things are headed, read this <a href="https://github.com/JuliaCollections/AxisArraysFuture/issues/1">thread</a>.</p></div></section></article></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 11 September 2020 12:29">Friday 11 September 2020</span>. Using Julia version 1.5.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+std(A; dims=Y())</code></pre><p><strong>Alternate Packages</strong></p><p>There are a lot of similar Julia packages in this space. AxisArrays.jl, NamedDims.jl, NamedArrays.jl are registered alternative that each cover some of the functionality provided by DimensionalData.jl. DimensionalData.jl should be able to replicate any of their functionality, although with slightly more verbose syntax and less polish in some cases. If there is anything it doesn&#39;t do that these packages can do, put in an issue with the feature request.</p><p><a href="https://github.com/mcabbott/AxisRanges.jl">AxisRanges.jl</a> and <a href="https://github.com/Tokazama/AbstractIndices.jl">AbstractIndices.jl</a> are some other interesting developments. For more detail on why there are so many similar options and where things are headed, read this <a href="https://github.com/JuliaCollections/AxisArraysFuture/issues/1">thread</a>.</p></div></section></article></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 11 September 2020 12:34">Friday 11 September 2020</span>. Using Julia version 1.5.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
