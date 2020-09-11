@@ -204,8 +204,27 @@ function monthlyagg(A::ClimArray, f = mean)
     finaldate = Date(year(t0[end]), month(t0[end]), 16)
     t = startdate:Month(1):finaldate
     tranges = temporalrange(t0, Dates.month)
+    return timegroup(A, f, t, ranges, "monthly")
+end
+
+"""
+    yearlyagg(A::ClimArray, f = mean) -> B
+Create a new array where the temporal information has been aggregated to years
+using the function `f`.
+By convention, the dates of the new array always have month and day number of `1`.
+"""
+function monthlyagg(A::ClimArray, f = mean)
+    t0 = dims(A, Time) |> Array
+    startdate = Date(year(t0[1]), 1, 1)
+    finaldate = Date(year(t0[end]), 2, 1)
+    t = startdate:Year(1):finaldate
+    tranges = temporalrange(t0, Dates.year)
+    return timegroup(A, f, t, ranges, "yearly")
+end
+
+function timegroup(A, f, t, tranges, name)
     other = otherdims(A, Time)
-    n = A.name == "" ? "" : A.name*", monthly averaged"
+    n = A.name == "" ? "" : A.name*", $(name) averaged"
     B = ClimArray(zeros(eltype(A), length.(other)..., length(t)), (other..., Time(t)), n)
     for i in 1:length(tranges)
         B[Time(i)] .= dropagg(f, view(A, Time(tranges[i])), Time)
@@ -218,6 +237,8 @@ end
 Return a vector of ranges so that each range of indices are values of `t` that
 belong in either the same month, year, or day, depending on `f`.
 `f` can take the values: `Dates.year, Dates.month, Dates.day` (functions).
+
+Used in e.g. [`monthlyagg`](@ref) or [`yearlyagg`](@ref).
 """
 function temporalrange(t::AbstractArray{<:TimeType}, f = Dates.month)
     @assert issorted(t) "Sorted time required."
