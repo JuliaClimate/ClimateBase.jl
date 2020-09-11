@@ -1,12 +1,13 @@
 # Introduction
 `ClimateBase` is a Julia package offering basic tools for analyzing data that are typically in the form used by climate sciences.
-These data are dimensional spatiotemporal but the corresponding dimensions all need special handling. For example the most common dimensions are longitude, latitude and time.
+These data are dimensional & spatiotemporal but the corresponding dimensions all need special handling.
+For example the most common dimensions are longitude, latitude and time.
 
 * longitude is by definition a periodic dimension
 * latitude is a linear dimension. However because the coordinate system most often used in climate sciences is a grid of longitude × latitude (in equal degrees) the area element of space depends on latitude and this needs to be taken into account.
 * time is a linear dimension *in principle*, but its values are `<: AbstractDateTime` instead of `<: Real`. The human calendar (where these values come from) is periodic but each period may not correspond to the same physical time, and this also needs to be taken into account.
 
-`ClimateBase` is structured to deal with these difficulties, and in addition offer several functionalities commonly used, and sought after, by climate scientists.
+`ClimateBase` is structured to deal with these intricacies, and in addition offer several functionalities commonly used, and sought after, by climate scientists.
 It also serves as the base building block for `ClimateTools`, which offers more advanced functionalities.
 
 The focus of `ClimateBase` is **not** loading data, nor operating on data *on disk*. It is designed for in-memory climate data exploration and manipulation.
@@ -42,9 +43,22 @@ C = latmean(B)
 where in this averaging process each data point is weighted by the cosine of its latitude.
 
 ## Making a `ClimArray`
-You can create a `ClimArray` yourself, or you can load data from an `.nc` file with CF-conventions, using `ClimArray`:
+You can create a `ClimArray` yourself, or you can load data from an `.nc` file with CF-conventions, using `ClimArray`.
 ```@docs
-ClimArray
+ClimArray(::AbstractArray, ::Tuple)
+```
+It is strongly recommended to use the dimensions we export (because we dispatch on them and use their information):
+```@example
+using ClimateBase, DimensionalData # hide
+for D in ClimateBase.STANDARD_DIMS
+    println(D, " (full name = $(DimensionalData.name(D)))")
+end
+```
+We explicitly assume that `Lon, Lat` are measured in degrees and not radians or meters (extremely important for spatial averaging processes).
+
+---
+```@docs
+ClimArray(::Union{String, Vector{String}})
 ```
 
 Notice that (at the moment) we use a pre-defined mapping of common names to proper dimensions - please feel free to extend the following via a Pull Request:
@@ -59,8 +73,22 @@ nckeys
 ncdetails
 ```
 
+## Temporal
+Functions related with the `Time` dimension.
+```@docs
+timemean
+timeagg
+monthlyagg
+yearlyagg
+temporalrange
+maxyearspan
+monthspan
+temporal_sampling
+```
 
-## Types of spatial coordinates
+## Spatial
+
+### Types of spatial coordinates
 Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array. Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
 This type of space is called `Grid`. It is assumed throughout that longitude and latitude are measured in **degrees**.
 
@@ -76,44 +104,21 @@ In addition, the function `spatialidxs` returns an iterator over the spatial coo
 spatialidxs
 ```
 
-## Physical averages
+### Spatial aggregation
 ```@docs
 zonalmean
 latmean
 spacemean
-timemean
+spaceagg
 hemispheric_means
 hemispheric_functions
 ```
 
-## Aggregation
+## General aggregation
 The physical averages of the previous section are done by taking advantage of a general aggregation syntax, which works with any aggregating function like `mean, sum, std`, etc.
 ```@docs
 dropagg
 collapse
-```
-
-### Statistical weighting
-Functons like `timemean` and `spacemean` perform statistically-proper averaging by weighting each data point by its length in time or by the cosine of its latitude.
-Functional versions that can explicitly take *extra* weights (e.g. if you want to weight your data with e.g. the ice area fraction) are provided:
-```@docs
-timeagg
-spaceagg
-```
-**TODO: I need to improve the statistical weighting to work with all possible dimensional combinations.**
-
-These functions internally use the following function that can be used also outside of statistical weighting:
-```@docs
-dimwise
-```
-
-
-## Time-handling
-```@docs
-maxyearspan
-yearly
-monthspan
-temporal_sampling
 ```
 
 ## Timeseries Analysis
@@ -134,14 +139,3 @@ total_toa_albedo
 ```@docs
 DimensionalData
 ```
-
----
-
-There are some standard dimensions that we use within our functions, and it as assumed that if your data contains such dimensions (in concept) then they must match the appropriate type:
-```@example
-using ClimateBase, DimensionalData # hide
-for D in ClimateBase.STANDARD_DIMS
-    println(D, " (full name = $(DimensionalData.name(D)))")
-end
-```
-We explicitly assume that `Lon, Lat` are measured in degrees and not radians or meters (extremely important for spatial averaging processes).

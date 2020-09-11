@@ -190,7 +190,7 @@ end
 #########################################################################
 # Monthly/yearly/daily means
 #########################################################################
-export monthlyagg, temporalrange
+export monthlyagg, yearlyagg, temporalrange
 
 """
     monthlyagg(A::ClimArray, f = mean) -> B
@@ -204,7 +204,7 @@ function monthlyagg(A::ClimArray, f = mean)
     finaldate = Date(year(t0[end]), month(t0[end]), 16)
     t = startdate:Month(1):finaldate
     tranges = temporalrange(t0, Dates.month)
-    return timegroup(A, f, t, ranges, "monthly")
+    return timegroup(A, f, t, tranges, "monthly")
 end
 
 """
@@ -213,13 +213,13 @@ Create a new array where the temporal information has been aggregated to years
 using the function `f`.
 By convention, the dates of the new array always have month and day number of `1`.
 """
-function monthlyagg(A::ClimArray, f = mean)
+function yearlyagg(A::ClimArray, f = mean)
     t0 = dims(A, Time) |> Array
     startdate = Date(year(t0[1]), 1, 1)
     finaldate = Date(year(t0[end]), 2, 1)
     t = startdate:Year(1):finaldate
     tranges = temporalrange(t0, Dates.year)
-    return timegroup(A, f, t, ranges, "yearly")
+    return timegroup(A, f, t, tranges, "yearly")
 end
 
 function timegroup(A, f, t, tranges, name)
