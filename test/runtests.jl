@@ -117,7 +117,7 @@ end
     for e in Cm[:, 1]
         @test round(Int, e) == e
     end
-    @test step(dims(Cy, Time).val) == Month(1)
+    @test step(dims(Cm, Time).val) == Month(1)
 
     for j in 1:length(tdense)
         for i in 1:length(lats)
