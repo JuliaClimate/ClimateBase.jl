@@ -1,5 +1,5 @@
 # Introduction
-`ClimateBase` is a Julia package offering basic tools for analyzing data that are typically in the form used by climate sciences.
+`ClimateBase` is a Julia package offering basic functionality for analyzing data that are typically in the form used by climate sciences.
 These data are dimensional & spatiotemporal but the corresponding dimensions all need special handling.
 For example the most common dimensions are longitude, latitude and time.
 
