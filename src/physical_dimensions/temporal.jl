@@ -21,7 +21,7 @@ maxyearspan(dims(A, Time).val, tsamp)
     maxyearspan(t::Vector{<:DateTime}) → i
 Find the maximum index `i` of `t` so that `t[1:i]` covers exact(*) multiples of years.
 
-(*) For monthly spaced data this is a multiple of `12` while for daily data we find
+(*) For monthly spaced data `i` is a multiple of `12` while for daily data we find
 the largest possible multiple of `DAYS_IN_YEAR = 365.26`.
 """
 function maxyearspan(times, tsamp = temporal_sampling(times))
@@ -102,12 +102,10 @@ Possible return values are:
 - `:yearly`, where all dates have the same month+day, but different year.
 - `:monthly`, where all dates have the same day, but different month.
 - `:daily`, where the temporal difference between dates are exactly 1 day.
-- `:other`, which means either non `Date` format for the time index,
-  or sampling that doesn't fall to any of the above categories.
+- `:other`, which means that `x` doesn't fall to any of the above categories.
 """
 temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
 function temporal_sampling(t::AbstractVector{<:TimeType})
-    # TODO: daily aspect can be improved to cover cases where first day is the 30th
     d1 = daymonth(t[2]) .- daymonth(t[1])
     d2 = daymonth(t[3]) .- daymonth(t[2])
     samemonth = d1[2] == d1[2] == 0
@@ -125,7 +123,7 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
         :other
     end
 end
-temporal_sampling(t::AbstractVector{<:TimeType}) = :other
+temporal_sampling(t::AbstractVector) = error("Need `<:TimeType` elements.")
 
 #########################################################################
 # temporal statistics
@@ -222,18 +220,21 @@ function timeagg(f, a::AbDimArray{T, 1}, exw = nothing) where {T} # version with
     return timeagg(f, t, a, exw)
 end
 
-# TODO: This version
-function timeagg(f, t::Vector{<:TimeType}, a, exw = nothing) # version with just vectors
-    mys = maxyearspan(t)
-    # TODO: type stability
-    t = @view t[1:mys]
-    tw = temporal_weights(t)
-    w = if isnothing(exw)
-        weights(daysinmonth.(t))
+function timeagg(f, T::Vector{<:TimeType}, a, w = nothing) # version with just vectors
+    tsamp = temporal_sampling(T)
+    mys = maxyearspan(T, tsamp)
+    t = view(T, 1:mys)
+    if tsamp == :monthly
+        dimw = daysinmonth.(t)
+        !isnothing(w) && (dimw .*= view(w, 1:mys))
+        return f(view(a, 1:mys), weights(dimw))
     else
-        weights(daysinmonth.(t) .* view(Array(exw), 1:mys))
+        if isnothing(w)
+            return f(view(a, 1:mys))
+        else
+            return f(view(a, 1:mys), weights(view(w, 1:mys)))
+        end
     end
-    y = f(Array(a)[1:mys], w)
 end
 
 
