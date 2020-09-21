@@ -92,18 +92,38 @@ export temporal_sampling
 """
     temporal_sampling(x) → symbol
 Return the temporal sampling type of `x`, which is either an array of `Date`s or
-a dimensional array (with `Time` dimension). Possible return values are:
-- `:yearly`
-- `:monthly`
-- `:else`
-where `:else` covers the cases of either irregular sampling or daily (or even shorter)
-sampling. This function is used to perform proper temporal averages.
+a dimensional array (with `Time` dimension).
+For performance reasons, only the first 3 entries of the temporal information are used
+to deduce the sampling.
+
+Possible return values are:
+- `:yearly`, where all dates have the same month+day, but different year.
+- `:monthly`, where all dates have the same day, but different month.
+- `:daily`, where the temporal difference between dates are exactly 1 day.
+- `:other`, which means either non `Date` format for the time index,
+  or sampling that doesn't fall to any of the above categories.
 """
-temporal_sampling(a::AbDimArray) = temporal_sampling(Array(dims(a, Time)))
-function temporal_sampling(t)
-    # TODO: Actually code this.
-    :monthly
+temporal_sampling(A::AbDimArray) = temporal_sampling(Array(dims(A, Time)))
+function temporal_sampling(t::AbstractVector{<:TimeType})
+    # TODO: daily aspect can be improved to cover cases where first day is the 30th
+    d1 = daymonth(t[2]) .- daymonth(t[1])
+    d2 = daymonth(t[3]) .- daymonth(t[2])
+    samemonth = mod1(d1[2], 12) == mod1(d1[2], 12) == 0
+    sameday = d1[1] == d2[1] == 0
+    sameyear = year(t[1]) == year(t[2]) == year(t[3])
+    if sameday && samemonth && !sameyear
+        :yearly
+    elseif sameday && !samemonth
+        :monthly
+    elseif !sameday && samemonth
+        :daily
+    elseif !sameday && !samemonth && (d1[1] > 15 || d[2] > 15)
+        :daily
+    else
+        :other
+    end
 end
+temporal_sampling(t::AbstractVector{<:TimeType}) = :other
 
 #########################################################################
 # temporal statistics
