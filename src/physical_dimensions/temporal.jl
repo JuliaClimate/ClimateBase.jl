@@ -20,19 +20,22 @@ maxyearspan(A::AbDimArray, tsamp = temporal_sampling(A)) =
 maxyearspan(dims(A, Time).val, tsamp)
 
 """
-    maxyearspan(t::AbstractVector) → i
-Find the maximum index `i` of `t` so that the total time covered is a multiple
-of years (12 months), assuming monthly spaced data.
+    maxyearspan(A::ClimArray) = maxyearspan(dims(A, Time))
+    maxyearspan(t::Vector{<:DateTime}) → i
+Find the maximum index `i` of `t` so that `t[1:i]` covers exact(*) multiples of years.
 
-    maxyearspan(A::AbDimArray) = maxyearspan(dims(A, Time))
+(*) For monthly spaced data this is a multiple of `12` while for daily data we find
+the largest possible multiple of `DAYS_IN_YEAR = 365.26`.
 """
 function maxyearspan(times, tsamp = temporal_sampling(times))
-    if tsamp == :monthly ||
+    if tsamp == :monthly
         length(times) % 12 == 0 && return length(times)
         m = month(times[1])
         findlast(i -> month(times[i]) == m, 1:length(times)) - 1
+    elseif tsamp == :yearly
+        return length(times)
     else
-        error("Not implemented yet for $tsamp data")
+        error("maxyearspan: not implemented yet for $tsamp data")
     end
 end
 
