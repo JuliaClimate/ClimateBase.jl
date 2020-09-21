@@ -7,7 +7,7 @@ Time = ClimateBase.Time
 
 # Create the artificial dimensional array A that will be used in tests
 function monthly_insolation(t::TimeType, args...)
-    d = monthspan(t)
+    d = ClimateBase.monthspan(t)
     mean(insolation(τ, args...) for τ in d)
 end
 

@@ -60,7 +60,7 @@ end
 
 """
     monthspan(t::TimeType)
-Return a vector of `Date`s that span the entire month that `t` belongs in.
+Return a vector of daily spaced `Date`s that span the entire month that `t` belongs in.
 """
 function monthspan(t::TimeType)
     m = mod1(month(t), 12)
@@ -158,8 +158,8 @@ Same as above, but for arbitrary vector `x` accompanied by time vector `t`.
 """
 function timeagg(f, A::AbDimArray, w = nothing)
     w isa AbDimArray && @assert dims(w) == dims(A)
-    w isa Vector && @assert length(w) == length(t)
-    tsamp = temporal_sampling(t)
+    w isa Vector && @assert length(w) == size(A, Time)
+    tsamp = temporal_sampling(A)
     r = if tsamp == :daily || tsamp == :other
         timeagg_daily(f, A, w)
     elseif tsamp == :monthly
@@ -167,6 +167,8 @@ function timeagg(f, A::AbDimArray, w = nothing)
     elseif tsamp == :yearly
         timeagg_yearly(f, A, w)
     end
+    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
+    R = ClimArray(r, otherdims(A, Time()), n)
 end
 
 function timeagg_yearly(f, A, w)
@@ -212,15 +214,18 @@ function timeagg_daily(f, A::AbDimArray, w)
     elseif w isa Vector
         fw = weights(view(w, 1:mys))
         r = map(i -> f(view(_A, i), fw), otheridxs(A, Time()))
-    else
+    elseif isnothing(w)
+        r = dropagg(f, _A, Time)
+    end
 end
 
-function timeagg(f, a::AbDimArray{T, 1}, exw = nothing) where {T} # version with only time dimension
+
+function timeagg(f, a::AbDimArray{T, 1}, w = nothing) where {T} # version with only time dimension
     t = dims(a, Time).val
-    return timeagg(f, t, a, exw)
+    return timeagg(f, t, Array(a), w)
 end
 
-function timeagg(f, T::Vector{<:TimeType}, a, w = nothing) # version with just vectors
+function timeagg(f, T::AbstractVector{<:TimeType}, a::Vector, w = nothing) # version with just vectors
     tsamp = temporal_sampling(T)
     mys = maxyearspan(T, tsamp)
     t = view(T, 1:mys)
