@@ -95,14 +95,15 @@ time_in_days(t::AbstractArray{<:Real}) = t
     temporal_sampling(x) → symbol
 Return the temporal sampling type of `x`, which is either an array of `Date`s or
 a dimensional array (with `Time` dimension).
-For performance reasons, only the first 3 entries of the temporal information are used
-to deduce the sampling.
 
 Possible return values are:
 - `:yearly`, where all dates have the same month+day, but different year.
 - `:monthly`, where all dates have the same day, but different month.
 - `:daily`, where the temporal difference between dates are exactly 1 day.
 - `:other`, which means that `x` doesn't fall to any of the above categories.
+
+For vector input, only the first 3 entries of the temporal information are used
+to deduce the sampling (while for ranges, checking the step is enough).
 """
 temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
 function temporal_sampling(t::AbstractVector{<:TimeType})
@@ -124,6 +125,10 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
     end
 end
 temporal_sampling(t::AbstractVector) = error("Need `<:TimeType` elements.")
+temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
+temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
+temporal_sampling(t::StepRange{<:Any,Day}) = :daily
+temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
 
 #########################################################################
 # temporal statistics
