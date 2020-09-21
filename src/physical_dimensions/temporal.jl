@@ -5,12 +5,10 @@ using Statistics, StatsBase
 #########################################################################
 # Datetime related
 #########################################################################
-# TODO: Identify monthly, daily, yearly or arbitrary spacing
-# to simplify this identification is done exclusively on first 3 time points
-# TODO: monthlyagg funcion
-
 using Dates
-export monthday_indices, maxyearspan, monthspan, daymonth, DAYS_IN_YEAR, monthamount
+export monthday_indices, maxyearspan, daymonth, DAYS_IN_YEAR, time_in_days
+export temporal_sampling
+
 const DAYS_IN_YEAR = 365.26
 millisecond2month(t) = Month(round(Int, t.value / 1000 / 60 / 60 / 24 / 30))
 daymonth(t) = day(t), month(t)
@@ -19,20 +17,26 @@ maxyearspan(A::AbDimArray, tsamp = temporal_sampling(A)) =
 maxyearspan(dims(A, Time).val, tsamp)
 
 """
-    maxyearspan(t::AbstractVector) → i
-Find the maximum index `i` of `t` so that the total time covered is a multiple
-of years (12 months), assuming monthly spaced data.
+    maxyearspan(A::ClimArray) = maxyearspan(dims(A, Time))
+    maxyearspan(t::Vector{<:DateTime}) → i
+Find the maximum index `i` of `t` so that `t[1:i]` covers exact(*) multiples of years.
 
-    maxyearspan(A::AbDimArray) = maxyearspan(dims(A, Time))
+(*) For monthly spaced data `i` is a multiple of `12` while for daily data we find
+the largest possible multiple of `DAYS_IN_YEAR = 365.26`.
 """
 function maxyearspan(times, tsamp = temporal_sampling(times))
-    # TODO: Make maxyearspan work with sampling
-    length(times) % 12 == 0 && return length(times)
-    m = month(times[1])
-    findlast(i -> month(times[i]) == m, 1:length(times)) - 1
+    if tsamp == :monthly
+        length(times) % 12 == 0 && return length(times)
+        m = month(times[1])
+        findlast(i -> month(times[i]) == m, 1:length(times)) - 1
+    elseif tsamp == :yearly
+        return length(times)
+    else
+        error("maxyearspan: not implemented yet for $tsamp data")
+    end
 end
 
-# TODO: bad name
+
 """
     monthday_indices(times, date = times[1])
 Find the indices in `times` (which is a `Vector{Date}`) at which
@@ -56,7 +60,7 @@ end
 
 """
     monthspan(t::TimeType)
-Return a vector of `Date`s that span the entire month that `t` belongs in.
+Return a vector of daily spaced `Date`s that span the entire month that `t` belongs in.
 """
 function monthspan(t::TimeType)
     m = mod1(month(t), 12)
@@ -67,43 +71,64 @@ function monthspan(t::TimeType)
 end
 
 
-# TODO: better description.
 """
-    daycount(t::AbstractArray{<:TimeType}, T = Float32)
+    time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
 Convert a given date time array into measurement units of days:
 a real-valued array which counts time in days, always increasing.
 """
-function daycount(t::AbstractArray{<:TimeType}, T = Float32)
+function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
     ts = temporal_sampling(t)
     if ts == :monthly
         truetime = daysinmonth.(t)
         r = T.(cumsum(truetime))
     elseif ts == :yearly
-        # TODO
+        error("todo")
     elseif ts == :daily
-        # TODO
+        error("todo")
     end
     return r
 end
-daycount(t::AbstractArray{<:Real}) = t
+time_in_days(t::AbstractArray{<:Real}) = t
 
 
-export temporal_sampling
 """
     temporal_sampling(x) → symbol
 Return the temporal sampling type of `x`, which is either an array of `Date`s or
-a dimensional array (with `Time` dimension). Possible return values are:
-- `:yearly`
-- `:monthly`
-- `:else`
-where `:else` covers the cases of either irregular sampling or daily (or even shorter)
-sampling. This function is used to perform proper temporal averages.
+a dimensional array (with `Time` dimension).
+
+Possible return values are:
+- `:yearly`, where all dates have the same month+day, but different year.
+- `:monthly`, where all dates have the same day, but different month.
+- `:daily`, where the temporal difference between dates are exactly 1 day.
+- `:other`, which means that `x` doesn't fall to any of the above categories.
+
+For vector input, only the first 3 entries of the temporal information are used
+to deduce the sampling (while for ranges, checking the step is enough).
 """
-temporal_sampling(a::AbDimArray) = temporal_sampling(Array(dims(a, Time)))
-function temporal_sampling(t)
-    # TODO: Actually code this.
-    :monthly
+temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
+function temporal_sampling(t::AbstractVector{<:TimeType})
+    d1 = daymonth(t[2]) .- daymonth(t[1])
+    d2 = daymonth(t[3]) .- daymonth(t[2])
+    samemonth = d1[2] == d1[2] == 0
+    sameday = d1[1] == d2[1] == 0
+    sameyear = year(t[1]) == year(t[2]) == year(t[3])
+    if sameday && samemonth && !sameyear
+        :yearly
+    elseif sameday && !samemonth
+        :monthly
+    elseif !sameday && samemonth
+        :daily
+    elseif !sameday && !samemonth && (d1[1] > 15 || d2[1] > 15)
+        :daily
+    else
+        :other
+    end
 end
+temporal_sampling(t::AbstractVector) = error("Need `<:TimeType` elements.")
+temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
+temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
+temporal_sampling(t::StepRange{<:Any,Day}) = :daily
+temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
 
 #########################################################################
 # temporal statistics
@@ -121,10 +146,12 @@ timemean(A::ClimArray, w = nothing) = timeagg(mean, A, w)
     timeagg(f, A::ClimArray, W = nothing)
 Perform a proper temporal aggregation of the function `f` (e.g. `mean, std`)
 on `A` (assuming monthly spaced data) where:
-* Only full year spans of `A` are included (because most processes are affected by yearly cycle)
-* Each month in `a` is weighted with its length in days.
+* Only full year spans of `A` are included, see [`maxyearspan`](@ref)
+  (because most processes are affected by yearly cycle,
+  and averaging over an uneven number of cycles typically results in artifacts)
+* Each month in `A` is weighted with its length in days (for monthly sampled data)
 
-If you don't want these features, just do [`dropagg`](@ref)`(f, A, Time)`.
+If you don't want these features, just do [`dropagg`](@ref)`(f, A, Time, W)`.
 
 `W` are possible statistical weights that are used in conjuction to the temporal weighting,
 to weight each time point differently.
@@ -135,12 +162,35 @@ array of same dimensional layout as `A` (a weight for each data point).
 Same as above, but for arbitrary vector `x` accompanied by time vector `t`.
 """
 function timeagg(f, A::AbDimArray, w = nothing)
-    t = dims(A, Time).val
     w isa AbDimArray && @assert dims(w) == dims(A)
-    w isa Vector && @assert length(w) == length(t)
-    tsamp = temporal_sampling(t)
-    mys = maxyearspan(t, tsamp)
-    tw = temporal_weights(t, tsamp)
+    w isa Vector && @assert length(w) == size(A, Time)
+    tsamp = temporal_sampling(A)
+    r = if tsamp == :daily || tsamp == :other
+        timeagg_daily(f, A, w)
+    elseif tsamp == :monthly
+        timeagg_monthly(f, A, w)
+    elseif tsamp == :yearly
+        timeagg_yearly(f, A, w)
+    end
+    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
+    R = ClimArray(r, otherdims(A, Time()), n)
+end
+
+function timeagg_yearly(f, A, w)
+     if isnothing(w)
+        dropagg(f, A, Time)
+    elseif w isa AbDimArray
+        map(i -> f(view(A, i), weights(view(W, i))), otheridxs(A, Time()))
+    elseif w isa Vector
+        fw = weights(w)
+        map(i -> f(view(A, i), fw), otheridxs(A, Time()))
+    end
+end
+
+function timeagg_monthly(f, A::AbDimArray, w)
+    t = dims(A, Time).val
+    mys = maxyearspan(t, :monthly)
+    tw = daysinmonth.(t)
     W = if isnothing(w)
         tw
     elseif w isa Vector
@@ -151,41 +201,52 @@ function timeagg(f, A::AbDimArray, w = nothing)
     end
     other = otherdims(A, Time)
     _A = @view A[Time(1:mys)]
-    !(w isa AbDimArray) && (fw = weights(view(W, 1:mys)))
     if w isa AbDimArray
         r = map(i -> f(view(_A, i), weights(view(W, i))), otheridxs(A, Time()))
     else
+        fw = weights(view(W, 1:mys))
         r = map(i -> f(view(_A, i), fw), otheridxs(A, Time()))
     end
-    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
-    R = ClimArray(r, other, n)
-    return R
 end
 
-function timeagg(f, a::AbDimArray{T, 1}, exw = nothing) where {T} # version with only time dimension
-    t = Array(dims(a, Time))
-    return timeagg(f, t, a, exw)
-end
-
-function timeagg(f, t::Vector{<:TimeType}, a, exw = nothing) # version with just vectors
+function timeagg_daily(f, A::AbDimArray, w)
+    t = dims(A, Time).val
     mys = maxyearspan(t)
-    # TODO: type stability
-    t = @view t[1:mys]
-    tw = temporal_weights(t)
-    w = if isnothing(exw)
-        weights(daysinmonth.(t))
-    else
-        weights(daysinmonth.(t) .* view(Array(exw), 1:mys))
+    _A = view(A, Time(1:mys))
+    if w isa AbDimArray
+        W = view(w, Time(1:mys))
+        r = map(i -> f(view(_A, i), weights(view(W, i))), otheridxs(A, Time()))
+    elseif w isa Vector
+        fw = weights(view(w, 1:mys))
+        r = map(i -> f(view(_A, i), fw), otheridxs(A, Time()))
+    elseif isnothing(w)
+        r = dropagg(f, _A, Time)
     end
-    y = f(Array(a)[1:mys], w)
 end
 
-function temporal_weights(t, tsamp = temporal_sampling(t))
-    if tsamp == :monthly
-        w = daysinmonth.(t)
-    end
-    return w
+
+function timeagg(f, a::AbDimArray{T, 1}, w = nothing) where {T} # version with only time dimension
+    t = dims(a, Time).val
+    return timeagg(f, t, Array(a), w)
 end
+
+function timeagg(f, T::AbstractVector{<:TimeType}, a::Vector, w = nothing) # version with just vectors
+    tsamp = temporal_sampling(T)
+    mys = maxyearspan(T, tsamp)
+    t = view(T, 1:mys)
+    if tsamp == :monthly
+        dimw = daysinmonth.(t)
+        !isnothing(w) && (dimw .*= view(w, 1:mys))
+        return f(view(a, 1:mys), weights(dimw))
+    else
+        if isnothing(w)
+            return f(view(a, 1:mys))
+        else
+            return f(view(a, 1:mys), weights(view(w, 1:mys)))
+        end
+    end
+end
+
 
 #########################################################################
 # Monthly/yearly/daily means
@@ -199,7 +260,7 @@ using the function `f`.
 By convention, the dates of the new array always have day number of `15`.
 """
 function monthlyagg(A::ClimArray, f = mean)
-    t0 = dims(A, Time) |> Array
+    t0 = dims(A, Time).val
     startdate = Date(year(t0[1]), month(t0[1]), 15)
     finaldate = Date(year(t0[end]), month(t0[end]), 16)
     t = startdate:Month(1):finaldate
@@ -214,7 +275,7 @@ using the function `f`.
 By convention, the dates of the new array always have month and day number of `1`.
 """
 function yearlyagg(A::ClimArray, f = mean)
-    t0 = dims(A, Time) |> Array
+    t0 = dims(A, Time).val
     startdate = Date(year(t0[1]), 1, 1)
     finaldate = Date(year(t0[end]), 2, 1)
     t = startdate:Year(1):finaldate

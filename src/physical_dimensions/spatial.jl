@@ -141,7 +141,7 @@ end
 # used only with the `sum` function (for A)
 _latweights(A::AbDimArray) = _latweights(dims(A, Lat))
 function _latweights(A::Lat)
-    we = cosd.(Array(A))
+    we = cosd.(A.val)
     we ./= sum(we)
     return ClimArray(we, (A,))
 end
@@ -248,7 +248,7 @@ function hemispheric_functions(::EqArea, A)
     shi, nhi = hemisphere_indices(c)
     nh = A[Coord(nhi)]
     sh = A[Coord(shi)]
-    oldc = Array(dims(sh, Coord))
+    oldc = dims(sh, Coord).val
     si = sortperm(oldc, by = x -> x[2], rev = true)
     newc = [SVector(x[1], abs(x[2])) for x in oldc[si]]
     di = dimindex(sh, Coord)
@@ -286,5 +286,5 @@ function hemispheric_means(::EqArea, A::AbDimArray)
 end
 
 latitudes(A) = latitudes(spacestructure(A), A)
-latitudes(::Grid, A) = Array(dims(A, Lat))
+latitudes(::Grid, A) = dims(A, Lat).val
 latitudes(::EqArea, A) = unique!([x[2] for x in dims(A, Coord)])

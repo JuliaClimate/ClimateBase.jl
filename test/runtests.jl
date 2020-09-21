@@ -7,7 +7,7 @@ Time = ClimateBase.Time
 
 # Create the artificial dimensional array A that will be used in tests
 function monthly_insolation(t::TimeType, args...)
-    d = monthspan(t)
+    d = ClimateBase.monthspan(t)
     mean(insolation(τ, args...) for τ in d)
 end
 
@@ -90,8 +90,9 @@ end
     @test dims(A, Lon) == dims(res, Lon)
 end
 
-@testset "Advance temporal manipulation" begin
+@testset "Advanced temporal manipulation" begin
     tdense = Date(2000, 3, 1):Day(1):Date(2020, 3, 31)
+    tyearly = Date(2000, 3, 1):Year(1):Date(2020, 3, 31)
     mdates = unique!([(year(d), month(d)) for d in tdense])
     ydates = unique!([year(d) for d in tdense])
     tranges = temporalrange(tdense, Dates.month)
@@ -99,8 +100,16 @@ end
     @test length(tranges) == length(mdates)
     @test length(yranges) == length(ydates)
 
-    Bz = zonalmean(B)
-    # Generate an array that has daily insolation
+    @test temporal_sampling(t) == :monthly
+    @test temporal_sampling(tdense) == :daily
+    @test temporal_sampling(tyearly) == :yearly
+
+    # test yearly temporal weights (i.e., no weighting)
+    X = ClimArray(rand(3,3), (Lon(1:3), Time(tyearly[1:3])))
+    W = [0, 1, 0]
+    @test vec(timemean(X).data) == vec(mean(X.data; dims = 2))
+    @test timemean(X, W).data == X.data[:, 2]
+
     C = ClimArray(zeros(length(lats), length(tdense)), (Lat(lats), Time(tdense)))
 
     # First version: just count number of days
@@ -118,6 +127,7 @@ end
         @test round(Int, e) == e
     end
     @test step(dims(Cm, Time).val) == Month(1)
+    @test temporal_sampling(dims(Cm, Time).val) == :monthly
 
     for j in 1:length(tdense)
         for i in 1:length(lats)
@@ -130,7 +140,7 @@ end
         @test round(Int, e) == e
     end
     @test step(dims(Cy, Time).val) == Year(1)
-
+    @test temporal_sampling(dims(Cy, Time).val) == :yearly
 
     # Second version: test actual physics
     for j in 1:length(tdense)
@@ -138,6 +148,7 @@ end
             C[i, j] = insolation(tdense[j], lats[i])
         end
     end
+    Bz = zonalmean(B)
     Cm = monthlyagg(C)
     @test all(Cm .≈ Bz)
 end
