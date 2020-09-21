@@ -82,8 +82,8 @@ monthlyagg
 yearlyagg
 temporalrange
 maxyearspan
-monthspan
 temporal_sampling
+time_in_days
 ```
 
 ## Spatial

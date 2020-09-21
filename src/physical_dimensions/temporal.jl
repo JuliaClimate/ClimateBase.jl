@@ -10,7 +10,8 @@ using Statistics, StatsBase
 # TODO: monthlyagg funcion
 
 using Dates
-export monthday_indices, maxyearspan, monthspan, daymonth, DAYS_IN_YEAR, monthamount
+export monthday_indices, maxyearspan, daymonth, DAYS_IN_YEAR
+
 const DAYS_IN_YEAR = 365.26
 millisecond2month(t) = Month(round(Int, t.value / 1000 / 60 / 60 / 24 / 30))
 daymonth(t) = day(t), month(t)
@@ -32,7 +33,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
     findlast(i -> month(times[i]) == m, 1:length(times)) - 1
 end
 
-# TODO: bad name
+
 """
     monthday_indices(times, date = times[1])
 Find the indices in `times` (which is a `Vector{Date}`) at which
@@ -102,7 +103,7 @@ Possible return values are:
 - `:other`, which means either non `Date` format for the time index,
   or sampling that doesn't fall to any of the above categories.
 """
-temporal_sampling(A::AbDimArray) = temporal_sampling(Array(dims(A, Time)))
+temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
 function temporal_sampling(t::AbstractVector{<:TimeType})
     # TODO: daily aspect can be improved to cover cases where first day is the 30th
     d1 = daymonth(t[2]) .- daymonth(t[1])
@@ -182,7 +183,7 @@ function timeagg(f, A::AbDimArray, w = nothing)
 end
 
 function timeagg(f, a::AbDimArray{T, 1}, exw = nothing) where {T} # version with only time dimension
-    t = Array(dims(a, Time))
+    t = dims(a, Time).val
     return timeagg(f, t, a, exw)
 end
 
@@ -218,7 +219,7 @@ using the function `f`.
 By convention, the dates of the new array always have day number of `15`.
 """
 function monthlyagg(A::ClimArray, f = mean)
-    t0 = dims(A, Time) |> Array
+    t0 = dims(A, Time).val
     startdate = Date(year(t0[1]), month(t0[1]), 15)
     finaldate = Date(year(t0[end]), month(t0[end]), 16)
     t = startdate:Month(1):finaldate
@@ -233,7 +234,7 @@ using the function `f`.
 By convention, the dates of the new array always have month and day number of `1`.
 """
 function yearlyagg(A::ClimArray, f = mean)
-    t0 = dims(A, Time) |> Array
+    t0 = dims(A, Time).val
     startdate = Date(year(t0[1]), 1, 1)
     finaldate = Date(year(t0[end]), 2, 1)
     t = startdate:Year(1):finaldate
