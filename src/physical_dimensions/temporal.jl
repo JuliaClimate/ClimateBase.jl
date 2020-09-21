@@ -182,7 +182,7 @@ function timeagg_yearly(f, A, w)
     elseif w isa AbDimArray
         map(i -> f(view(A, i), weights(view(W, i))), otheridxs(A, Time()))
     elseif w isa Vector
-        fw = weights(W)
+        fw = weights(w)
         map(i -> f(view(A, i), fw), otheridxs(A, Time()))
     end
 end
