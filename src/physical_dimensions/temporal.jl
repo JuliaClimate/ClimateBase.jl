@@ -27,10 +27,13 @@ of years (12 months), assuming monthly spaced data.
     maxyearspan(A::AbDimArray) = maxyearspan(dims(A, Time))
 """
 function maxyearspan(times, tsamp = temporal_sampling(times))
-    # TODO: Make maxyearspan work with sampling
-    length(times) % 12 == 0 && return length(times)
-    m = month(times[1])
-    findlast(i -> month(times[i]) == m, 1:length(times)) - 1
+    if tsamp == :monthly ||
+        length(times) % 12 == 0 && return length(times)
+        m = month(times[1])
+        findlast(i -> month(times[i]) == m, 1:length(times)) - 1
+    else
+        error("Not implemented yet for $tsamp data")
+    end
 end
 
 
@@ -108,7 +111,7 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
     # TODO: daily aspect can be improved to cover cases where first day is the 30th
     d1 = daymonth(t[2]) .- daymonth(t[1])
     d2 = daymonth(t[3]) .- daymonth(t[2])
-    samemonth = mod1(d1[2], 12) == mod1(d1[2], 12) == 0
+    samemonth = d1[2] == d1[2] == 0
     sameday = d1[1] == d2[1] == 0
     sameyear = year(t[1]) == year(t[2]) == year(t[3])
     if sameday && samemonth && !sameyear
@@ -117,7 +120,7 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
         :monthly
     elseif !sameday && samemonth
         :daily
-    elseif !sameday && !samemonth && (d1[1] > 15 || d[2] > 15)
+    elseif !sameday && !samemonth && (d1[1] > 15 || d2[1] > 15)
         :daily
     else
         :other

@@ -92,12 +92,17 @@ end
 
 @testset "Advance temporal manipulation" begin
     tdense = Date(2000, 3, 1):Day(1):Date(2020, 3, 31)
+    tyearly = Date(2000, 3, 1):Year(1):Date(2020, 3, 31)
     mdates = unique!([(year(d), month(d)) for d in tdense])
     ydates = unique!([year(d) for d in tdense])
     tranges = temporalrange(tdense, Dates.month)
     yranges = temporalrange(tdense, Dates.year)
     @test length(tranges) == length(mdates)
     @test length(yranges) == length(ydates)
+
+    @test temporal_sampling(t) == :monthly
+    @test temporal_sampling(tdense) == :daily
+    @test temporal_sampling(tyearly) == :yearly
 
     Bz = zonalmean(B)
     # Generate an array that has daily insolation
@@ -118,6 +123,7 @@ end
         @test round(Int, e) == e
     end
     @test step(dims(Cm, Time).val) == Month(1)
+    @test temporal_sampling(dims(Cm, Time).val) == :monthly
 
     for j in 1:length(tdense)
         for i in 1:length(lats)
@@ -130,6 +136,7 @@ end
         @test round(Int, e) == e
     end
     @test step(dims(Cy, Time).val) == Year(1)
+    @test temporal_sampling(dims(Cy, Time).val) == :yearly
 
 
     # Second version: test actual physics
