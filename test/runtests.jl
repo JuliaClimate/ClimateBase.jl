@@ -11,7 +11,7 @@ function monthly_insolation(t::TimeType, args...)
     mean(insolation(τ, args...) for τ in d)
 end
 
-lats = -90:5:90
+lats = -86:4:86
 lons = collect(0.5:10:360)
 t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
 tdense = Date(2000, 3, 15):Day(1):Date(2020, 3, 15)
@@ -106,10 +106,10 @@ end
     # First version: just count number of days
     for j in 1:length(tdense)
         for i in 1:length(lats)
-            C[i, j] = daysinmonth(tdense[j]) #1 #insolation(tdense[j], lats[i])
+            C[i, j] = daysinmonth(tdense[j])
         end
     end
-    Cm = monthlymean(C)
+    Cm = monthlyagg(C)
 
     @test length(unique(Array(Cm))) == 4 # there are four unique number of days
     # test that each value when rounded to an integer is an integer (for first slice only
@@ -117,6 +117,19 @@ end
     for e in Cm[:, 1]
         @test round(Int, e) == e
     end
+    @test step(dims(Cm, Time).val) == Month(1)
+
+    for j in 1:length(tdense)
+        for i in 1:length(lats)
+            C[i, j] = daysinyear(tdense[j])
+        end
+    end
+    Cy = yearlyagg(C)
+    @test length(unique(Array(Cy))) == 2
+    for e in Cy
+        @test round(Int, e) == e
+    end
+    @test step(dims(Cy, Time).val) == Year(1)
 
 
     # Second version: test actual physics
@@ -125,7 +138,7 @@ end
             C[i, j] = insolation(tdense[j], lats[i])
         end
     end
-    Cm = monthlymean(C)
+    Cm = monthlyagg(C)
     @test all(Cm .≈ Bz)
 end
 

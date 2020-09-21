@@ -8,9 +8,15 @@ _numbertype(T) = _numbertype(eltype(T))
 _numbertype(::Type{Union{T, Missing}}) where T = T
 _numbertype(::Type{T}) where {T <: Real} = T
 
+# TODO: This function needs to become more general to allow for time sampling
+# other than monthly (currently explicitly assumed)
+
+# TODO: perhaps it is worth considering a version that makes true time in seconds
+# instead of months, which in the future would allow support of diurnal cycles
+# TODO: YES! Make true time be seconds!
 
 """
-    sinusoidal_continuation(T::AbDimArray, fs = [1, 2]; Tmin = -Inf, Tmax = Inf)
+    sinusoidal_continuation(T::ClimArray, fs = [1, 2]; Tmin = -Inf, Tmax = Inf)
 Fill-in the missing values of spatiotemporal field `T`, by fitting sinusoidals
 to the non-missing values, and then using the fitted sinusoidals for the missing values.
 

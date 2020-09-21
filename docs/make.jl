@@ -26,7 +26,7 @@ using Documenter, DimensionalData, NCDatasets, StatsBase
 # %% Build the actual docs
 makedocs(modules = [ClimateBase, DimensionalData],
     sitename= "ClimateBase",
-    authors = "George Datseris and contributors.",
+    authors = "George Datseris, Phillippe Roy, and contributors.",
     doctest = false,
     format = Documenter.HTML(
         prettyurls = CI,
@@ -42,7 +42,7 @@ makedocs(modules = [ClimateBase, DimensionalData],
 
 if CI
     deploydocs(
-        repo = "github.com/Datseris/ClimateBase.jl.git",
+        repo = "github.com/JuliaClimate/ClimateBase.jl.git",
         target = "build",
         push_preview = true
     )
