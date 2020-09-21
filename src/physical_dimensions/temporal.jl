@@ -5,12 +5,9 @@ using Statistics, StatsBase
 #########################################################################
 # Datetime related
 #########################################################################
-# TODO: Identify monthly, daily, yearly or arbitrary spacing
-# to simplify this identification is done exclusively on first 3 time points
-# TODO: monthlyagg funcion
-
 using Dates
-export monthday_indices, maxyearspan, daymonth, DAYS_IN_YEAR
+export monthday_indices, maxyearspan, daymonth, DAYS_IN_YEAR, time_in_days
+export temporal_sampling
 
 const DAYS_IN_YEAR = 365.26
 millisecond2month(t) = Month(round(Int, t.value / 1000 / 60 / 60 / 24 / 30))
@@ -94,7 +91,6 @@ end
 time_in_days(t::AbstractArray{<:Real}) = t
 
 
-export temporal_sampling
 """
     temporal_sampling(x) → symbol
 Return the temporal sampling type of `x`, which is either an array of `Date`s or
@@ -147,10 +143,12 @@ timemean(A::ClimArray, w = nothing) = timeagg(mean, A, w)
     timeagg(f, A::ClimArray, W = nothing)
 Perform a proper temporal aggregation of the function `f` (e.g. `mean, std`)
 on `A` (assuming monthly spaced data) where:
-* Only full year spans of `A` are included (because most processes are affected by yearly cycle)
-* Each month in `a` is weighted with its length in days.
+* Only full year spans of `A` are included, see [`maxyearspan`](@ref)
+  (because most processes are affected by yearly cycle,
+  and averaging over an uneven number of cycles typically results in artifacts)
+* Each month in `A` is weighted with its length in days (for monthly sampled data)
 
-If you don't want these features, just do [`dropagg`](@ref)`(f, A, Time)`.
+If you don't want these features, just do [`dropagg`](@ref)`(f, A, Time, W)`.
 
 `W` are possible statistical weights that are used in conjuction to the temporal weighting,
 to weight each time point differently.
@@ -161,12 +159,33 @@ array of same dimensional layout as `A` (a weight for each data point).
 Same as above, but for arbitrary vector `x` accompanied by time vector `t`.
 """
 function timeagg(f, A::AbDimArray, w = nothing)
-    t = dims(A, Time).val
     w isa AbDimArray && @assert dims(w) == dims(A)
     w isa Vector && @assert length(w) == length(t)
     tsamp = temporal_sampling(t)
-    mys = maxyearspan(t, tsamp)
-    tw = temporal_weights(t, tsamp)
+    r = if tsamp == :daily || tsamp == :other
+        timeagg_daily(f, A, w)
+    elseif tsamp == :monthly
+        timeagg_monthly(f, A, w)
+    elseif tsamp == :yearly
+        timeagg_yearly(f, A, w)
+    end
+end
+
+function timeagg_yearly(f, A, w)
+     if isnothing(w)
+        dropagg(f, A, Time)
+    elseif w isa AbDimArray
+        map(i -> f(view(A, i), weights(view(W, i))), otheridxs(A, Time()))
+    elseif w isa Vector
+        fw = weights(W)
+        map(i -> f(view(A, i), fw), otheridxs(A, Time()))
+    end
+end
+
+function timeagg_monthly(f, A::AbDimArray, w)
+    t = dims(A, Time).val
+    mys = maxyearspan(t, :monthly)
+    tw = daysinmonth.(t)
     W = if isnothing(w)
         tw
     elseif w isa Vector
@@ -177,15 +196,25 @@ function timeagg(f, A::AbDimArray, w = nothing)
     end
     other = otherdims(A, Time)
     _A = @view A[Time(1:mys)]
-    !(w isa AbDimArray) && (fw = weights(view(W, 1:mys)))
     if w isa AbDimArray
         r = map(i -> f(view(_A, i), weights(view(W, i))), otheridxs(A, Time()))
     else
+        fw = weights(view(W, 1:mys))
         r = map(i -> f(view(_A, i), fw), otheridxs(A, Time()))
     end
-    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
-    R = ClimArray(r, other, n)
-    return R
+end
+
+function timeagg_daily(f, A::AbDimArray, w)
+    t = dims(A, Time).val
+    mys = maxyearspan(t)
+    _A = view(A, Time(1:mys))
+    if w isa AbDimArray
+        W = view(w, Time(1:mys))
+        r = map(i -> f(view(_A, i), weights(view(W, i))), otheridxs(A, Time()))
+    elseif w isa Vector
+        fw = weights(view(w, 1:mys))
+        r = map(i -> f(view(_A, i), fw), otheridxs(A, Time()))
+    else
 end
 
 function timeagg(f, a::AbDimArray{T, 1}, exw = nothing) where {T} # version with only time dimension
@@ -193,6 +222,7 @@ function timeagg(f, a::AbDimArray{T, 1}, exw = nothing) where {T} # version with
     return timeagg(f, t, a, exw)
 end
 
+# TODO: This version
 function timeagg(f, t::Vector{<:TimeType}, a, exw = nothing) # version with just vectors
     mys = maxyearspan(t)
     # TODO: type stability
@@ -206,12 +236,6 @@ function timeagg(f, t::Vector{<:TimeType}, a, exw = nothing) # version with just
     y = f(Array(a)[1:mys], w)
 end
 
-function temporal_weights(t, tsamp = temporal_sampling(t))
-    if tsamp == :monthly
-        w = daysinmonth.(t)
-    end
-    return w
-end
 
 #########################################################################
 # Monthly/yearly/daily means
