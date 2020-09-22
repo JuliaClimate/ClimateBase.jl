@@ -44,9 +44,13 @@ A = ClimArray(file, "tow_sw_all")
 ```
 (of course you can just do `NCDataset("file.nc")` for single files).
 
-If there are no missing values in the data (according to CF standards), the
-returned array is automatically converted to a concrete type (i.e. `Union{Float32, Missing}`
-becomes `Float32`).
+We do two performance improvements while loading the data:
+1. If there are no missing values in the data (according to CF standards), the
+   returned array is automatically converted to a concrete type (i.e. `Union{Float32, Missing}`
+   becomes `Float32`).
+2. Dimensions that are ranges (i.e. sampled with constant step size) are automatically
+   transformed to a standard Julia `Range` type (which makes sub-selecting faster).
+
 
 At the moment, support for auto-loading equal area space types does not exist,
 see [Types of spatial coordinates](@ref). But
@@ -117,7 +121,8 @@ Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
 function create_dims(ds::NCDatasets.AbstractDataset, dnames)
     true_dims = getindex.(Ref(COMMONNAMES), dnames)
     dim_values = Array.(getindex.(Ref(ds), dnames))
-    return dim_values .|> true_dims
+    optimal_values = vector2range.(dim_values)
+    return optimal_values .|> true_dims
 end
 
 #########################################################################

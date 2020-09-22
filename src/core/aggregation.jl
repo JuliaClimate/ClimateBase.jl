@@ -54,13 +54,7 @@ function dropagg(f, A::AbDimArray, dims)
     DimensionalData.rebuild(r, Array(r.data))
 end
 
-function dimindex(A::AbDimArray, Dim)
-    @assert hasdim(A, Dim)
-    return findfirst(x -> x isa Dim, dims(A))
-end
-
-Base.ones(A::AbDimArray) = basetypeof(A)(ones(size(A)), dims(A))
-
+dimindex(A::AbDimArray, Dim) = DimensionalData.dimnum(A, Dim)
 
 #########################################################################
 # Other dimensions

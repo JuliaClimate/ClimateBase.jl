@@ -133,3 +133,5 @@ function Base.summary(io::IO, A::ClimArray)
         print(io, '\n')
     end
 end
+
+Base.ones(A::AbDimArray) = basetypeof(A)(ones(size(A)), dims(A))
