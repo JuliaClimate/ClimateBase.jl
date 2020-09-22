@@ -253,7 +253,7 @@ function timeagg(f, T::AbstractVector{<:TimeType}, a::Vector, w = nothing) # ver
     mys = maxyearspan(T, tsamp)
     t = view(T, 1:mys)
     if tsamp == :monthly
-        dimw = daysinmonth.(t)
+        dimw = float.(daysinmonth.(t))
         !isnothing(w) && (dimw .*= view(w, 1:mys))
         return f(view(a, 1:mys), weights(dimw))
     else
