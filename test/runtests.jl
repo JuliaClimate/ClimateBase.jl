@@ -88,6 +88,8 @@ end
     res = timeagg(mean, A, w)
     @test all(res .≈ A[Time(5)])
     @test dims(A, Lon) == dims(res, Lon)
+
+    # TODO: more tests needed here, e.g. for timeagg(mean, t, a, w)
 end
 
 @testset "Advanced temporal manipulation" begin
