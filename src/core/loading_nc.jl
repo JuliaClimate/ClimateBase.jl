@@ -71,15 +71,16 @@ end
 
 # TODO: Allow this function to take as input a tuple of indices, e.g. (:, :, 1:5)
 # and only load this part, and correctly and instantly make it a ClimArray, which
-# can solve "large memory" or "large data" problems.
+# can solve "large memory" or "large data" problems. This funcionality
+# must be sure to load the correct ranges of dimensions as well though!
+
 function ClimArray(ds::NCDatasets.AbstractDataset, var::String; eqarea = false)
     svar = string(var)
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)
     A = cfvar |> Array
     if eqarea
-        # TODO: I have to re-work this code to be more general and allow other dimensions
-        # as well!!!!
+        # TODO: This piece of code is specific to CDO output...
         if haskey(ds, "ncells") # this is the equal area grid, so we make a Coord dimension
             lon = ds["lon"] |> Array .|> wrap_lon
             lat = ds["lat"] |> Array
@@ -118,6 +119,35 @@ function create_dims(ds::NCDatasets.AbstractDataset, dnames)
     dim_values = Array.(getindex.(Ref(ds), dnames))
     return dim_values .|> true_dims
 end
+
+#########################################################################
+# Making vectors → ranges
+#########################################################################
+function vector2range(x::Vector{<:Real})
+    dx = x[2]-x[1]
+    for i in 3:length(x)
+        x[i]-x[i-1] ≠ dx && return x # if no constant step, return array as is
+    end
+    r = x[1]:dx:x[end]
+    @assert r == x
+    return r
+end
+
+function vector2range(t::Vector{<:DateTime})
+    !sampled_less_than_date(t) && return vector2range(Date.(t))
+    # TODO: implement hourly sampling here
+    @warn "Hourly sampling not yet implemented."
+    return t
+end
+
+function vector2range(t::Vector{<:Date})
+    tsamp = temporal_sampling(t)
+    period = tsamp2period(tsamp)
+    r = t[1]:period:t[end]
+    @assert r == t
+    return r
+end
+
 
 #########################################################################
 # Equal area related
