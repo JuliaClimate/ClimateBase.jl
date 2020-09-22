@@ -90,7 +90,6 @@ function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
 end
 time_in_days(t::AbstractArray{<:Real}) = t
 
-
 """
     temporal_sampling(x) → symbol
 Return the temporal sampling type of `x`, which is either an array of `Date`s or
@@ -100,6 +99,7 @@ Possible return values are:
 - `:yearly`, where all dates have the same month+day, but different year.
 - `:monthly`, where all dates have the same day, but different month.
 - `:daily`, where the temporal difference between dates are exactly 1 day.
+- `:hourly`, where the temporal difference between entries is exactly 1 hour.
 - `:other`, which means that `x` doesn't fall to any of the above categories.
 
 For vector input, only the first 3 entries of the temporal information are used
@@ -107,6 +107,8 @@ to deduce the sampling (while for ranges, checking the step is enough).
 """
 temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
 function temporal_sampling(t::AbstractVector{<:TimeType})
+    #TODO: implement hourly!
+    sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
     d1 = daymonth(t[2]) .- daymonth(t[1])
     d2 = daymonth(t[3]) .- daymonth(t[2])
     samemonth = d1[2] == d1[2] == 0
@@ -128,7 +130,23 @@ temporal_sampling(t::AbstractVector) = error("Need `<:TimeType` elements.")
 temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
 temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
 temporal_sampling(t::StepRange{<:Any,Day}) = :daily
+temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
 temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
+
+"return true if hours or minutes are ≠ 0."
+function sampled_less_than_date(t::AbstractVector{<:DateTime})
+    r = 1:length(t)
+    any(i -> Dates.hour(t[i]) ≠ 0, r) || any(i -> Dates.minute(t[i]) ≠ 0, r)
+end
+sampled_less_than_date(t::AbstractVector{<:Date}) = false
+
+"return the appropriate subtype of Dates.Period."
+function tsamp2period(tsamp)
+    tsamp == :monthly && return Month(1)
+    tsamp == :yearly && return Year(1)
+    tsamp == :daily && return Day(1)
+    error("Don't know the period of $tsamp sampling!")
+end
 
 #########################################################################
 # temporal statistics
@@ -235,7 +253,7 @@ function timeagg(f, T::AbstractVector{<:TimeType}, a::Vector, w = nothing) # ver
     mys = maxyearspan(T, tsamp)
     t = view(T, 1:mys)
     if tsamp == :monthly
-        dimw = daysinmonth.(t)
+        dimw = float.(daysinmonth.(t))
         !isnothing(w) && (dimw .*= view(w, 1:mys))
         return f(view(a, 1:mys), weights(dimw))
     else
