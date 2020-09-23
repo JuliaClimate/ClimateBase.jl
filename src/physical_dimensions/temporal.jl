@@ -31,6 +31,10 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
         findlast(i -> month(times[i]) == m, 1:length(times)) - 1
     elseif tsamp == :yearly
         return length(times)
+    elseif tsamp == :daily
+        m, d = monthday(times[1])
+        i = findlast(j -> monthday(t[j]) == (m, d), 1:length(t))
+        return i-1
     else
         error("maxyearspan: not implemented yet for $tsamp data")
     end
@@ -120,7 +124,8 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
         :monthly
     elseif !sameday && samemonth
         :daily
-    elseif !sameday && !samemonth && (d1[1] > 15 || d2[1] > 15)
+    # TODO: test that <0 works, add in test suite
+    elseif !sameday && !samemonth && (d1[1] < 0 || d2[1] < 0)
         :daily
     else
         :other
