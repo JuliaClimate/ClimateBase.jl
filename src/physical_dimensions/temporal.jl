@@ -131,7 +131,7 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
         :other
     end
 end
-temporal_sampling(t::AbstractVector) = error("Need `<:TimeType` elements.")
+temporal_sampling(t::AbstractVector) = :other
 temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
 temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
 temporal_sampling(t::StepRange{<:Any,Day}) = :daily
