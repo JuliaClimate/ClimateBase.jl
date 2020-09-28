@@ -113,10 +113,8 @@ temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
 function temporal_sampling(t::AbstractVector{<:TimeType})
     #TODO: implement hourly!
     sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
-    d1 = daymonth(t[2]) .- daymonth(t[1])
-    d2 = daymonth(t[3]) .- daymonth(t[2])
-    samemonth = d1[2] == d2[2] == 0
-    sameday = d1[1] == d2[1] == 0
+    sameday = day(t[1]) == day(t[2]) == day(t[1])
+    samemonth = month(t[1]) == month(t[2]) == month(t[3])
     sameyear = year(t[1]) == year(t[2]) == year(t[3])
     if sameday && samemonth && !sameyear
         :yearly
@@ -124,8 +122,8 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
         :monthly
     elseif !sameday && samemonth
         :daily
-    # TODO: test that <0 works, add in test suite
-    elseif !sameday && !samemonth && (d1[1] < 0 || d2[1] < 0)
+    elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
+        # this clause checks daily data where the days wrap over the end of the month!
         :daily
     else
         :other
