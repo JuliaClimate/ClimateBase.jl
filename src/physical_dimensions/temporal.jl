@@ -10,6 +10,8 @@ export monthday_indices, maxyearspan, daymonth, DAYS_IN_YEAR, time_in_days
 export temporal_sampling
 
 const DAYS_IN_YEAR = 365.26
+const HOURS_IN_YEAR = 365.26*24
+
 millisecond2month(t) = Month(round(Int, t.value / 1000 / 60 / 60 / 24 / 30))
 daymonth(t) = day(t), month(t)
 
@@ -25,16 +27,38 @@ Find the maximum index `i` of `t` so that `t[1:i]` covers exact(*) multiples of 
 the largest possible multiple of `DAYS_IN_YEAR = 365.26`.
 """
 function maxyearspan(times, tsamp = temporal_sampling(times))
+    l = length(times)
     if tsamp == :monthly
-        length(times) % 12 == 0 && return length(times)
+        l % 12 == 0 && return l
         m = month(times[1])
-        findlast(i -> month(times[i]) == m, 1:length(times)) - 1
+        ans = findlast(i -> month(times[i]) == m, 1:l) - 1
+        if ans != 0
+            return ans
+        elseif ans == 0
+            println("Caution: data does not cover a full year.")
+            return l
+        end
     elseif tsamp == :yearly
         return length(times)
     elseif tsamp == :daily
-        m, d = monthday(times[1])
-        i = findlast(j -> monthday(t[j]) == (m, d), 1:length(t))
-        return i-1
+        n_max = l÷365
+        nb_years = findlast(n -> round(Int, n * DAYS_IN_YEAR) ≤ l, 1:n_max)
+        if nb_years != nothing
+            return round(Int,nb_years * DAYS_IN_YEAR)-1
+        elseif nb_years == nothing
+            println("Caution: data does not cover a full year.")
+            return l 
+        end
+    ##### UNCOMMENT THIS PART ONCE HOURLY-SAMPLING IS IMPLEMENTED IN TEMPORAL_SAMPLING ####
+    # elseif tsamp == :hourly
+    #     n_max = l÷(265*24)
+    #     nb_years = findlast(n -> round(Int, n * HOURS_IN_YEAR) ≤ l, 1:n_max)
+    #     if nb_years != nothing
+    #         return round(Int,nb_years * HOURS_IN_YEAR)-1
+    #     elseif nb_years == nothing
+    #         println("Caution: data does not cover a full year.")
+    #         return l 
+    #     end
     else
         error("maxyearspan: not implemented yet for $tsamp data")
     end
