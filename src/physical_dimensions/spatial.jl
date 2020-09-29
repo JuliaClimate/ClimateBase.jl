@@ -72,7 +72,7 @@ Works for both grid and equal area space.
 zonalmean(A::AbDimArray, args...) = zonalmean(spacestructure(A), A, args...)
 zonalmean(::Grid, A::AbDimArray) = dropagg(mean, A, Lon)
 
-function zonalmean(::EqArea, A::AbDimArray) where {T}
+function zonalmean(::EqArea, A::AbDimArray)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
     n = A.name == "" ? "" : A.name*", zonally averaged"
@@ -102,7 +102,7 @@ in `lats` covers, as well as the latitudes themselves.
 """
 uniquelats(A::AbDimArray) = uniquelats(dims(A, Coord))
 function uniquelats(c)
-    @assert issorted(c, by = x -> x[2])
+    @assert issorted(c; by = x -> x[2])
     idxs = Vector{UnitRange{Int}}()
     lats = eltype(eltype(c))[]
     sizehint!(lats, round(Int, sqrt(length(c))))
@@ -243,8 +243,8 @@ function hemispheric_functions(::Grid, A)
 end
 
 function hemispheric_functions(::EqArea, A)
-    c = dims(A, Coord)
-    @assert issorted(c, by = x -> x[2])
+    c = dims(A, Coord).val
+    @assert issorted(c; by = x -> x[2])
     shi, nhi = hemisphere_indices(c)
     nh = A[Coord(nhi)]
     sh = A[Coord(shi)]
