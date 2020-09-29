@@ -50,7 +50,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
             return l 
         end
     elseif tsamp == :hourly
-        n_max = l÷(265*24)
+        n_max = l÷(365*24)
         nb_years = findlast(n -> round(Int, n * HOURS_IN_YEAR) ≤ l, 1:n_max)
         if nb_years != nothing
             return round(Int,nb_years * HOURS_IN_YEAR)-1
