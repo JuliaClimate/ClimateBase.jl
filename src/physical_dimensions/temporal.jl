@@ -49,16 +49,15 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
             println("Caution: data does not cover a full year.")
             return l 
         end
-    ##### UNCOMMENT THIS PART ONCE HOURLY-SAMPLING IS IMPLEMENTED IN TEMPORAL_SAMPLING ####
-    # elseif tsamp == :hourly
-    #     n_max = l÷(265*24)
-    #     nb_years = findlast(n -> round(Int, n * HOURS_IN_YEAR) ≤ l, 1:n_max)
-    #     if nb_years != nothing
-    #         return round(Int,nb_years * HOURS_IN_YEAR)-1
-    #     elseif nb_years == nothing
-    #         println("Caution: data does not cover a full year.")
-    #         return l 
-    #     end
+    elseif tsamp == :hourly
+        n_max = l÷(265*24)
+        nb_years = findlast(n -> round(Int, n * HOURS_IN_YEAR) ≤ l, 1:n_max)
+        if nb_years != nothing
+            return round(Int,nb_years * HOURS_IN_YEAR)-1
+        elseif nb_years == nothing
+            println("Caution: data does not cover a full year.")
+            return l 
+        end
     else
         error("maxyearspan: not implemented yet for $tsamp data")
     end
