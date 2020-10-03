@@ -31,11 +31,11 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
     if tsamp == :monthly
         l % 12 == 0 && return l
         m = month(times[1])
-        ans = findlast(i -> month(times[i]) == m, 1:l) - 1
-        if ans != 0
-            return ans
+        x = findlast(i -> month(times[i]) == m, 1:l) - 1
+        if x != 0
+            return x
         elseif ans == 0
-            println("Caution: data does not cover a full year.")
+            @warn "Caution: data does not cover a full year."
             return l
         end
     elseif tsamp == :yearly
@@ -46,7 +46,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
         if nb_years != nothing
             return round(Int,nb_years * DAYS_IN_YEAR)-1
         elseif nb_years == nothing
-            println("Caution: data does not cover a full year.")
+            @warn "Caution: data does not cover a full year."
             return l 
         end
     elseif tsamp == :hourly
@@ -55,7 +55,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
         if nb_years != nothing
             return round(Int,nb_years * HOURS_IN_YEAR)-1
         elseif nb_years == nothing
-            println("Caution: data does not cover a full year.")
+            @warn "Caution: data does not cover a full year."
             return l 
         end
     else
