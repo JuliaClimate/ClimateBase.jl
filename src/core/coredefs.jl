@@ -13,11 +13,11 @@ export get_var_as_dimarray
 export Time, Lon, Lat, dims, Coord, Hei, Ti
 export EqArea, Grid, spacestructure
 
-@dim Lon IndependentDim "Longitude" "lon"
-@dim Lat IndependentDim "Latitude" "lat"
+@dim Lon IndependentDim "Longitude"
+@dim Lat IndependentDim "Latitude"
 @dim Coord IndependentDim "Coordinates (spatial)"
-@dim Hei IndependentDim "Height" "height"
-@dim Pre IndependentDim "Pressure" "pressure"
+@dim Hei IndependentDim "Height"
+@dim Pre IndependentDim "Pressure"
 
 STANDARD_DIMS = (Lon, Lat, Time, Hei, Pre, Coord)
 
@@ -49,11 +49,11 @@ function spacestructure(dims)
 end
 
 export ClimArray
-struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,Me} <: AbstractDimensionalArray{T,N,D,A}
+struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbstractDimensionalArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
-    name::Na
+    name::Symbol
     attrib::Me
 end
 ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
@@ -85,9 +85,10 @@ A = ClimArray(data, dimensions)
 ```
 """
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
-ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
-ClimArray(A::AbstractArray, dims::Tuple, name::String; refdims=(), attrib=nothing) =
-ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
+ClimArray(A, DimensionalData.formatdims(A, dims), refdims, Symbol(name), attrib)
+ClimArray(A::AbstractArray, dims::Tuple, name; refdims=(), attrib=nothing) =
+ClimArray(A, DimensionalData.formatdims(A, dims), refdims, Symbol(name), attrib)
+DimensionalData.name(A::ClimArray) = String(A.name)
 
 Base.parent(A::ClimArray) = A.data
 Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
