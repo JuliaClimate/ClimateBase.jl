@@ -53,7 +53,7 @@ struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbstractDime
     data::A
     dims::D
     refdims::R
-    name::Symbol
+    name::String
     attrib::Me
 end
 ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
@@ -85,10 +85,9 @@ A = ClimArray(data, dimensions)
 ```
 """
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
-ClimArray(A, DimensionalData.formatdims(A, dims), refdims, Symbol(name), attrib)
+ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
 ClimArray(A::AbstractArray, dims::Tuple, name; refdims=(), attrib=nothing) =
-ClimArray(A, DimensionalData.formatdims(A, dims), refdims, Symbol(name), attrib)
-DimensionalData.name(A::ClimArray) = String(A.name)
+ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
 
 Base.parent(A::ClimArray) = A.data
 Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
