@@ -101,7 +101,7 @@ Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalDa
 
 DimensionalData.metadata(A::ClimArray) = A.attrib
 DimensionalData.rebuild(A::ClimArray, data::Any, dims::Tuple=dims(A), refdims=DimensionalData.refdims(A),
-name="", attrib=nothing) = ClimArray(data, dims, refdims, name, attrib)
+name="", attrib=nothing) = ClimArray(data, dims, refdims, Symbol(name), attrib)
 DimensionalData.basetypeof(::ClimArray) = ClimArray
 
 DimensionalData.rebuild(
