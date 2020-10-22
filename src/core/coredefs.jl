@@ -1,3 +1,6 @@
+##########################################################################################
+# Basic imports and dimension definitions
+##########################################################################################
 using DimensionalData
 using DimensionalData: @dim, hasdim, Dimension, IndependentDim
 using DimensionalData: basetypeof
@@ -48,12 +51,15 @@ function spacestructure(dims)
     end
 end
 
+##########################################################################################
+# ClimArray definition and DimensionalData.jl extensions
+##########################################################################################
 export ClimArray
 struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbstractDimensionalArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
-    name::String
+    name::Symbol
     attrib::Me
 end
 ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
@@ -85,9 +91,9 @@ A = ClimArray(data, dimensions)
 ```
 """
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
-ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
+    ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
 ClimArray(A::AbstractArray, dims::Tuple, name; refdims=(), attrib=nothing) =
-ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
+    ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
 
 Base.parent(A::ClimArray) = A.data
 Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
@@ -98,11 +104,24 @@ DimensionalData.rebuild(A::ClimArray, data::Any, dims::Tuple=dims(A), refdims=Di
 name="", attrib=nothing) = ClimArray(data, dims, refdims, name, attrib)
 DimensionalData.basetypeof(::ClimArray) = ClimArray
 
+DimensionalData.rebuild(
+    A::ClimArray;
+    data=data(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
+) = ClimArray(data, dims, refdims, name, metadata)
+
+
 # The following basic methods allow indexing with tuples, (Time(5), Lon(3))
 Base.getindex(A::ClimArray, i::Tuple) = A[i...]
 Base.setindex!(A::ClimArray, x, i::Tuple) = setindex!(A, x, i...)
 Base.view(A::ClimArray, i::Tuple) = view(A, i...)
 
+# Convenience
+Base.ones(A::AbDimArray) = basetypeof(A)(ones(eltype(A), size(A)), dims(A))
+Base.zeros(A::AbDimArray) = basetypeof(A)(zeros(eltype(A), size(A)), dims(A))
+
+##########################################################################################
+# Pretty printing
+##########################################################################################
 # Remove reference dims from printing, and show attributes if any
 function Base.show(io::IO, A::ClimArray)
     summary(io, A)
@@ -133,5 +152,3 @@ function Base.summary(io::IO, A::ClimArray)
         print(io, '\n')
     end
 end
-
-Base.ones(A::AbDimArray) = basetypeof(A)(ones(size(A)), dims(A))
