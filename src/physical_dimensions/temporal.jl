@@ -193,8 +193,7 @@ function timeagg(f, A::AbDimArray, w = nothing)
     elseif tsamp == :yearly
         timeagg_yearly(f, A, w)
     end
-    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
-    R = ClimArray(r, otherdims(A, Time()), n)
+    R = ClimArray(r, otherdims(A, Time()), A.name)
 end
 
 function timeagg_yearly(f, A, w)

@@ -75,9 +75,8 @@ zonalmean(::Grid, A::AbDimArray) = dropagg(mean, A, Lon)
 function zonalmean(::EqArea, A::AbDimArray)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
-    n = A.name == "" ? "" : A.name*", zonally averaged"
     r = zeros(eltype(A), (length(lats), size.(Ref(A), other)...), other)
-    R = ClimArray(r, (Lat(lats), other...), n)
+    R = ClimArray(r, (Lat(lats), other...), A.name)
     for (i, r) in enumerate(idxs)
         for j in otheridxs(A, Coord())
             R[Lat(i), j...] = mean(view(A, Coord(r), j...))
@@ -190,8 +189,7 @@ function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
         # first dimension.
         r = map(i -> f(view(A, i), weights(view(w, i) .* cosweights)), oidxs)
     end
-    n = A.name == "" ? "" : A.name*", spatially aggregated with $(string(f))"
-    return ClimArray(r, other, n)
+    return ClimArray(r, other, A.name)
 end
 
 function spaceweightassert(A, w)

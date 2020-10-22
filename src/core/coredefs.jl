@@ -18,7 +18,7 @@ export EqArea, Grid, spacestructure
 
 @dim Lon IndependentDim "Longitude"
 @dim Lat IndependentDim "Latitude"
-@dim Coord IndependentDim "Coordinates (spatial)"
+@dim Coord IndependentDim "Spatial Coordinates"
 @dim Hei IndependentDim "Height"
 @dim Pre IndependentDim "Pressure"
 
@@ -91,9 +91,9 @@ A = ClimArray(data, dimensions)
 ```
 """
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
-    ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
+    ClimArray(A, DimensionalData.formatdims(A, dims), refdims, Symbol(name), attrib)
 ClimArray(A::AbstractArray, dims::Tuple, name; refdims=(), attrib=nothing) =
-    ClimArray(A, DimensionalData.formatdims(A, dims), refdims, name, attrib)
+    ClimArray(A, DimensionalData.formatdims(A, dims), refdims, Symbol(name), attrib)
 
 Base.parent(A::ClimArray) = A.data
 Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
@@ -136,7 +136,7 @@ end
 function Base.summary(io::IO, A::ClimArray)
     l = nameof(typeof(A))
     printstyled(io, nameof(typeof(A)); color=:blue)
-    if A.name != ""
+    if A.name ≠ Symbol("")
         print(io, " (named ")
         printstyled(io, A.name; color=:blue)
         print(io, ")")
