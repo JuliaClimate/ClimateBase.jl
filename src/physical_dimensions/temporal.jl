@@ -193,8 +193,7 @@ function timeagg(f, A::AbDimArray, w = nothing)
     elseif tsamp == :yearly
         timeagg_yearly(f, A, w)
     end
-    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
-    R = ClimArray(r, otherdims(A, Time()), n)
+    R = ClimArray(r, otherdims(A, Time()), A.name)
 end
 
 function timeagg_yearly(f, A, w)
@@ -306,7 +305,7 @@ end
 
 function timegroup(A, f, t, tranges, name)
     other = otherdims(A, Time)
-    n = A.name == "" ? "" : A.name*", $(name) averaged"
+    n = A.name == Symbol("") ? A.name : Symbol(A.name, ", $(name) averaged")
     B = ClimArray(zeros(eltype(A), length.(other)..., length(t)), (other..., Time(t)), n)
     for i in 1:length(tranges)
         B[Time(i)] .= dropagg(f, view(A, Time(tranges[i])), Time)
