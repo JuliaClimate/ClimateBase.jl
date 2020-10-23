@@ -34,6 +34,7 @@ const COMMONNAMES = Dict(
     "height" => Hei,
     "altitude" => Hei,
     "pressure" => Pre,
+    "level" => Pre,
 )
 
 # the trait EqArea is for equal area grids. Functions can use the `spacestructure` and
