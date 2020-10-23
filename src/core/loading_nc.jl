@@ -119,11 +119,29 @@ end
 Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
 """
 function create_dims(ds::NCDatasets.AbstractDataset, dnames)
-    true_dims = getindex.(Ref(COMMONNAMES), dnames)
+    # true_dims = getindex.(Ref(COMMONNAMES), dnames)
+    true_dims = to_proper_dimensions(dnames)
     dim_values = Array.(getindex.(Ref(ds), dnames))
     optimal_values = vector2range.(dim_values)
     return optimal_values .|> true_dims
 end
+
+function to_proper_dimensions(dnames)
+    r = []
+    for n in dnames
+        if haskey(COMMONNAMES, n)
+            push!(r, COMMONNAMES[n])
+        else
+            @warn """
+            Dimension name "$n" not in common names. Strongly recommended to ask for
+            adding this name to COMMONNAMES on github. Making generic dimension for now...
+            """
+            push!(r, Dim{Symbol(n)})
+        end
+    end
+    return (r...,)
+end
+
 
 #########################################################################
 # Making vectors → ranges
