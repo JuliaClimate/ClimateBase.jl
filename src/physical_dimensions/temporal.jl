@@ -34,7 +34,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
         x = findlast(i -> month(times[i]) == m, 1:l) - 1
         if x != 0
             return x
-        elseif ans == 0
+        elseif x == 0
             @warn "Caution: data does not cover a full year."
             return l
         end
