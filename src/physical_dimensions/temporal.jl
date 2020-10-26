@@ -110,6 +110,8 @@ For vector input, only the first 3 entries of the temporal information are used
 to deduce the sampling (while for ranges, checking the step is enough).
 """
 temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
+temporal_sampling(t::Dimension) = temporal_sampling(t.val)
+
 function temporal_sampling(t::AbstractVector{<:TimeType})
     #TODO: implement hourly!
     sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
