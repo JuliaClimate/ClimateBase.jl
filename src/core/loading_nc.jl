@@ -31,7 +31,7 @@ function ncdetails(file::String, io = stdout)
 end
 
 """
-    ClimArray(file::NCDataset, var::String) -> A
+    ClimArray(file::NCDataset, var::String, name = var) -> A
 Load the variable `var` from the `file` and convert it
 into a `ClimArray` which also contains the variable attributes as a dictionary.
 
@@ -78,7 +78,7 @@ end
 # can solve "large memory" or "large data" problems. This funcionality
 # must be sure to load the correct ranges of dimensions as well though!
 
-function ClimArray(ds::NCDatasets.AbstractDataset, var::String; eqarea = false)
+function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var; eqarea = false)
     svar = string(var)
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)
@@ -106,7 +106,7 @@ function ClimArray(ds::NCDatasets.AbstractDataset, var::String; eqarea = false)
         end
     else # standard variables
         dnames = Tuple(NCDatasets.dimnames(cfvar))
-        data = ClimArray(A, create_dims(ds, dnames); name = svar, attrib = attrib)
+        data = ClimArray(A, create_dims(ds, dnames); name = Symbol(name), attrib = attrib)
     end
     if !any(ismissing, data)
         data = nomissing(data)
@@ -119,11 +119,29 @@ end
 Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
 """
 function create_dims(ds::NCDatasets.AbstractDataset, dnames)
-    true_dims = getindex.(Ref(COMMONNAMES), dnames)
+    # true_dims = getindex.(Ref(COMMONNAMES), dnames)
+    true_dims = to_proper_dimensions(dnames)
     dim_values = Array.(getindex.(Ref(ds), dnames))
     optimal_values = vector2range.(dim_values)
     return optimal_values .|> true_dims
 end
+
+function to_proper_dimensions(dnames)
+    r = []
+    for n in dnames
+        if haskey(COMMONNAMES, n)
+            push!(r, COMMONNAMES[n])
+        else
+            @warn """
+            Dimension name "$n" not in common names. Strongly recommended to ask for
+            adding this name to COMMONNAMES on github. Making generic dimension for now...
+            """
+            push!(r, Dim{Symbol(n)})
+        end
+    end
+    return (r...,)
+end
+
 
 #########################################################################
 # Making vectors → ranges

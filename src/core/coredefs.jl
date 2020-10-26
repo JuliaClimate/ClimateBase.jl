@@ -13,7 +13,7 @@ AbDimArray = DimensionalData.AbstractDimArray
 export At, Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, DimensionalArray
 export get_var_as_dimarray
-export Time, Lon, Lat, dims, Coord, Hei, Ti
+export Time, Lon, Lat, dims, Coord, Hei, Pre
 export EqArea, Grid, spacestructure
 
 @dim Lon IndependentDim "Longitude"
@@ -34,6 +34,7 @@ const COMMONNAMES = Dict(
     "height" => Hei,
     "altitude" => Hei,
     "pressure" => Pre,
+    "level" => Pre,
 )
 
 # the trait EqArea is for equal area grids. Functions can use the `spacestructure` and
