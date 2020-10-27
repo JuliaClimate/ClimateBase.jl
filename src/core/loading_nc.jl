@@ -29,6 +29,7 @@ function ncdetails(file::String, io = stdout)
         show(io, MIME"text/plain"(), ds)
     end
 end
+ncdetails(ds::NCDataset, io = stdout) = show(io, MIME"text/plain"(), ds)
 
 """
     ClimArray(file::NCDataset, var::String, name = var) -> A
@@ -142,6 +143,7 @@ function to_proper_dimensions(dnames)
     return (r...,)
 end
 
+export Dim # for generic dimensions this must be exported
 
 #########################################################################
 # Making vectors → ranges
