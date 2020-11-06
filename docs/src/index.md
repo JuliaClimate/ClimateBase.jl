@@ -112,6 +112,7 @@ spacemean
 spaceagg
 hemispheric_means
 hemispheric_functions
+lonlatfirst
 ```
 
 ## General aggregation
