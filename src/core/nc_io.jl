@@ -40,9 +40,10 @@ end
 ncdetails(ds::NCDataset, io = stdout) = show(io, MIME"text/plain"(), ds)
 
 """
-    ClimArray(file::NCDataset, var::String, name = var) -> A
+    ClimArray(file::Union{String,NCDataset}, var::String, name = var) -> A
 Load the variable `var` from the `file` and convert it
 into a `ClimArray` which also contains the variable attributes as a dictionary.
+Dimension attributes are also given to the dimensions of `A`, if any exist.
 
 Notice that `file` should be an `NCDataset`, which allows you to lazily combine different
 `.nc` data (typically split by time), e.g.
@@ -51,7 +52,8 @@ alldata = ["toa_fluxes_2020_\$(i).nc" for i in 1:12]
 file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
-(of course you can just do `NCDataset("file.nc")` for single files).
+(but you can also directly give the string to a single file `"file.nc"` in `ClimArray`
+if data are contained to a single file for single files).
 
 We do two performance improvements while loading the data:
 1. If there are no missing values in the data (according to CF standards), the
@@ -62,8 +64,8 @@ We do two performance improvements while loading the data:
 
 
 At the moment, support for auto-loading equal area space types does not exist,
-see [Types of spatial coordinates](@ref). But
-you can easily transform them yourself into a `ClimArray` by doing e.g.:
+see [Types of spatial coordinates](@ref).
+But can transform them yourself into a `ClimArray` by doing e.g.:
 ```julia
 file = NCDataset("some_file_with_eqarea.nc")
 lons = file["lon"]
