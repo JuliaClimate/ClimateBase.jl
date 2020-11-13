@@ -24,6 +24,10 @@ export EqArea, Grid, spacestructure
 
 STANDARD_DIMS = (Lon, Lat, Time, Hei, Pre, Coord)
 
+"""
+    COMMONNAMES
+A dictionary of common names of dimensions (as strings) to actual dimension types.
+"""
 const COMMONNAMES = Dict(
     "lat" => Lat,
     "latitude" => Lat,
@@ -35,6 +39,17 @@ const COMMONNAMES = Dict(
     "altitude" => Hei,
     "pressure" => Pre,
     "level" => Pre,
+)
+
+"""
+    DIM_TO_COMMONNAMES
+A dictionary that maps dimension types (like `Lon`) to CF-standard names (like `"lon"`).
+"""
+const DIM_TO_COMMONNAMES = Dict(
+    Lat => "lat",
+    Lon => "lon",
+    Pre => "level",
+    Time => "time",
 )
 
 # the trait EqArea is for equal area grids. Functions can use the `spacestructure` and
