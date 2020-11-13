@@ -6,18 +6,13 @@ https://github.com/rafaqz/GeoData.jl
 using NCDatasets
 export NCDataset
 export nckeys, ncdetails
-export DIM_TO_COMMONNAMES, climarrays_to_nc
+export climarrays_to_nc
 
-"""
-    DIM_TO_COMMONNAMES
-A dictionary that maps dimension types (like `Lon`) to CF-standard names (like `"lon"`).
-"""
-const DIM_TO_COMMONNAMES = Dict(
-    Lat => "lat",
-    Lon => "lon",
-    Pre => "level",
-    Time => "time",
-)
+dim_to_commonname(::Lat) = "lat"
+dim_to_commonname(::Lon) = "lon"
+dim_to_commonname(::Time) = "time"
+dim_to_commonname(::Pre) = "level"
+dim_to_commonname(D::Dim) = string(DimensionalData.name(D))
 
 #########################################################################
 # NCDatasets → DimensionalArray convertions and loading
@@ -259,7 +254,7 @@ function climarrays_to_nc(file::String, Xs; globalattr = Dict())
         add_dims_to_ncfile!(ds, dims(X))
         println("writing the CF-variable...")
         attrib = X.attrib
-        dnames = [DIM_TO_COMMONNAMES[ClimateBase.basetypeof(d)] for d in dims(X)]
+        dnames = dim_to_commonname.(dims(X))
         data = Array(X)
         @show (fieldname, summary(data), dnames)
         defVar(ds, fieldname, data, (dnames...,); attrib)
@@ -268,7 +263,7 @@ function climarrays_to_nc(file::String, Xs; globalattr = Dict())
 end
 
 function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
-    dnames = [DIM_TO_COMMONNAMES[ClimateBase.basetypeof(d)] for d in dimensions]
+    dnames = dim_to_commonname.(dimensions)
     for (i, d) ∈ enumerate(dnames)
         haskey(ds, d) && continue
         v = dimensions[i].val
@@ -277,7 +272,7 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
         l = length(v)
         defDim(ds, d, l) # add dimension entry
         attrib = dimensions[i].metadata
-        if isnothing(attrib)
+        if isnothing(attrib) && haskey(DEFAULT_ATTRIBS, d)
             @warn "Dimension $d has no attributes, adding default attributes (mandatory)."
             attrib = DEFAULT_ATTRIBS[d]
         end
