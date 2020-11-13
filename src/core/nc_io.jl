@@ -239,6 +239,8 @@ Optionally specify global attributes for the `.nc` file.
 
 The metadata of the arrays in `Xs`, as well as their dimensions, are properly written
 in the `.nc` file and any necessary type convertions happen automatically.
+
+**WARNING**: We assume that any dimensions shared between the `Xs` are identical.
 """
 function climarrays_to_nc(file::String, X::ClimArray; globalattr = Dict())
     climarrays_to_nc(file, (X,); globalattr)
