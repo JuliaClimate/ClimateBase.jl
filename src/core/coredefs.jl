@@ -24,6 +24,10 @@ export EqArea, Grid, spacestructure
 
 STANDARD_DIMS = (Lon, Lat, Time, Hei, Pre, Coord)
 
+"""
+    COMMONNAMES
+A dictionary of common names of dimensions (as strings) to actual dimension types.
+"""
 const COMMONNAMES = Dict(
     "lat" => Lat,
     "latitude" => Lat,
@@ -36,6 +40,7 @@ const COMMONNAMES = Dict(
     "pressure" => Pre,
     "level" => Pre,
 )
+
 
 # the trait EqArea is for equal area grids. Functions can use the `spacestructure` and
 # dispatch on `EqArea` or other types while still being type-stable
@@ -64,6 +69,7 @@ struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbstractDime
     attrib::Me
 end
 ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
+ClimArray(A::ClimArray; name = A.name, attrib = A.attrib) = ClimArray(A.data, A.dims, A.refdims, name, attrib)
 
 """
     ClimArray(A::Array, dims::Tuple; name = "", attrib = nothing)

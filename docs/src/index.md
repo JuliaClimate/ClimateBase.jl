@@ -42,8 +42,8 @@ C = latmean(B)
 ```
 where in this averaging process each data point is weighted by the cosine of its latitude.
 
-## Making a `ClimArray`
-You can create a `ClimArray` yourself, or you can load data from an `.nc` file with CF-conventions, using `ClimArray`.
+### Making a `ClimArray`
+You can create a `ClimArray` yourself, or you can load data from an `.nc` file with CF-conventions, see [NetCDF IO](@ref).
 ```@docs
 ClimArray(::AbstractArray, ::Tuple)
 ```
@@ -56,7 +56,9 @@ end
 ```
 We explicitly assume that `Lon, Lat` are measured in degrees and not radians or meters (extremely important for spatial averaging processes).
 
----
+## NetCDF IO
+ClimateBase.jl has support for `file.nc ⇆ ClimArray`.
+To load a `ClimArray` directly from an `.nc` file do:
 ```@docs
 ClimArray(::Union{String, Vector{String}})
 ```
@@ -71,6 +73,11 @@ Also, two convenience functions are provided for examining the content of on-dis
 ```@docs
 nckeys
 ncdetails
+```
+
+You can also write a bunch of `ClimArray`s directly into an `.nc` file with
+```@docs
+climarrays_to_nc
 ```
 
 ## Temporal
@@ -112,6 +119,7 @@ spacemean
 spaceagg
 hemispheric_means
 hemispheric_functions
+lonlatfirst
 ```
 
 ## General aggregation
