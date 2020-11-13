@@ -1,9 +1,10 @@
 using ClimateBase, Test, Dates
 using Statistics
-
 Time = ClimateBase.Time
+cd(@__DIR__)
 
 # TODO: Further test spatial averaging by making one hemisphere 1 and other 0
+# TODO: Test downloaded .nc file
 
 # Create the artificial dimensional array A that will be used in tests
 function monthly_insolation(t::TimeType, args...)
@@ -31,8 +32,8 @@ for i in 1:length(lats)
     end
 end
 
-A = ClimArray(A, d; name = "lon-variation")
-B = ClimArray(B, d; name = "lon-constant")
+A = ClimArray(A, d; name = "insolation")
+B = ClimArray(B, d; attrib = Dict("a" => 2))
 
 # %%
 
@@ -182,4 +183,22 @@ end
         @test x[j] < x[j-1]
         @test y[j] < y[j-1]
     end
+end
+
+@testset "NetCDF file IO" begin
+    globat = Dict("history" => "test")
+    climarrays_to_nc("test.nc", (A, B); globalattr = globat)
+    Aloaded = ClimArray("test.nc", "insolation")
+    Bloaded = ClimArray("test.nc", "x2")
+
+    @test A.data == Aloaded.data
+    @test dims(Aloaded, Lon).metadata["units"] == "degrees_east"
+    @test B.data == Bloaded.data
+    @test string(Bloaded.name) == "x2"
+    @test dims(Bloaded, Time).metadata["standard_name"] == "time"
+
+    ds = NCDataset("test.nc")
+    @test ds.attrib["history"] == "test"
+    close(ds)
+    rm("test.nc")
 end

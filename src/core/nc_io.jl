@@ -249,21 +249,25 @@ function climarrays_to_nc(file::String, X::ClimArray; globalattr = Dict())
 end
 function climarrays_to_nc(file::String, Xs; globalattr = Dict())
     ds = NCDataset(file, "c"; attrib = globalattr)
-    for (i, fieldname) in enumerate(Xs)
-        println("processing variable $fieldname...")
-        W = climarray_from_xarray(xa, fieldname)
-        println("converting to CERES format...")
-        X = to_CERES_latitude(W)
-        println("writing dimensions...")
-        add_dims_to_ncfile!(ds, dims(X))
-        println("writing the CF-variable...")
-        attrib = X.attrib
-        dnames = dim_to_commonname.(dims(X))
-        data = Array(X)
-        @show (fieldname, summary(data), dnames)
-        defVar(ds, fieldname, data, (dnames...,); attrib)
-    end
-    close(ds)
+    # NCDataset("file.nc", "c"; attrib = globalattr) do ds
+        for (i, X) in enumerate(Xs)
+            n = string(X.name)
+            if n == ""
+                n = "x$i"
+                @warn "$i-th ClimArray has no name, naming it $(n) instead."
+            end
+            println("processing variable $(n)...")
+            println("writing dimensions...")
+            add_dims_to_ncfile!(ds, dims(X))
+            println("writing the CF-variable...")
+            attrib = X.attrib
+            isnothing(attrib) && (attrib = Dict())
+            dnames = dim_to_commonname.(dims(X))
+            data = Array(X)
+            defVar(ds, n, data, (dnames...,); attrib)
+        end
+        close(ds)
+    # end
 end
 
 function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
