@@ -41,16 +41,6 @@ const COMMONNAMES = Dict(
     "level" => Pre,
 )
 
-"""
-    DIM_TO_COMMONNAMES
-A dictionary that maps dimension types (like `Lon`) to CF-standard names (like `"lon"`).
-"""
-const DIM_TO_COMMONNAMES = Dict(
-    Lat => "lat",
-    Lon => "lon",
-    Pre => "level",
-    Time => "time",
-)
 
 # the trait EqArea is for equal area grids. Functions can use the `spacestructure` and
 # dispatch on `EqArea` or other types while still being type-stable
@@ -79,6 +69,7 @@ struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbstractDime
     attrib::Me
 end
 ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
+ClimArray(A::ClimArray; name = A.name, attrib = A.attrib) = ClimArray(A.data, A.dims, A.refdims, name, attrib)
 
 """
     ClimArray(A::Array, dims::Tuple; name = "", attrib = nothing)

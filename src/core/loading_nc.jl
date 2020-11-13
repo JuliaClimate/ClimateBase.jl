@@ -6,6 +6,19 @@ https://github.com/rafaqz/GeoData.jl
 using NCDatasets
 export NCDataset
 export nckeys, ncdetails
+export DIM_TO_COMMONNAMES
+
+"""
+    DIM_TO_COMMONNAMES
+A dictionary that maps dimension types (like `Lon`) to CF-standard names (like `"lon"`).
+"""
+const DIM_TO_COMMONNAMES = Dict(
+    Lat => "lat",
+    Lon => "lon",
+    Pre => "level",
+    Time => "time",
+)
+
 #########################################################################
 # NCDatasets → DimensionalArray convertions and loading
 #########################################################################
@@ -97,6 +110,8 @@ function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var; eqar
             data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
             attrib = attrib, name = svar)
         elseif haskey(ds, "reduced_points")
+            # TODO: This can be easily upgraded to arbitary dimensions via a simple
+            # dimension replacement / permutation at the end
             lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
             si = sortperm(lonlat, by = reverse)
             time = ds["time"] |> Array
@@ -124,7 +139,15 @@ function create_dims(ds::NCDatasets.AbstractDataset, dnames)
     true_dims = to_proper_dimensions(dnames)
     dim_values = Array.(getindex.(Ref(ds), dnames))
     optimal_values = vector2range.(dim_values)
-    return optimal_values .|> true_dims
+    attribs = [
+        ds[d].attrib isa NCDatasets.BaseAttributes ? Dict(ds[d].attrib) : nothing
+        for d in dnames
+    ]
+    out = []
+    for i in 1:length(true_dims)
+        push!(out, true_dims[i](optimal_values[i]; metadata = attribs[i]))
+    end
+    return (out...,)
 end
 
 function to_proper_dimensions(dnames)
