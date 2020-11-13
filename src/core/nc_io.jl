@@ -1,12 +1,12 @@
 #=
-Code related with loading .nc file data directly into a dimensional array
+Code related with input output (IO) of .nc files directly to/from ClimArrays
 An initial version of parts of this code was taken from:
 https://github.com/rafaqz/GeoData.jl
 =#
 using NCDatasets
 export NCDataset
 export nckeys, ncdetails
-export DIM_TO_COMMONNAMES
+export DIM_TO_COMMONNAMES, climarrays_to_nc
 
 """
     DIM_TO_COMMONNAMES
@@ -210,4 +210,78 @@ function reduced_grid_to_points(lat, reduced_points)
         end
     end
     return lonlat
+end
+
+#########################################################################
+# Saving to .nc files
+#########################################################################
+const DEFAULT_ATTRIBS = Dict(
+    "time" => Dict(
+        "units" => "days since 0000-00-01 00:00:00",
+        "standard_name" => "time"
+    ),
+    "lon" => Dict(
+        "units" => "degrees_east",
+        "standard_name" => "longitude",
+        "valid_range" => Float32[-180.0, 360.0]
+    ),
+    "lat" => Dict(
+        "units" => "degrees_north",
+        "standard_name" => "latitude",
+        "valid_range" => Float32[-90.0, 90.0]
+    ),
+    "level" => Dict(
+        "units" => "millibars",
+        "long_name" => "pressure_level",
+    ),
+)
+
+"""
+    climarrays_to_nc(file::String, Xs; globalattr = Dict())
+Write the given `ClimArray` instances (any iterable of `ClimArray`s or a single `ClimArray`)
+to a `.nc` file following CF standard conventions using NCDatasets.jl.
+Optionally specify global attributes for the `.nc` file.
+
+The metadata of the arrays in `Xs`, as well as their dimensions, are properly written
+in the `.nc` file and any necessary type convertions happen automatically.
+"""
+function climarrays_to_nc(file::String, X::ClimArray; globalattr = Dict())
+    climarrays_to_nc(file, (X,); globalattr)
+end
+function climarrays_to_nc(file::String, Xs; globalattr = Dict())
+    ds = NCDataset(file, "c"; attrib = globalattr)
+    for (i, fieldname) in enumerate(Xs)
+        println("processing variable $fieldname...")
+        W = climarray_from_xarray(xa, fieldname)
+        println("converting to CERES format...")
+        X = to_CERES_latitude(W)
+        println("writing dimensions...")
+        add_dims_to_ncfile!(ds, dims(X))
+        println("writing the CF-variable...")
+        attrib = X.attrib
+        dnames = [DIM_TO_COMMONNAMES[ClimateBase.basetypeof(d)] for d in dims(X)]
+        data = Array(X)
+        @show (fieldname, summary(data), dnames)
+        defVar(ds, fieldname, data, (dnames...,); attrib)
+    end
+    close(ds)
+end
+
+function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
+    dnames = [DIM_TO_COMMONNAMES[ClimateBase.basetypeof(d)] for d in dimensions]
+    for (i, d) ∈ enumerate(dnames)
+        haskey(ds, d) && continue
+        v = dimensions[i].val
+        # this conversion to DateTime is necessary because CFTime.jl doesn't support Date
+        eltype(v) == Date && (v = DateTime.(v))
+        l = length(v)
+        defDim(ds, d, l) # add dimension entry
+        attrib = dimensions[i].metadata
+        if isnothing(attrib)
+            @warn "Dimension $d has no attributes, adding default attributes (mandatory)."
+            attrib = DEFAULT_ATTRIBS[d]
+        end
+        # write dimension values as a variable as well (mandatory)
+        defVar(ds, d, v, (d, ); attrib = attrib)
+    end
 end
