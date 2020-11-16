@@ -45,7 +45,7 @@ Load the variable `var` from the `file` and convert it
 into a `ClimArray` which also contains the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
 
-Notice that `file` should be an `NCDataset`, which allows you to lazily combine different
+Notice that `file` can be an `NCDataset`, which allows you to lazily combine different
 `.nc` data (typically split by time), e.g.
 ```julia
 alldata = ["toa_fluxes_2020_\$(i).nc" for i in 1:12]
@@ -53,7 +53,7 @@ file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
 (but you can also directly give the string to a single file `"file.nc"` in `ClimArray`
-if data are contained to a single file for single files).
+if data are contained in a single file for single files).
 
 We do two performance improvements while loading the data:
 1. If there are no missing values in the data (according to CF standards), the

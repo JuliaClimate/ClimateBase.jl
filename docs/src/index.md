@@ -57,6 +57,9 @@ end
 We explicitly assume that `Lon, Lat` are measured in degrees and not radians or meters (extremely important for spatial averaging processes).
 
 ## NetCDF IO
+
+### Read
+
 ClimateBase.jl has support for `file.nc ⇆ ClimArray`.
 To load a `ClimArray` directly from an `.nc` file do:
 ```@docs
@@ -75,6 +78,7 @@ nckeys
 ncdetails
 ```
 
+### Write 
 You can also write a bunch of `ClimArray`s directly into an `.nc` file with
 ```@docs
 climarrays_to_nc
