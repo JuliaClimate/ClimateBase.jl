@@ -83,4 +83,12 @@ function hemispheric_means(::EqArea, A::AbDimArray)
     return nh, sh
 end
 
+function hemisphere_indices(c)
+    idxs, lats = uniquelats(c)
+    i = findfirst(l → l > 0, lats)
+    shi = idxs[1][1]:idxs[i][end]
+    nhi = idxs[i+1][1]:idxs[end][end]
+    return nhi, shi
+end
+
 latitudes(::EqArea, A) = unique!([x[2] for x in dims(A, Coord)])
