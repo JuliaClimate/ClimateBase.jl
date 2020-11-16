@@ -95,7 +95,7 @@ function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var; eqar
     attrib = Dict(cfvar.attrib)
     A = cfvar |> Array
     if eqarea
-        # TODO: This piece of code is specific to CDO output...
+        # TODO: This code has not yet been generalized to arbitrary dimensions
         if haskey(ds, "ncells") # this is the equal area grid, so we make a Coord dimension
             lon = ds["lon"] |> Array .|> wrap_lon
             lat = ds["lat"] |> Array
@@ -107,13 +107,23 @@ function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var; eqar
             data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
             attrib = attrib, name = svar)
         elseif haskey(ds, "reduced_points")
-            # TODO: This can be easily upgraded to arbitary dimensions via a simple
-            # dimension replacement / permutation at the end
+            # TODO: I've noticed that this converts integer dimension (like pressure)
+            # into Float64, but I'm not sure why...
+            alldims = [NCDatasets.dimnames(cfvar)...]
+            @assert "rgrid" ∈ alldims
+            i = findfirst(x -> x == "rgrid", alldims)
+            remainingdims = deleteat!(copy(alldims), i)
+            actualdims = Any[create_dims(ds, remainingdims)...]
+
             lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
             si = sortperm(lonlat, by = reverse)
-            time = ds["time"] |> Array
-            data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
-            name = svar, attrib = attrib)
+            coords = Coord(lonlat; metadata = Dict("grid" => "Gaussian equal area."))
+
+            insert!(actualdims, i, coords)
+
+            X = ClimArray(A, Tuple(actualdims))
+            X = X[Coord(si)]
+            return ClimArray(X; name = Symbol(name), attrib)
         else
             error("Don't know how to handle this equal area grid!")
         end
