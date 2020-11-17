@@ -1,4 +1,3 @@
-
 function spatialidxs(::EqArea, A)
     return ((Coord(i),) for i in 1:size(A, Coord))
 end
@@ -92,3 +91,29 @@ function hemisphere_indices(c)
 end
 
 latitudes(::EqArea, A) = unique!([x[2] for x in dims(A, Coord)])
+
+#########################################################################
+# Extention of convenience indexing of `Coord`
+#########################################################################
+# TODO: this section can be made much more general, but with much more
+# effort: https://github.com/rafaqz/DimensionalData.jl/issues/207
+export coord_latitudes_between
+function coord_latitudes_between(A::ClimArray, l1, l2)
+    coord_latitudes_between(dims(A, Coord).val, l1, l2)
+end
+
+function coord_latitudes_between(c, l1, l2)
+    idxs, lats = uniquelats(c)
+    # Notice that lats is guaranteed sorted for gaussian equal area
+    i1 = searchsortedfirst(lats, l1)
+    i2 = searchsortedlast(lats, l2)
+    i1 > i2 && ((i1, i2) = (i2, i1)) # in case bounds are given in reverse order
+    return idxs[i1][1]:idxs[i2][end]
+end
+
+# function DimensionalData.dims2indices(c::Coord, sel::Lat{Between})
+#
+# end
+
+# I need to extend  dims2indices(c::Coord, selector inside coord))
+# where `c = dims(A, Coord)` for `A::ClimArray`.
