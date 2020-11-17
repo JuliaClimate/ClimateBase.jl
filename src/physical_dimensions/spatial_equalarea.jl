@@ -111,9 +111,14 @@ function coord_latitudes_between(c, l1, l2)
     return idxs[i1][1]:idxs[i2][end]
 end
 
-# function DimensionalData.dims2indices(c::Coord, sel::Lat{Between})
-#
-# end
+# This method is necessary so that I can do A[Coord(Lat(...))]
+function DimensionalData._dims2indices(c::Coord, sel::Coord{ <: Lat{ <: Between}}, emptyval = Colon())
+    l1, l2 = sel.val.val.val
+    return coord_latitudes_between(c, l1, l2) # this is Vector{Int}
+end
 
-# I need to extend  dims2indices(c::Coord, selector inside coord))
-# where `c = dims(A, Coord)` for `A::ClimArray`.
+# This allows Between to access Coord directly and be translated to latitude
+function DimensionalData.sel2indices(c::Coord, sel::Between{Tuple{X,Y}}) where {X<:Real, Y<:Real}
+    l1, l2 = sel.val
+    return coord_latitudes_between(c, l1, l2) # this is Vector{Int}
+end
