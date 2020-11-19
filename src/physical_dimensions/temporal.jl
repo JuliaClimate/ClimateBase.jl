@@ -19,6 +19,66 @@ maxyearspan(A::AbDimArray, tsamp = temporal_sampling(A)) =
 maxyearspan(dims(A, Time).val, tsamp)
 
 """
+    temporal_sampling(x) → symbol
+Return the temporal sampling type of `x`, which is either an array of `Date`s or
+a dimensional array (with `Time` dimension).
+
+Possible return values are:
+- `:yearly`, where all dates have the same month+day, but different year.
+- `:monthly`, where all dates have the same day, but different month.
+- `:daily`, where the temporal difference between dates are exactly 1 day.
+- `:hourly`, where the temporal difference between entries is exactly 1 hour.
+- `:other`, which means that `x` doesn't fall to any of the above categories.
+
+For vector input, only the first 3 entries of the temporal information are used
+to deduce the sampling (while for ranges, checking the step is enough).
+"""
+temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
+temporal_sampling(t::Dimension) = temporal_sampling(t.val)
+
+function temporal_sampling(t::AbstractVector{<:TimeType})
+    #TODO: implement hourly!
+    sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
+    sameday = day(t[1]) == day(t[2]) == day(t[1])
+    samemonth = month(t[1]) == month(t[2]) == month(t[3])
+    sameyear = year(t[1]) == year(t[2]) == year(t[3])
+    if sameday && samemonth && !sameyear
+        :yearly
+    elseif sameday && !samemonth
+        :monthly
+    elseif !sameday && samemonth
+        :daily
+    elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
+        # this clause checks daily data where the days wrap over the end of the month!
+        :daily
+    else
+        :other
+    end
+end
+temporal_sampling(t::AbstractVector) = :other
+temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
+temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
+temporal_sampling(t::StepRange{<:Any,Day}) = :daily
+temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
+temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
+
+"return true if hours or minutes are ≠ 0."
+function sampled_less_than_date(t::AbstractVector{<:DateTime})
+    r = 1:length(t)
+    any(i -> Dates.hour(t[i]) ≠ 0, r) || any(i -> Dates.minute(t[i]) ≠ 0, r)
+end
+sampled_less_than_date(t::AbstractVector{<:Date}) = false
+
+"return the appropriate subtype of Dates.Period."
+function tsamp2period(tsamp)
+    tsamp == :monthly && return Month(1)
+    tsamp == :yearly && return Year(1)
+    tsamp == :daily && return Day(1)
+    error("Don't know the period of $tsamp sampling!")
+end
+
+
+"""
     maxyearspan(A::ClimArray) = maxyearspan(dims(A, Time))
     maxyearspan(t::Vector{<:DateTime}) → i
 Find the maximum index `i` of `t` so that `t[1:i]` covers exact(*) multiples of years.
@@ -47,7 +107,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
             return round(Int,nb_years * DAYS_IN_YEAR)-1
         elseif nb_years == nothing
             @warn "Caution: data does not cover a full year."
-            return l 
+            return l
         end
     elseif tsamp == :hourly
         n_max = l÷(365*24)
@@ -56,7 +116,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
             return round(Int,nb_years * HOURS_IN_YEAR)-1
         elseif nb_years == nothing
             @warn "Caution: data does not cover a full year."
-            return l 
+            return l
         end
     else
         error("maxyearspan: not implemented yet for $tsamp data")
@@ -116,65 +176,6 @@ function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
     return r
 end
 time_in_days(t::AbstractArray{<:Real}) = t
-
-"""
-    temporal_sampling(x) → symbol
-Return the temporal sampling type of `x`, which is either an array of `Date`s or
-a dimensional array (with `Time` dimension).
-
-Possible return values are:
-- `:yearly`, where all dates have the same month+day, but different year.
-- `:monthly`, where all dates have the same day, but different month.
-- `:daily`, where the temporal difference between dates are exactly 1 day.
-- `:hourly`, where the temporal difference between entries is exactly 1 hour.
-- `:other`, which means that `x` doesn't fall to any of the above categories.
-
-For vector input, only the first 3 entries of the temporal information are used
-to deduce the sampling (while for ranges, checking the step is enough).
-"""
-temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
-temporal_sampling(t::Dimension) = temporal_sampling(t.val)
-
-function temporal_sampling(t::AbstractVector{<:TimeType})
-    #TODO: implement hourly!
-    sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
-    sameday = day(t[1]) == day(t[2]) == day(t[1])
-    samemonth = month(t[1]) == month(t[2]) == month(t[3])
-    sameyear = year(t[1]) == year(t[2]) == year(t[3])
-    if sameday && samemonth && !sameyear
-        :yearly
-    elseif sameday && !samemonth
-        :monthly
-    elseif !sameday && samemonth
-        :daily
-    elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
-        # this clause checks daily data where the days wrap over the end of the month!
-        :daily
-    else
-        :other
-    end
-end
-temporal_sampling(t::AbstractVector) = :other
-temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
-temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
-temporal_sampling(t::StepRange{<:Any,Day}) = :daily
-temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
-temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
-
-"return true if hours or minutes are ≠ 0."
-function sampled_less_than_date(t::AbstractVector{<:DateTime})
-    r = 1:length(t)
-    any(i -> Dates.hour(t[i]) ≠ 0, r) || any(i -> Dates.minute(t[i]) ≠ 0, r)
-end
-sampled_less_than_date(t::AbstractVector{<:Date}) = false
-
-"return the appropriate subtype of Dates.Period."
-function tsamp2period(tsamp)
-    tsamp == :monthly && return Month(1)
-    tsamp == :yearly && return Year(1)
-    tsamp == :daily && return Day(1)
-    error("Don't know the period of $tsamp sampling!")
-end
 
 #########################################################################
 # temporal statistics
