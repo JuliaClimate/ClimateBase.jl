@@ -62,20 +62,6 @@ We do two performance improvements while loading the data:
 2. Dimensions that are ranges (i.e. sampled with constant step size) are automatically
    transformed to a standard Julia `Range` type (which makes sub-selecting faster).
 
-
-At the moment, support for auto-loading equal area space types does not exist,
-see [Types of spatial coordinates](@ref).
-But can transform them yourself into a `ClimArray` by doing e.g.:
-```julia
-file = NCDataset("some_file_with_eqarea.nc")
-lons = file["lon"]
-lats = file["lat"]
-coords = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
-t = file["time"]
-dimensions = (Coord(coords), Time(t))
-data = file["actual_data_like_radiation"]
-A = ClimArray(data, dimensions)
-```
 """
 function ClimArray(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
@@ -90,40 +76,16 @@ end
 # must be sure to load the correct ranges of dimensions as well though!
 
 function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var; eqarea = false)
+    eqarea && return ClimArray_eqarea(ds, var, name)
     svar = string(var)
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)
     A = cfvar |> Array
-    if eqarea
-        # TODO: This piece of code is specific to CDO output...
-        if haskey(ds, "ncells") # this is the equal area grid, so we make a Coord dimension
-            lon = ds["lon"] |> Array .|> wrap_lon
-            lat = ds["lat"] |> Array
-            time = ds["time"] |> Array
-            lonlat = [SVector(lon[i], lat[i]) for i in 1:length(lon)]
-            # here we sort lonlat and A in ascending latitude order,
-            # because the CDO output has reverse or even totally unsorted order
-            si = sortperm(lonlat, by = reverse)
-            data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
-            attrib = attrib, name = svar)
-        elseif haskey(ds, "reduced_points")
-            # TODO: This can be easily upgraded to arbitary dimensions via a simple
-            # dimension replacement / permutation at the end
-            lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
-            si = sortperm(lonlat, by = reverse)
-            time = ds["time"] |> Array
-            data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
-            name = svar, attrib = attrib)
-        else
-            error("Don't know how to handle this equal area grid!")
-        end
-    else # standard variables
-        dnames = Tuple(NCDatasets.dimnames(cfvar))
-        data = ClimArray(A, create_dims(ds, dnames); name = Symbol(name), attrib = attrib)
+    dnames = Tuple(NCDatasets.dimnames(cfvar))
+    if !any(ismissing, A)
+        A = nomissing(A)
     end
-    if !any(ismissing, data)
-        data = nomissing(data)
-    end
+    data = ClimArray(A, create_dims(ds, dnames); name = Symbol(name), attrib = attrib)
     return data
 end
 
@@ -191,22 +153,6 @@ function vector2range(t::Vector{<:Date})
     r = t[1]:period:t[end]
     @assert r == t
     return r
-end
-
-
-#########################################################################
-# Equal area related
-#########################################################################
-function reduced_grid_to_points(lat, reduced_points)
-    lonlat = SVector{2, Float32}[]
-    for (i, θ) in enumerate(lat)
-        n = reduced_points[i]
-        dλ = Float32(360/n)
-        for j in 0:n-1
-            push!(lonlat, SVector(0 + dλ*j, θ))
-        end
-    end
-    return lonlat
 end
 
 #########################################################################

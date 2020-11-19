@@ -6,6 +6,7 @@ include("core/nc_io.jl")
 include("core/aggregation.jl")
 
 include("physical_dimensions/spatial.jl")
+include("physical_dimensions/spatial_equalarea.jl")
 include("physical_dimensions/temporal.jl")
 
 include("climate/solar.jl")

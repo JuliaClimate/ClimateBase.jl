@@ -165,17 +165,22 @@ time_in_days
 Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array. Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
 This type of space is called `Grid`. It is assumed throughout that longitude and latitude are measured in **degrees**.
 
-Another type of spatial coordinates is supported, and that is of **equal-area**, called `EqArea`.
-There, the spatial dimension is instead given by a single `Vector` of coordinate locations, i.e. 2-element `SVector(longitude, latitude)`. The dimension of this vector is `Coord`.
+Another type of spatial coordinates is supported, and that is of **equal-area**, called `EqArea`. In `EqArea` the spatial dimension is instead given by a single `Vector` of coordinate locations, i.e. 2-element `SVector(longitude, latitude)`. The dimension of this vector is `Coord`.
 Each point in this vector corresponds to a polygon (typically triangle or trapezoid) that covers equal amount of spatial area as any other point.
 The actual limits of each polygon are not included in the dimension.
 Typical examples of such equal area grids are reduced (or thinned) Gaussian grids or icosahedral-based grids.
+
+!!! warn
+
+    This `EqArea` type is currently in an **experimental phase** and in addition some functions assume that the underlying points are formulated in a Gaussian equal area grid, where the points are sorted by their latitude.
 
 Within ClimateBase.jl aims to work with either type of spatial coordinate system. Therefore, physically inspired averaging functions, like [`spacemean`](@ref) or [`zonalmean`](@ref), work for both types of spatial coordinates.
 In addition, the function `spatialidxs` returns an iterator over the spatial coordinates of the data, and works for both types (grid or equal-area):
 ```@docs
 spatialidxs
 ```
+
+
 
 ### Spatial aggregation
 ```@docs
@@ -193,6 +198,27 @@ The physical averages of the previous section are done by taking advantage of a 
 ```@docs
 dropagg
 collapse
+```
+
+### Equal area creation
+
+At the moment, support for auto-loading equal area space types from `.nc` data does not exist.
+You can make them yourself using the following approach:
+```julia
+file = NCDataset("some_file_with_eqarea.nc")
+# the following lines make the coordinates of the equal area, which depends on
+# how your .nc file is structured
+lons = Array(file["lon"])
+lats = Array(file["lat"])
+coords = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+# Sort points by their latitude (important!)
+si = sortperm(coords, by = reverse)
+# Load some remaining dimensions and create the proper `Dimension` tuple:
+t = Array(file["time"])
+dimensions = (Coord(coords), Time(t))
+# Finally load the array data and make a ClimArray
+data = Array(file["actual_data_like_radiation"])
+A = ClimArray(data, dimensions)
 ```
 
 ## Timeseries Analysis
