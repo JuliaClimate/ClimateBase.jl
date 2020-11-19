@@ -45,6 +45,18 @@ function ClimArray_eqarea(ds::NCDatasets.AbstractDataset, var::String, name = va
     return data
 end
 
+function reduced_grid_to_points(lat, reduced_points)
+    lonlat = SVector{2, Float32}[]
+    for (i, θ) in enumerate(lat)
+        n = reduced_points[i]
+        dλ = Float32(360/n)
+        for j in 0:n-1
+            push!(lonlat, SVector(0 + dλ*j, θ))
+        end
+    end
+    return lonlat
+end
+
 #########################################################################
 # Spatial functions
 #########################################################################
