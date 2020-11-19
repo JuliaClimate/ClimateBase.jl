@@ -1,3 +1,53 @@
+#########################################################################
+# Loading equal area
+#########################################################################
+
+function ClimArray_eqarea(ds::NCDatasets.AbstractDataset, var::String, name = var)
+    svar = string(var)
+    cfvar = ds[svar]
+    attrib = Dict(cfvar.attrib)
+    A = cfvar |> Array
+    # TODO: This code has not yet been generalized to arbitrary dimensions
+    if haskey(ds, "ncells") # this is the equal area grid, so we make a Coord dimension
+        lon = ds["lon"] |> Array .|> wrap_lon
+        lat = ds["lat"] |> Array
+        time = ds["time"] |> Array
+        lonlat = [SVector(lon[i], lat[i]) for i in 1:length(lon)]
+        # here we sort lonlat and A in ascending latitude order,
+        # because the CDO output has reverse or even totally unsorted order
+        si = sortperm(lonlat, by = reverse)
+        data = ClimArray(A[si, :], (Coord(lonlat[si]), Time(time));
+        attrib = attrib, name = svar)
+    elseif haskey(ds, "reduced_points")
+        # TODO: I've noticed that this converts integer dimension (like pressure)
+        # into Float64, but I'm not sure why...
+        alldims = [NCDatasets.dimnames(cfvar)...]
+        @assert "rgrid" ∈ alldims
+        i = findfirst(x -> x == "rgrid", alldims)
+        remainingdims = deleteat!(copy(alldims), i)
+        actualdims = Any[create_dims(ds, remainingdims)...]
+
+        lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
+        si = sortperm(lonlat, by = reverse)
+        coords = Coord(lonlat; metadata = Dict("grid" => "Gaussian equal area."))
+
+        insert!(actualdims, i, coords)
+
+        X = ClimArray(A, Tuple(actualdims))
+        X = X[Coord(si)]
+        return ClimArray(X; name = Symbol(name), attrib)
+    else
+        error("Don't know how to handle this equal area grid!")
+    end
+    if !any(ismissing, data)
+        data = nomissing(data)
+    end
+    return data
+end
+
+#########################################################################
+# Spatial functions
+#########################################################################
 function spatialidxs(::EqArea, A)
     return ((Coord(i),) for i in 1:size(A, Coord))
 end
