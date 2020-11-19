@@ -7,7 +7,7 @@ export SVector # for equal area grid
 #########################################################################
 # Spatial indexing
 #########################################################################
-export spatialidxs
+export spatialidxs, lonlatfirst
 
 """
     spatialidxs(A::ClimArray) → idxs
@@ -27,8 +27,21 @@ function spatialidxs(::Grid, A)
     return Iterators.product(lons, lats)
 end
 
-function spatialidxs(::EqArea, A)
-    return ((Coord(i),) for i in 1:size(A, Coord))
+"""
+    lonlatfirst(A::ClimArray, args...) → B
+Permute the dimensions of `A` to make a new array `B` that has first dimension longitude,
+second dimension latitude, with the remaining dimensions of `A` following
+(useful for most plotting functions). Optional extra dimensions
+can be given as `args...`, specifying a specific order for the remaining dimensions.
+
+Example:
+```julia
+B = lonlatfirst(A)
+C = lonlatfirst(A, Time)
+```
+"""
+function lonlatfirst(C, args...)
+    permutedims(C, (Lon, Lat, args..., otherdims(C, (Lon, Lat, args...))...))
 end
 
 #########################################################################
@@ -58,9 +71,6 @@ using StatsBase
 
 export latmean, spacemean, zonalmean, spaceagg, uniquelats
 
-# TODO: Document what it means to be Coord space.
-# We expect that the coordinates are sorted by latitude
-
 """
     zonalmean(A::ClimArray)
 Return the zonal mean of `A`.
@@ -71,55 +81,6 @@ Works for both grid and equal area space.
 """
 zonalmean(A::AbDimArray, args...) = zonalmean(spacestructure(A), A, args...)
 zonalmean(::Grid, A::AbDimArray) = dropagg(mean, A, Lon)
-
-function zonalmean(::EqArea, A::AbDimArray)
-    idxs, lats = uniquelats(A)
-    other = otherdims(A, Coord())
-    n = A.name == "" ? "" : A.name*", zonally averaged"
-    r = zeros(eltype(A), (length(lats), size.(Ref(A), other)...), other)
-    R = ClimArray(r, (Lat(lats), other...), n)
-    for (i, r) in enumerate(idxs)
-        for j in otheridxs(A, Coord())
-            R[Lat(i), j...] = mean(view(A, Coord(r), j...))
-        end
-    end
-    return R
-end
-function zonalmean(::EqArea, A::AbDimArray{T, 1}) where {T}
-    idxs, lats = uniquelats(A)
-    res = zeros(T, length(lats))
-    for (i, r) in enumerate(idxs)
-        res[i] = mean(view(A.data, r))
-    end
-    return ClimArray(res, (Lat(lats),))
-end
-
-"""
-    uniquelats(A::AbDimArray) → idxs, lats
-    uniquelats(c::Vector{<:AbstractVector}) → idxs, lats
-Find the unique latitudes of `A`. Return the indices (vector of ranges) that each latitude
-in `lats` covers, as well as the latitudes themselves.
-"""
-uniquelats(A::AbDimArray) = uniquelats(dims(A, Coord))
-function uniquelats(c)
-    @assert issorted(c; by = x -> x[2])
-    idxs = Vector{UnitRange{Int}}()
-    lats = eltype(eltype(c))[]
-    sizehint!(lats, round(Int, sqrt(length(c))))
-    iprev = 1
-    for i in 2:length(c)
-        if c[i][2] != c[i-1][2]
-            push!(lats, c[i-1][2])
-            push!(idxs, iprev:(i-1))
-            iprev = i
-        end
-    end
-    push!(lats, c[end][2])
-    push!(idxs, iprev:length(c))
-    sizehint!(lats, length(lats))
-    return idxs, lats
-end
-
 
 """
     latmean(A::ClimArray [, r])
@@ -190,8 +151,7 @@ function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
         # first dimension.
         r = map(i -> f(view(A, i), weights(view(w, i) .* cosweights)), oidxs)
     end
-    n = A.name == "" ? "" : A.name*", spatially aggregated with $(string(f))"
-    return ClimArray(r, other, n)
+    return ClimArray(r, other, A.name)
 end
 
 function spaceweightassert(A, w)
@@ -208,14 +168,6 @@ function spaceweightassert(A, w)
         wtype = :no
     end
     return wtype
-end
-
-spaceagg(::EqArea, f, A, ::Nothing) = dropagg(f, A, Coord)
-# I think the best scenario is to modify `dropagg` to take in weights.
-function spaceagg(::EqArea, f, A, exw)
-    error("TODO")
-    w = pweights(Array(exw))
-    dropagg(f, A, Coord)
 end
 
 #########################################################################
@@ -242,23 +194,6 @@ function hemispheric_functions(::Grid, A)
     return nh, sh
 end
 
-function hemispheric_functions(::EqArea, A)
-    c = dims(A, Coord).val
-    @assert issorted(c; by = x -> x[2])
-    shi, nhi = hemisphere_indices(c)
-    nh = A[Coord(nhi)]
-    sh = A[Coord(shi)]
-    oldc = dims(sh, Coord).val
-    si = sortperm(oldc, by = x -> x[2], rev = true)
-    newc = [SVector(x[1], abs(x[2])) for x in oldc[si]]
-    di = dimindex(sh, Coord)
-    newdims = Any[dims(sh)...]
-    newdims[di] = Coord(newc)
-    data = reverse(Array(sh); dims = di)
-    sh = ClimArray(data, (newdims...,))
-    return nh, sh
-end
-
 """
     hemispheric_means(A) → nh, sh
 Return the (proper) averages of `A` over the northern and southern hemispheres.
@@ -278,13 +213,5 @@ function hemispheric_means(::Grid, A::AbDimArray)
     return nh, sh
 end
 
-function hemispheric_means(::EqArea, A::AbDimArray)
-    shi, nhi = hemisphere_indices(c)
-    nh = dropagg(mean, A[Coord(nhi)], Coord)
-    sh = dropagg(mean, A[Coord(shi)], Coord)
-    return nh, sh
-end
-
 latitudes(A) = latitudes(spacestructure(A), A)
 latitudes(::Grid, A) = dims(A, Lat).val
-latitudes(::EqArea, A) = unique!([x[2] for x in dims(A, Coord)])

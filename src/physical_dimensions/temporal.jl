@@ -133,6 +133,8 @@ For vector input, only the first 3 entries of the temporal information are used
 to deduce the sampling (while for ranges, checking the step is enough).
 """
 temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
+temporal_sampling(t::Dimension) = temporal_sampling(t.val)
+
 function temporal_sampling(t::AbstractVector{<:TimeType})
     #TODO: implement hourly!
     sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
@@ -216,8 +218,7 @@ function timeagg(f, A::AbDimArray, w = nothing)
     elseif tsamp == :yearly
         timeagg_yearly(f, A, w)
     end
-    n = A.name == "" ? "" : A.name*", temporally aggregated with $(string(f))"
-    R = ClimArray(r, otherdims(A, Time()), n)
+    R = ClimArray(r, otherdims(A, Time()), A.name)
 end
 
 function timeagg_yearly(f, A, w)
@@ -329,7 +330,7 @@ end
 
 function timegroup(A, f, t, tranges, name)
     other = otherdims(A, Time)
-    n = A.name == "" ? "" : A.name*", $(name) averaged"
+    n = A.name == Symbol("") ? A.name : Symbol(A.name, ", $(name) averaged")
     B = ClimArray(zeros(eltype(A), length.(other)..., length(t)), (other..., Time(t)), n)
     for i in 1:length(tranges)
         B[Time(i)] .= dropagg(f, view(A, Time(tranges[i])), Time)

@@ -2,10 +2,11 @@ module ClimateBase
 
 # TODO: Be sure all exported names have docstrings
 include("core/coredefs.jl")
-include("core/loading_nc.jl")
+include("core/nc_io.jl")
 include("core/aggregation.jl")
 
 include("physical_dimensions/spatial.jl")
+include("physical_dimensions/spatial_equalarea.jl")
 include("physical_dimensions/temporal.jl")
 
 include("climate/solar.jl")
