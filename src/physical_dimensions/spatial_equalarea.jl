@@ -138,7 +138,7 @@ function hemispheric_functions(::EqArea, A)
 end
 
 function hemispheric_means(::EqArea, A::AbDimArray)
-    shi, nhi = hemisphere_indices(c)
+    shi, nhi = hemisphere_indices(A)
     nh = dropagg(mean, A[Coord(nhi)], Coord)
     sh = dropagg(mean, A[Coord(shi)], Coord)
     return nh, sh
@@ -146,7 +146,7 @@ end
 
 function hemisphere_indices(c)
     idxs, lats = uniquelats(c)
-    i = findfirst(l → l > 0, lats)
+    i = findfirst(x -> x > 0, lats)
     shi = idxs[1][1]:idxs[i][end]
     nhi = idxs[i+1][1]:idxs[end][end]
     return nhi, shi
