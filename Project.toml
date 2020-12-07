@@ -14,9 +14,9 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 DimensionalData = "0.13.3, 0.14"
-NCDatasets = "0.10"
+NCDatasets = "0.10, 0.11"
 SignalDecomposition = "1"
-StaticArrays = "0.12"
+StaticArrays = "0.12, 1.0"
 StatsBase = "0.33"
 julia = "1.5"
 
