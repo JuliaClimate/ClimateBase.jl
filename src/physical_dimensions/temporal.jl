@@ -70,13 +70,13 @@ temporal_sampling(t::StepRange{<:Any,Day}) = :daily
 temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
 temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
 
-"return the appropriate subtype of Dates.Period."
+"return the appropriate subtype of `Dates.Period` or `nothing`."
 function tsamp2period(tsamp)
     tsamp == :monthly && return Month(1)
     tsamp == :yearly && return Year(1)
     tsamp == :daily && return Day(1)
     tsamp == :hourly && return Hour(1)
-    error("Don't know the period of $tsamp sampling!")
+    tsamp == :other && return nothing
 end
 
 

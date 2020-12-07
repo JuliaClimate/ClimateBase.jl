@@ -142,6 +142,7 @@ end
 function vector2range(t::Vector{<:Dates.AbstractTime})
     tsamp = temporal_sampling(t)
     period = tsamp2period(tsamp)
+    isnothing(period) && return t
     r = t[1]:period:t[end]
     return r == t ? r : t
 end
