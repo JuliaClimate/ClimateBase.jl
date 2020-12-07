@@ -168,13 +168,15 @@ function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
     ts = temporal_sampling(t)
     if ts == :monthly
         truetime = daysinmonth.(t)
-        r = T.(cumsum(truetime))
+        return r = T.(cumsum(truetime))
     elseif ts == :yearly
-        error("Todo!")
+        truetime = daysinmonth.(t)
+        return r = T.(cumsum(truetime))
     elseif ts == :daily
         return T.(1:length(t))
+    else
+        error("Don't know how to find days for sampling $(ts)")
     end
-    return r
 end
 
 #########################################################################
