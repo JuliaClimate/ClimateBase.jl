@@ -15,7 +15,7 @@ seasonal_decomposition(A::AbDimArray, b) = seasonal_decomposition(dims(A, Time),
 function seasonal_decomposition(t, A::AbDimArray, fs::Vector)
     @assert hasdim(A, Time)
     E = _numbertype(T)
-    method = Sinusoidal(E.(fs ./ DAYS_IN_YEAR))
+    method = Sinusoidal(E.(fs ./ DAYS_IN_ORBIT))
     seasonal = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A); name = A.name*"seasonal")
     residual = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A); name = A.name*"residual")
 

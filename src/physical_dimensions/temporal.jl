@@ -2,17 +2,18 @@
 Handling of time in data as a physical quantity, and time-related data processing
 =#
 using Statistics, StatsBase
-export monthday_indices, maxyearspan, daymonth, DAYS_IN_YEAR, time_in_days
+export monthday_indices, maxyearspan, daymonth, time_in_days
 export temporal_sampling
 export timemean, timeagg
 export monthlyagg, yearlyagg, temporalrange, seasonalyagg, season
+export DAYS_IN_ORBIT, HOURS_IN_ORBIT
 #########################################################################
 # Datetime related
 #########################################################################
 using Dates
 
-const DAYS_IN_YEAR = 365.26
-const HOURS_IN_YEAR = 365.26*24
+const DAYS_IN_ORBIT = 365.26
+const HOURS_IN_ORBIT = 365.26*24
 
 millisecond2month(t) = Month(round(Int, t.value / 1000 / 60 / 60 / 24 / 30))
 daymonth(t) = day(t), month(t)
@@ -84,7 +85,7 @@ end
 Find the maximum index `i` of `t` so that `t[1:i]` covers exact(*) multiples of years.
 
 (*) For monthly spaced data `i` is a multiple of `12` while for daily data we find
-the largest possible multiple of `DAYS_IN_YEAR = 365.26`.
+the largest possible multiple of `DAYS_IN_ORBIT = 365.26`.
 """
 function maxyearspan(times, tsamp = temporal_sampling(times))
     l = length(times)
@@ -102,18 +103,18 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
         return length(times)
     elseif tsamp == :daily
         n_max = l÷365
-        nb_years = findlast(n -> round(Int, n * DAYS_IN_YEAR) ≤ l, 1:n_max)
+        nb_years = findlast(n -> round(Int, n * DAYS_IN_ORBIT) ≤ l, 1:n_max)
         if nb_years != nothing
-            return round(Int,nb_years * DAYS_IN_YEAR)-1
+            return round(Int,nb_years * DAYS_IN_ORBIT)-1
         elseif nb_years == nothing
             @warn "Caution: data does not cover a full year."
             return l
         end
     elseif tsamp == :hourly
         n_max = l÷(365*24)
-        nb_years = findlast(n -> round(Int, n * HOURS_IN_YEAR) ≤ l, 1:n_max)
+        nb_years = findlast(n -> round(Int, n * HOURS_IN_ORBIT) ≤ l, 1:n_max)
         if nb_years != nothing
-            return round(Int,nb_years * HOURS_IN_YEAR)-1
+            return round(Int,nb_years * HOURS_IN_ORBIT)-1
         elseif nb_years == nothing
             @warn "Caution: data does not cover a full year."
             return l

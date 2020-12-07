@@ -20,7 +20,7 @@ Calculate daily averaged insolation in W/m² at given time and latitude `t, φ`.
 
 Keywords:
 ```
-Ya = DAYS_IN_YEAR # = 365.26 # days
+Ya = DAYS_IN_ORBIT # = 365.26 # days
 t_VE = 76.0 # days of vernal equinox
 S_0 = 1362.0 # W/m^2
 γ=23.44
@@ -30,7 +30,7 @@ e=0.017 # eccentricity
 """
 insolation(t::TimeType, φ; kwargs...) = insolation(float(dayofyear(t)), φ; kwargs...)
 function insolation(t::Real, ϕ;
-        Ya = DAYS_IN_YEAR, # = 365.26 # days
+        Ya = DAYS_IN_ORBIT, # = 365.26 # days
         t_VE = 76.0, # days since Jan 1
         S_0 = 1362.0, # W/m^2
         γ=23.44,
