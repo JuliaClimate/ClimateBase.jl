@@ -2,21 +2,83 @@
 Handling of time in data as a physical quantity, and time-related data processing
 =#
 using Statistics, StatsBase
-export monthday_indices, maxyearspan, daymonth, DAYS_IN_YEAR, time_in_days
+export monthday_indices, maxyearspan, daymonth, time_in_days
 export temporal_sampling
 export timemean, timeagg
 export monthlyagg, yearlyagg, temporalrange, seasonalyagg, season
+export DAYS_IN_ORBIT, HOURS_IN_ORBIT
 #########################################################################
 # Datetime related
 #########################################################################
 using Dates
 
-const DAYS_IN_YEAR = 365.26
-millisecond2month(t) = Month(round(Int, t.value / 1000 / 60 / 60 / 24 / 30))
+const DAYS_IN_ORBIT = 365.26
+const HOURS_IN_ORBIT = 365.26*24
+
 daymonth(t) = day(t), month(t)
 
-maxyearspan(A::AbDimArray, tsamp = temporal_sampling(A)) =
+maxyearspan(A::AbstractDimArray, tsamp = temporal_sampling(A)) =
 maxyearspan(dims(A, Time).val, tsamp)
+
+"""
+    temporal_sampling(x) → symbol
+Return the temporal sampling type of `x`, which is either an array of `Date`s or
+a dimensional array (with `Time` dimension).
+
+Possible return values are:
+- `:hourly`, where the temporal difference between entries is exactly 1 hour.
+- `:daily`, where the temporal difference between dates are exactly 1 day.
+- `:monthly`, where all dates have the same day, but different month.
+- `:yearly`, where all dates have the same month+day, but different year.
+- `:other`, which means that `x` doesn't fall to any of the above categories.
+
+For vector input, only the first 3 entries of the temporal information are used
+to deduce the sampling (while for ranges, checking the step is enough).
+"""
+temporal_sampling(A::AbstractDimArray) = temporal_sampling(dims(A, Time).val)
+temporal_sampling(t::Dimension) = temporal_sampling(t.val)
+
+function temporal_sampling(t::AbstractVector{<:TimeType})
+
+    function issame(f)
+        x0 = f(t[1])
+        return all(i -> f(t[i]) == x0, 2:length(t))
+    end
+    samehour, sameday, samemonth, sameyear = map(issame, (hour, day, month, year))
+
+    if !samehour
+        # check if they have exactly 1 hour difference
+        dh = getproperty.(diff(t), :value)
+        return all(isequal(3600000), dh) ? :hourly : :other
+    elseif !sameday && samemonth
+        :daily
+    elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
+        # this clause checks daily data where the days wrap over the end of the month!
+        :daily
+    elseif sameday && !samemonth
+        :monthly
+    elseif sameday && samemonth && !sameyear
+        :yearly
+    else
+        :other
+    end
+end
+temporal_sampling(t::AbstractVector) = :other
+temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
+temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
+temporal_sampling(t::StepRange{<:Any,Day}) = :daily
+temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
+temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
+
+"return the appropriate subtype of Dates.Period."
+function tsamp2period(tsamp)
+    tsamp == :monthly && return Month(1)
+    tsamp == :yearly && return Year(1)
+    tsamp == :daily && return Day(1)
+    tsamp == :hourly && return Hour(1)
+    error("Don't know the period of $tsamp sampling!")
+end
+
 
 """
     maxyearspan(A::ClimArray) = maxyearspan(dims(A, Time))
@@ -24,19 +86,40 @@ maxyearspan(dims(A, Time).val, tsamp)
 Find the maximum index `i` of `t` so that `t[1:i]` covers exact(*) multiples of years.
 
 (*) For monthly spaced data `i` is a multiple of `12` while for daily data we find
-the largest possible multiple of `DAYS_IN_YEAR = 365.26`.
+the largest possible multiple of `DAYS_IN_ORBIT`.
 """
 function maxyearspan(times, tsamp = temporal_sampling(times))
+    l = length(times)
     if tsamp == :monthly
-        length(times) % 12 == 0 && return length(times)
+        l % 12 == 0 && return l
         m = month(times[1])
-        findlast(i -> month(times[i]) == m, 1:length(times)) - 1
+        x = findlast(i -> month(times[i]) == m, 1:l) - 1
+        if x != 0
+            return x
+        elseif x == 0
+            @warn "Caution: data does not cover a full year."
+            return l
+        end
     elseif tsamp == :yearly
         return length(times)
     elseif tsamp == :daily
-        m, d = monthday(times[1])
-        i = findlast(j -> monthday(t[j]) == (m, d), 1:length(t))
-        return i-1
+        n_max = Int(l÷DAYS_IN_ORBIT)
+        nb_years = findlast(n -> round(Int, n * DAYS_IN_ORBIT) ≤ l, 1:n_max)
+        if nb_years != nothing
+            return round(Int,nb_years * DAYS_IN_ORBIT)-1
+        elseif nb_years == nothing
+            @warn "Caution: data does not cover a full year."
+            return l
+        end
+    elseif tsamp == :hourly
+        n_max = Int(l÷HOURS_IN_ORBIT)
+        nb_years = findlast(n -> round(Int, n * HOURS_IN_ORBIT) ≤ l, 1:n_max)
+        if nb_years != nothing
+            return round(Int,nb_years * HOURS_IN_ORBIT)-1
+        elseif nb_years == nothing
+            @warn "Caution: data does not cover a full year."
+            return l
+        end
     else
         error("maxyearspan: not implemented yet for $tsamp data")
     end
@@ -76,11 +159,10 @@ function monthspan(t::TimeType)
     d = collect(Date(y, m, 1):Day(1):Date(u, n, 1))[1:end-1]
 end
 
-
 """
     time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
 Convert a given date time array into measurement units of days:
-a real-valued array which counts time in days, always increasing.
+a real-valued array which counts time in days, always increasing (cumulative).
 """
 function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
     ts = temporal_sampling(t)
@@ -88,71 +170,11 @@ function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
         truetime = daysinmonth.(t)
         r = T.(cumsum(truetime))
     elseif ts == :yearly
-        error("todo")
+        error("Todo!")
     elseif ts == :daily
-        error("todo")
+        return T.(1:length(t))
     end
     return r
-end
-time_in_days(t::AbstractArray{<:Real}) = t
-
-"""
-    temporal_sampling(x) → symbol
-Return the temporal sampling type of `x`, which is either an array of `Date`s or
-a dimensional array (with `Time` dimension).
-
-Possible return values are:
-- `:yearly`, where all dates have the same month+day, but different year.
-- `:monthly`, where all dates have the same day, but different month.
-- `:daily`, where the temporal difference between dates are exactly 1 day.
-- `:hourly`, where the temporal difference between entries is exactly 1 hour.
-- `:other`, which means that `x` doesn't fall to any of the above categories.
-
-For vector input, only the first 3 entries of the temporal information are used
-to deduce the sampling (while for ranges, checking the step is enough).
-"""
-temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
-temporal_sampling(t::Dimension) = temporal_sampling(t.val)
-
-function temporal_sampling(t::AbstractVector{<:TimeType})
-    #TODO: implement hourly!
-    sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
-    sameday = day(t[1]) == day(t[2]) == day(t[3])
-    samemonth = month(t[1]) == month(t[2]) == month(t[3])
-    sameyear = year(t[1]) == year(t[2]) == year(t[3])
-    if sameday && samemonth && !sameyear
-        :yearly
-    elseif sameday && !samemonth
-        :monthly
-    elseif !sameday && samemonth
-        :daily
-    elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
-        # this clause checks daily data where the days wrap over the end of the month!
-        :daily
-    else
-        :other
-    end
-end
-temporal_sampling(t::AbstractVector) = :other
-temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
-temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
-temporal_sampling(t::StepRange{<:Any,Day}) = :daily
-temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
-temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
-
-"return true if hours or minutes are ≠ 0."
-function sampled_less_than_date(t::AbstractVector{<:DateTime})
-    r = 1:length(t)
-    any(i -> Dates.hour(t[i]) ≠ 0, r) || any(i -> Dates.minute(t[i]) ≠ 0, r)
-end
-sampled_less_than_date(t::AbstractVector{<:Date}) = false
-
-"return the appropriate subtype of Dates.Period."
-function tsamp2period(tsamp)
-    tsamp == :monthly && return Month(1)
-    tsamp == :yearly && return Year(1)
-    tsamp == :daily && return Day(1)
-    error("Don't know the period of $tsamp sampling!")
 end
 
 #########################################################################
@@ -318,10 +340,11 @@ end
     temporalrange(A::ClimArray, f = Dates.month) → r
     temporalrange(t::AbstractVector{<:TimeType}}, f = Dates.month) → r
 Return a vector of ranges so that each range of indices are values of `t` that
-belong in either the same month, year, or day, depending on `f`.
-`f` can take the values: `Dates.year, Dates.month, Dates.day` or `season` (functions).
+belong in either the same month, year, day, or season, depending on `f`.
+`f` can take the values: `Dates.year, Dates.month, Dates.day` or `season`
+(all are functions).
 
-Used in e.g. [`monthlyagg`](@ref), [`yearlyagg`](@ref) or [`seasonalyagg`](@ref)
+Used in e.g. [`monthlyagg`](@ref), [`yearlyagg`](@ref) or [`seasonalyagg`](@ref).
 """
 function temporalrange(t::AbstractArray{<:TimeType}, f = Dates.month)
     @assert issorted(t) "Sorted time required."

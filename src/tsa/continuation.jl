@@ -27,7 +27,7 @@ default case).
 """
 function sinusoidal_continuation(T, frequencies = [1.0, 2.0]; Tmin = -Inf, Tmax = Inf)
     E = _numbertype(T)
-    lpv = Sinusoidal(E.(frequencies ./ DAYS_IN_YEAR))
+    lpv = Sinusoidal(E.(frequencies ./ DAYS_IN_ORBIT))
     fullT = copy(T)
     # TODO: this must be extended to a general "true time" function
     truetime = Float32.(cumsum(daysinmonth.(dims(T, Time))))

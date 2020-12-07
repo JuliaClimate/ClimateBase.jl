@@ -136,24 +136,17 @@ function vector2range(x::Vector{<:Real})
         x[i]-x[i-1] ≠ dx && return x # if no constant step, return array as is
     end
     r = x[1]:dx:x[end]
-    @assert r == x
-    return r
+    return r == x ? r : x
 end
 
-function vector2range(t::Vector{<:DateTime})
-    !sampled_less_than_date(t) && return vector2range(Date.(t))
-    # TODO: implement hourly sampling here
-    @warn "Hourly sampling not yet implemented."
-    return t
-end
-
-function vector2range(t::Vector{<:Date})
+function vector2range(t::Vector{<:Dates.AbstractTime})
     tsamp = temporal_sampling(t)
     period = tsamp2period(tsamp)
     r = t[1]:period:t[end]
-    @assert r == t
-    return r
+    return r == t ? r : t
 end
+
+vector2range(r::AbstractRange) = r
 
 #########################################################################
 # Saving to .nc files
