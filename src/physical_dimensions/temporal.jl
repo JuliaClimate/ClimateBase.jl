@@ -117,7 +117,7 @@ temporal_sampling(t::Dimension) = temporal_sampling(t.val)
 function temporal_sampling(t::AbstractVector{<:TimeType})
     #TODO: implement hourly!
     sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
-    sameday = day(t[1]) == day(t[2]) == day(t[1])
+    sameday = day(t[1]) == day(t[2]) == day(t[3])
     samemonth = month(t[1]) == month(t[2]) == month(t[3])
     sameyear = year(t[1]) == year(t[2]) == year(t[3])
     if sameday && samemonth && !sameyear
