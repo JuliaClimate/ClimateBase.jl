@@ -2,12 +2,14 @@
 Handling of time in data as a physical quantity, and time-related data processing
 =#
 using Statistics, StatsBase
+export monthday_indices, maxyearspan, daymonth, DAYS_IN_YEAR, time_in_days
+export temporal_sampling
+export timemean, timeagg
+export monthlyagg, yearlyagg, temporalrange, seasonalyagg, season
 #########################################################################
 # Datetime related
 #########################################################################
 using Dates
-export monthday_indices, maxyearspan, daymonth, DAYS_IN_YEAR, time_in_days
-export temporal_sampling
 
 const DAYS_IN_YEAR = 365.26
 const HOURS_IN_YEAR = 365.26*24
@@ -177,22 +179,78 @@ function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
 end
 time_in_days(t::AbstractArray{<:Real}) = t
 
+"""
+    temporal_sampling(x) → symbol
+Return the temporal sampling type of `x`, which is either an array of `Date`s or
+a dimensional array (with `Time` dimension).
+
+Possible return values are:
+- `:yearly`, where all dates have the same month+day, but different year.
+- `:monthly`, where all dates have the same day, but different month.
+- `:daily`, where the temporal difference between dates are exactly 1 day.
+- `:hourly`, where the temporal difference between entries is exactly 1 hour.
+- `:other`, which means that `x` doesn't fall to any of the above categories.
+
+For vector input, only the first 3 entries of the temporal information are used
+to deduce the sampling (while for ranges, checking the step is enough).
+"""
+temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
+temporal_sampling(t::Dimension) = temporal_sampling(t.val)
+
+function temporal_sampling(t::AbstractVector{<:TimeType})
+    #TODO: implement hourly!
+    sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
+    sameday = day(t[1]) == day(t[2]) == day(t[3])
+    samemonth = month(t[1]) == month(t[2]) == month(t[3])
+    sameyear = year(t[1]) == year(t[2]) == year(t[3])
+    if sameday && samemonth && !sameyear
+        :yearly
+    elseif sameday && !samemonth
+        :monthly
+    elseif !sameday && samemonth
+        :daily
+    elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
+        # this clause checks daily data where the days wrap over the end of the month!
+        :daily
+    else
+        :other
+    end
+end
+temporal_sampling(t::AbstractVector) = :other
+temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
+temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
+temporal_sampling(t::StepRange{<:Any,Day}) = :daily
+temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
+temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
+
+"return true if hours or minutes are ≠ 0."
+function sampled_less_than_date(t::AbstractVector{<:DateTime})
+    r = 1:length(t)
+    any(i -> Dates.hour(t[i]) ≠ 0, r) || any(i -> Dates.minute(t[i]) ≠ 0, r)
+end
+sampled_less_than_date(t::AbstractVector{<:Date}) = false
+
+"return the appropriate subtype of Dates.Period."
+function tsamp2period(tsamp)
+    tsamp == :monthly && return Month(1)
+    tsamp == :yearly && return Year(1)
+    tsamp == :daily && return Day(1)
+    error("Don't know the period of $tsamp sampling!")
+end
+
 #########################################################################
 # temporal statistics
 #########################################################################
-export timemean, timeagg
-
 """
     timemean(A::ClimArray [, w]) = timeagg(mean, A, w)
-Temporal average of `A`.
+Temporal average of `A`, see [`timeagg`](@ref).
 """
 timemean(A::ClimArray, w = nothing) = timeagg(mean, A, w)
 
 
 """
     timeagg(f, A::ClimArray, W = nothing)
-Perform a proper temporal aggregation of the function `f` (e.g. `mean, std`)
-on `A` (assuming monthly spaced data) where:
+Perform a proper temporal aggregation of the function `f` (e.g. `mean, std`) on `A` where:
 * Only full year spans of `A` are included, see [`maxyearspan`](@ref)
   (because most processes are affected by yearly cycle,
   and averaging over an uneven number of cycles typically results in artifacts)
@@ -204,6 +262,8 @@ If you don't want these features, just do [`dropagg`](@ref)`(f, A, Time, W)`.
 to weight each time point differently.
 If they are not a vector (a weight for each time point), then they have to be a dimensional
 array of same dimensional layout as `A` (a weight for each data point).
+
+See also [`monthlyagg`](@ref), [`yearlyagg`](@ref), [`seasonalyagg`](@ref).
 
     timeagg(f, t::Vector, x::Vector, w = nothing)
 Same as above, but for arbitrary vector `x` accompanied by time vector `t`.
@@ -295,10 +355,8 @@ end
 
 
 #########################################################################
-# Monthly/yearly/daily means
+# Monthly/yearly/daily/seasonal means
 #########################################################################
-export monthlyagg, yearlyagg, temporalrange
-
 """
     monthlyagg(A::ClimArray, f = mean) -> B
 Create a new array where the temporal daily information has been aggregated to months
@@ -331,7 +389,7 @@ end
 
 function timegroup(A, f, t, tranges, name)
     other = otherdims(A, Time)
-    n = A.name == Symbol("") ? A.name : Symbol(A.name, ", $(name) averaged")
+    n = A.name == Symbol("") ? A.name : Symbol(A.name, ", $(name)")
     B = ClimArray(zeros(eltype(A), length.(other)..., length(t)), (other..., Time(t)), n)
     for i in 1:length(tranges)
         B[Time(i)] .= dropagg(f, view(A, Time(tranges[i])), Time)
@@ -340,12 +398,13 @@ function timegroup(A, f, t, tranges, name)
 end
 
 """
+    temporalrange(A::ClimArray, f = Dates.month) → r
     temporalrange(t::AbstractVector{<:TimeType}}, f = Dates.month) → r
 Return a vector of ranges so that each range of indices are values of `t` that
 belong in either the same month, year, or day, depending on `f`.
-`f` can take the values: `Dates.year, Dates.month, Dates.day` (functions).
+`f` can take the values: `Dates.year, Dates.month, Dates.day` or `season` (functions).
 
-Used in e.g. [`monthlyagg`](@ref) or [`yearlyagg`](@ref).
+Used in e.g. [`monthlyagg`](@ref), [`yearlyagg`](@ref) or [`seasonalyagg`](@ref)
 """
 function temporalrange(t::AbstractArray{<:TimeType}, f = Dates.month)
     @assert issorted(t) "Sorted time required."
@@ -360,4 +419,55 @@ function temporalrange(t::AbstractArray{<:TimeType}, f = Dates.month)
     end
     push!(r, i:L) # final range not included in for loop
     return r
+end
+temporalrange(A::AbstractDimArray, f = Dates.month) = temporalrange(dims(A, Time).val, f)
+
+
+"""
+    seasonalyagg(A::ClimArray, f = mean) -> B
+Create a new array where the temporal information has been aggregated to seasons
+using the function `f`.
+By convention, seasons are represented as Dates spaced 3-months apart, where only the
+months December, March, June and September are used to specify the date, with day 1.
+"""
+function seasonalyagg(A::ClimArray, f = mean)
+    t0 = dims(A, Time).val
+    startdate = to_seasonal_date(t0[1])
+    finaldate = to_seasonal_date(t0[end])
+    t = startdate:Month(3):finaldate
+    tranges = temporalrange(t0, season)
+    return timegroup(A, f, t, tranges, "seasonaly")
+end
+
+function to_seasonal_date(t)
+    y, m = year(t), month(t)
+    if m ∈ 3:5
+        return Date(y, 3, 1)
+    elseif m ∈ 6:8
+        return Date(y, 6, 1)
+    elseif m ∈ 9:11
+        return Date(y, 9, 1)
+    elseif m == 12
+        return Date(y, 12, 1)
+    elseif m ∈ 1:2
+        return Date(y-1, 12, 1)
+    end
+end
+
+"""
+    season(date) → s::Int
+Return the season of the given date, 1 for DJF, 2 for MAM, 3 for JJA, 4 for SON.
+Complements functions like `Dates.year, Dates.month, Dates.day`.
+"""
+function season(t::Dates.AbstractTime)
+    m = month(t)
+    if m ∈ 3:5
+        2
+    elseif m ∈ 6:8
+        3
+    elseif m ∈ 9:11
+        4
+    else
+        1
+    end
 end
