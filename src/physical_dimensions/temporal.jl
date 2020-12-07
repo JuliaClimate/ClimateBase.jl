@@ -39,10 +39,13 @@ temporal_sampling(A::AbstractDimArray) = temporal_sampling(dims(A, Time).val)
 temporal_sampling(t::Dimension) = temporal_sampling(t.val)
 
 function temporal_sampling(t::AbstractVector{<:TimeType})
-    sameday = day(t[1]) == day(t[2]) == day(t[3])
-    samemonth = month(t[1]) == month(t[2]) == month(t[3])
-    sameyear = year(t[1]) == year(t[2]) == year(t[3])
-    samehour = hour(t[1]) == hour(t[2]) == hour(t[3])
+
+    function issame(f)
+        x0 = f(t[1])
+        return all(i -> f(t[i]) == x0, 2:length(t))
+    end
+    samehour, sameday, samemonth, sameyear = map(issame, (hour, day, month, year))
+
     if !samehour
         # check if they have exactly 1 hour difference
         dh1 = lon_distance(hour(t[1]), hour(t[2]), 24)
