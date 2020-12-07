@@ -69,7 +69,8 @@ struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbstractDime
     attrib::Me
 end
 ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
-ClimArray(A::ClimArray; name = A.name, attrib = A.attrib) = ClimArray(A.data, A.dims, A.refdims, name, attrib)
+ClimArray(A::ClimArray, dims::Tuple = A.dims; name = A.name, attrib = A.attrib) =
+ClimArray(A.data, dims, A.refdims, name, attrib)
 
 """
     ClimArray(A::Array, dims::Tuple; name = "", attrib = nothing)

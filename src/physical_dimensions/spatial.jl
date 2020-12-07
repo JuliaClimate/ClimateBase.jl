@@ -89,8 +89,7 @@ Optionally do the mean for the data in range `r` of that dimension.
 
 This function properly weights the mean by the cosine of the latitude.
 """
-function latmean(A::AbDimArray, r = 1:size(A, Lat))
-    A = A[Lat(r)]
+function latmean(A::AbDimArray)
     lw = _latweights(A)
     if ndims(A) > 1
         return dropagg(sum, dimwise(*, A, lw), Lat)
@@ -98,6 +97,9 @@ function latmean(A::AbDimArray, r = 1:size(A, Lat))
         return sum(A .* lw)
     end
 end
+latmean(A::AbstractDimArray, r) = latmean(A[Lat(r)])
+
+
 # Warning!!! `_latweights` divides by the weight sum, because it is intended to be
 # used only with the `sum` function (for A)
 _latweights(A::AbDimArray) = _latweights(dims(A, Lat))
