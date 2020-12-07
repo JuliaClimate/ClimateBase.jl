@@ -26,10 +26,10 @@ Return the temporal sampling type of `x`, which is either an array of `Date`s or
 a dimensional array (with `Time` dimension).
 
 Possible return values are:
-- `:yearly`, where all dates have the same month+day, but different year.
-- `:monthly`, where all dates have the same day, but different month.
-- `:daily`, where the temporal difference between dates are exactly 1 day.
 - `:hourly`, where the temporal difference between entries is exactly 1 hour.
+- `:daily`, where the temporal difference between dates are exactly 1 day.
+- `:monthly`, where all dates have the same day, but different month.
+- `:yearly`, where all dates have the same month+day, but different year.
 - `:other`, which means that `x` doesn't fall to any of the above categories.
 
 For vector input, only the first 3 entries of the temporal information are used
@@ -39,20 +39,24 @@ temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
 temporal_sampling(t::Dimension) = temporal_sampling(t.val)
 
 function temporal_sampling(t::AbstractVector{<:TimeType})
-    #TODO: implement hourly!
-    sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
-    sameday = day(t[1]) == day(t[2]) == day(t[1])
+    sameday = day(t[1]) == day(t[2]) == day(t[3])
     samemonth = month(t[1]) == month(t[2]) == month(t[3])
     sameyear = year(t[1]) == year(t[2]) == year(t[3])
-    if sameday && samemonth && !sameyear
-        :yearly
-    elseif sameday && !samemonth
-        :monthly
+    samehour = hour(t[1]) == hour(t[2]) == hour(t[3])
+    if !samehour
+        # check if they have exactly 1 hour difference
+        dh1 = lon_distance(hour(t[1]), hour(t[2]), 24)
+        dh2 = lon_distance(hour(t[2]), hour(t[2]), 24)
+        return dh1 == dh2 == 1 ? :hourly : :other
     elseif !sameday && samemonth
         :daily
     elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
         # this clause checks daily data where the days wrap over the end of the month!
         :daily
+    elseif sameday && !samemonth
+        :monthly
+    elseif sameday && samemonth && !sameyear
+        :yearly
     else
         :other
     end
@@ -64,18 +68,12 @@ temporal_sampling(t::StepRange{<:Any,Day}) = :daily
 temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
 temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
 
-"return true if hours or minutes are ≠ 0."
-function sampled_less_than_date(t::AbstractVector{<:DateTime})
-    r = 1:length(t)
-    any(i -> Dates.hour(t[i]) ≠ 0, r) || any(i -> Dates.minute(t[i]) ≠ 0, r)
-end
-sampled_less_than_date(t::AbstractVector{<:Date}) = false
-
 "return the appropriate subtype of Dates.Period."
 function tsamp2period(tsamp)
     tsamp == :monthly && return Month(1)
     tsamp == :yearly && return Year(1)
     tsamp == :daily && return Day(1)
+    tsamp == :hourly && return Hour(1)
     error("Don't know the period of $tsamp sampling!")
 end
 
@@ -159,11 +157,10 @@ function monthspan(t::TimeType)
     d = collect(Date(y, m, 1):Day(1):Date(u, n, 1))[1:end-1]
 end
 
-
 """
     time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
 Convert a given date time array into measurement units of days:
-a real-valued array which counts time in days, always increasing.
+a real-valued array which counts time in days, always increasing (cumulative).
 """
 function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
     ts = temporal_sampling(t)
@@ -171,71 +168,11 @@ function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
         truetime = daysinmonth.(t)
         r = T.(cumsum(truetime))
     elseif ts == :yearly
-        error("todo")
+        error("Todo!")
     elseif ts == :daily
-        error("todo")
+        return T.(1:length(t))
     end
     return r
-end
-time_in_days(t::AbstractArray{<:Real}) = t
-
-"""
-    temporal_sampling(x) → symbol
-Return the temporal sampling type of `x`, which is either an array of `Date`s or
-a dimensional array (with `Time` dimension).
-
-Possible return values are:
-- `:yearly`, where all dates have the same month+day, but different year.
-- `:monthly`, where all dates have the same day, but different month.
-- `:daily`, where the temporal difference between dates are exactly 1 day.
-- `:hourly`, where the temporal difference between entries is exactly 1 hour.
-- `:other`, which means that `x` doesn't fall to any of the above categories.
-
-For vector input, only the first 3 entries of the temporal information are used
-to deduce the sampling (while for ranges, checking the step is enough).
-"""
-temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
-temporal_sampling(t::Dimension) = temporal_sampling(t.val)
-
-function temporal_sampling(t::AbstractVector{<:TimeType})
-    #TODO: implement hourly!
-    sampled_less_than_date(t) && error("Hourly sampling not yet implemented")
-    sameday = day(t[1]) == day(t[2]) == day(t[3])
-    samemonth = month(t[1]) == month(t[2]) == month(t[3])
-    sameyear = year(t[1]) == year(t[2]) == year(t[3])
-    if sameday && samemonth && !sameyear
-        :yearly
-    elseif sameday && !samemonth
-        :monthly
-    elseif !sameday && samemonth
-        :daily
-    elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
-        # this clause checks daily data where the days wrap over the end of the month!
-        :daily
-    else
-        :other
-    end
-end
-temporal_sampling(t::AbstractVector) = :other
-temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
-temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
-temporal_sampling(t::StepRange{<:Any,Day}) = :daily
-temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
-temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
-
-"return true if hours or minutes are ≠ 0."
-function sampled_less_than_date(t::AbstractVector{<:DateTime})
-    r = 1:length(t)
-    any(i -> Dates.hour(t[i]) ≠ 0, r) || any(i -> Dates.minute(t[i]) ≠ 0, r)
-end
-sampled_less_than_date(t::AbstractVector{<:Date}) = false
-
-"return the appropriate subtype of Dates.Period."
-function tsamp2period(tsamp)
-    tsamp == :monthly && return Month(1)
-    tsamp == :yearly && return Year(1)
-    tsamp == :daily && return Day(1)
-    error("Don't know the period of $tsamp sampling!")
 end
 
 #########################################################################
