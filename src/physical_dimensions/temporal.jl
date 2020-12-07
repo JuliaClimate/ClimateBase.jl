@@ -15,10 +15,9 @@ using Dates
 const DAYS_IN_ORBIT = 365.26
 const HOURS_IN_ORBIT = 365.26*24
 
-millisecond2month(t) = Month(round(Int, t.value / 1000 / 60 / 60 / 24 / 30))
 daymonth(t) = day(t), month(t)
 
-maxyearspan(A::AbDimArray, tsamp = temporal_sampling(A)) =
+maxyearspan(A::AbstractDimArray, tsamp = temporal_sampling(A)) =
 maxyearspan(dims(A, Time).val, tsamp)
 
 """
@@ -36,7 +35,7 @@ Possible return values are:
 For vector input, only the first 3 entries of the temporal information are used
 to deduce the sampling (while for ranges, checking the step is enough).
 """
-temporal_sampling(A::AbDimArray) = temporal_sampling(dims(A, Time).val)
+temporal_sampling(A::AbstractDimArray) = temporal_sampling(dims(A, Time).val)
 temporal_sampling(t::Dimension) = temporal_sampling(t.val)
 
 function temporal_sampling(t::AbstractVector{<:TimeType})
@@ -47,7 +46,7 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
     if !samehour
         # check if they have exactly 1 hour difference
         dh1 = lon_distance(hour(t[1]), hour(t[2]), 24)
-        dh2 = lon_distance(hour(t[2]), hour(t[2]), 24)
+        dh2 = lon_distance(hour(t[2]), hour(t[3]), 24)
         return dh1 == dh2 == 1 ? :hourly : :other
     elseif !sameday && samemonth
         :daily
@@ -85,7 +84,7 @@ end
 Find the maximum index `i` of `t` so that `t[1:i]` covers exact(*) multiples of years.
 
 (*) For monthly spaced data `i` is a multiple of `12` while for daily data we find
-the largest possible multiple of `DAYS_IN_ORBIT = 365.26`.
+the largest possible multiple of `DAYS_IN_ORBIT`.
 """
 function maxyearspan(times, tsamp = temporal_sampling(times))
     l = length(times)
@@ -102,7 +101,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
     elseif tsamp == :yearly
         return length(times)
     elseif tsamp == :daily
-        n_max = l÷365
+        n_max = Int(l÷DAYS_IN_ORBIT)
         nb_years = findlast(n -> round(Int, n * DAYS_IN_ORBIT) ≤ l, 1:n_max)
         if nb_years != nothing
             return round(Int,nb_years * DAYS_IN_ORBIT)-1
@@ -111,7 +110,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
             return l
         end
     elseif tsamp == :hourly
-        n_max = l÷(365*24)
+        n_max = Int(l÷HOURS_IN_ORBIT)
         nb_years = findlast(n -> round(Int, n * HOURS_IN_ORBIT) ≤ l, 1:n_max)
         if nb_years != nothing
             return round(Int,nb_years * HOURS_IN_ORBIT)-1
@@ -339,10 +338,11 @@ end
     temporalrange(A::ClimArray, f = Dates.month) → r
     temporalrange(t::AbstractVector{<:TimeType}}, f = Dates.month) → r
 Return a vector of ranges so that each range of indices are values of `t` that
-belong in either the same month, year, or day, depending on `f`.
-`f` can take the values: `Dates.year, Dates.month, Dates.day` or `season` (functions).
+belong in either the same month, year, day, or season, depending on `f`.
+`f` can take the values: `Dates.year, Dates.month, Dates.day` or `season`
+(all are functions).
 
-Used in e.g. [`monthlyagg`](@ref), [`yearlyagg`](@ref) or [`seasonalyagg`](@ref)
+Used in e.g. [`monthlyagg`](@ref), [`yearlyagg`](@ref) or [`seasonalyagg`](@ref).
 """
 function temporalrange(t::AbstractArray{<:TimeType}, f = Dates.month)
     @assert issorted(t) "Sorted time required."

@@ -3,9 +3,6 @@ using Statistics
 Time = ClimateBase.Time
 cd(@__DIR__)
 
-# TODO: Further test spatial averaging by making one hemisphere 1 and other 0
-# TODO: Test downloaded .nc file
-
 # Create the artificial dimensional array A that will be used in tests
 function monthly_insolation(t::TimeType, args...)
     d = ClimateBase.monthspan(t)
@@ -15,7 +12,7 @@ end
 lats = -86:4:86
 lons = collect(0.5:10:360)
 t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
-tdense = Date(2000, 3, 15):Day(1):Date(2020, 3, 15)
+tdaily = Date(2000, 3, 15):Day(1):Date(2020, 3, 15)
 
 d = (Lon(lons), Lat(lats), Time(t))
 A = zeros([length(x) for x in (lons, lats, t)]...)
@@ -94,18 +91,27 @@ end
 end
 
 @testset "Advanced temporal manipulation" begin
-    tdense = Date(2000, 3, 1):Day(1):Date(2020, 3, 31)
+    tdaily = Date(2000, 3, 1):Day(1):Date(2020, 3, 31)
     tyearly = Date(2000, 3, 1):Year(1):Date(2020, 3, 31)
-    mdates = unique!([(year(d), month(d)) for d in tdense])
-    ydates = unique!([year(d) for d in tdense])
-    tranges = temporalrange(tdense, Dates.month)
-    yranges = temporalrange(tdense, Dates.year)
+    thourly = DateTime(2000, 3, 1):Hour(1):DateTime(2001, 4, 15)
+    mdates = unique!([(year(d), month(d)) for d in tdaily])
+    ydates = unique!([year(d) for d in tdaily])
+    tranges = temporalrange(tdaily, Dates.month)
+    yranges = temporalrange(tdaily, Dates.year)
     @test length(tranges) == length(mdates)
     @test length(yranges) == length(ydates)
 
     @test temporal_sampling(t) == :monthly
-    @test temporal_sampling(tdense) == :daily
+    @test temporal_sampling(tdaily) == :daily
     @test temporal_sampling(tyearly) == :yearly
+
+    # Test hourly stuff
+    @test temporal_sampling(thourly) == :hourly
+    @test temporal_sampling(collect(thourly)) == :hourly
+    hmys = maxyearspan(thourly, :hourly)
+    @test hmys < length(thourly)
+    @test year(thourly[1]) == year(thourly[hmys])-1
+    
 
     # test yearly temporal weights (i.e., no weighting)
     X = ClimArray(rand(3,3), (Lon(1:3), Time(tyearly[1:3])))
@@ -113,12 +119,12 @@ end
     @test vec(timemean(X).data) == vec(mean(X.data; dims = 2))
     @test timemean(X, W).data == X.data[:, 2]
 
-    C = ClimArray(zeros(length(lats), length(tdense)), (Lat(lats), Time(tdense)))
+    C = ClimArray(zeros(length(lats), length(tdaily)), (Lat(lats), Time(tdaily)))
 
     # First version: just count number of days
-    for j in 1:length(tdense)
+    for j in 1:length(tdaily)
         for i in 1:length(lats)
-            C[i, j] = daysinmonth(tdense[j])
+            C[i, j] = daysinmonth(tdaily[j])
         end
     end
     Cm = monthlyagg(C)
@@ -132,9 +138,9 @@ end
     @test step(dims(Cm, Time).val) == Month(1)
     @test temporal_sampling(dims(Cm, Time).val) == :monthly
 
-    for j in 1:length(tdense)
+    for j in 1:length(tdaily)
         for i in 1:length(lats)
-            C[i, j] = daysinyear(tdense[j])
+            C[i, j] = daysinyear(tdaily[j])
         end
     end
     Cy = yearlyagg(C)
@@ -146,9 +152,9 @@ end
     @test temporal_sampling(dims(Cy, Time).val) == :yearly
 
     # Second version: test actual physics
-    for j in 1:length(tdense)
+    for j in 1:length(tdaily)
         for i in 1:length(lats)
-            C[i, j] = insolation(tdense[j], lats[i])
+            C[i, j] = insolation(tdaily[j], lats[i])
         end
     end
     Bz = zonalmean(B)

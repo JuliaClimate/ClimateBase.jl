@@ -140,20 +140,15 @@ function vector2range(x::Vector{<:Real})
     return r
 end
 
-function vector2range(t::Vector{<:DateTime})
-    !sampled_less_than_date(t) && return vector2range(Date.(t))
-    # TODO: implement hourly sampling here
-    @warn "Hourly sampling not yet implemented."
-    return t
-end
-
-function vector2range(t::Vector{<:Date})
+function vector2range(t::Vector{<:Dates.AbstractTime})
     tsamp = temporal_sampling(t)
     period = tsamp2period(tsamp)
     r = t[1]:period:t[end]
     @assert r == t
     return r
 end
+
+vector2range(r::AbstractRange) = r
 
 #########################################################################
 # Saving to .nc files
