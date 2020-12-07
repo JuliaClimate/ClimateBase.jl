@@ -154,6 +154,11 @@ end
     Bz = zonalmean(B)
     Cm = monthlyagg(C)
     @test all(Cm .≈ Bz)
+
+
+    Asea = seasonalyagg(A)
+    tsea = dims(Asea, Time).val
+    @test Base.step(tsea)  == Month(3)
 end
 
 @testset "Spatial weighting" begin
