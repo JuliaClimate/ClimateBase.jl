@@ -48,9 +48,8 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
 
     if !samehour
         # check if they have exactly 1 hour difference
-        dh1 = lon_distance(hour(t[1]), hour(t[2]), 24)
-        dh2 = lon_distance(hour(t[2]), hour(t[3]), 24)
-        return dh1 == dh2 == 1 ? :hourly : :other
+        dh = getproperty.(diff(t), :value)
+        return all(isequal(3600000), dh) ? :hourly : :other
     elseif !sameday && samemonth
         :daily
     elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)

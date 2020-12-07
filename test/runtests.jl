@@ -111,8 +111,12 @@ end
     hmys = maxyearspan(thourly, :hourly)
     @test hmys < length(thourly)
     @test year(thourly[1]) == year(thourly[hmys])-1
-    
 
+    # Arbitrary random range
+    tother = collect(thourly)
+    tother[4] = DateTime(2000, 7, 2, 2, 2)
+    @test temporal_sampling(tother) == :other
+    
     # test yearly temporal weights (i.e., no weighting)
     X = ClimArray(rand(3,3), (Lon(1:3), Time(tyearly[1:3])))
     W = [0, 1, 0]
