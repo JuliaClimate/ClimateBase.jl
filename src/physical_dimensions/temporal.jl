@@ -315,6 +315,7 @@ function timegroup(A, f, t, tranges, name)
 end
 
 """
+    temporalrange(A::ClimArray, f = Dates.month) → r
     temporalrange(t::AbstractVector{<:TimeType}}, f = Dates.month) → r
 Return a vector of ranges so that each range of indices are values of `t` that
 belong in either the same month, year, or day, depending on `f`.
@@ -336,6 +337,8 @@ function temporalrange(t::AbstractArray{<:TimeType}, f = Dates.month)
     push!(r, i:L) # final range not included in for loop
     return r
 end
+temporalrange(A::AbstractDimArray, f = Dates.month) = temporalrange(dims(A, Time).val, f)
+
 
 """
     seasonalyagg(A::ClimArray, f = mean) -> B
