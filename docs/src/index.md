@@ -153,6 +153,7 @@ timemean
 timeagg
 monthlyagg
 yearlyagg
+seasonalyagg
 temporalrange
 maxyearspan
 temporal_sampling
