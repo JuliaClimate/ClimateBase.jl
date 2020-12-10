@@ -131,6 +131,7 @@ export Dim # for generic dimensions this must be exported
 # Making vectors → ranges
 #########################################################################
 function vector2range(x::Vector{<:Real})
+    length(x) < 3 && return x
     dx = x[2]-x[1]
     for i in 3:length(x)
         x[i]-x[i-1] ≠ dx && return x # if no constant step, return array as is

@@ -7,8 +7,8 @@ function ClimArray_eqarea(ds::NCDatasets.AbstractDataset, var::String, name = va
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)
     A = cfvar |> Array
-    # TODO: This code has not yet been generalized to arbitrary dimensions
     if haskey(ds, "ncells") # this is the equal area grid, so we make a Coord dimension
+        # TODO: This code has not yet been generalized to arbitrary dimensions
         lon = ds["lon"] |> Array .|> wrap_lon
         lat = ds["lat"] |> Array
         time = ds["time"] |> Array
