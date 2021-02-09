@@ -10,18 +10,16 @@ periodic parts of `A`, with frequencies given in `fs`, and residual contains wha
 `fs` is measured in 1/year. This function works even for non-equispaced time axis (e.g.
 monthly averages) and uses LPVSpectral.jl and SignalDecomposition.jl.
 """
-seasonal_decomposition(A::AbDimArray, b) = seasonal_decomposition(dims(A, Time), A, b)
-
-function seasonal_decomposition(t, A::AbDimArray, fs::Vector)
+function seasonal_decomposition(A::AbDimArray, fs::Vector)
     @assert hasdim(A, Time)
-    E = _numbertype(T)
+    E = _numbertype(eltype(A))
     method = Sinusoidal(E.(fs ./ DAYS_IN_ORBIT))
-    seasonal = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A); name = A.name*"seasonal")
-    residual = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A); name = A.name*"residual")
+    seasonal = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A))
+    residual = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A))
 
-    # TODO: Fix this to use "real time"
-    truetime = Float32.(cumsum(daysinmonth.(t)))
-    for i in otheridxs(T, Time)
+    t = dims(A, Time).val
+    truetime = time_in_days(t, E)
+    for i in otheridxs(A, Time)
         y = Array(A[i...])
         sea, res = SignalDecomposition.decompose(truetime, y, method)
         seasonal[i...] .= sea
