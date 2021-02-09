@@ -299,15 +299,15 @@ end
 # Monthly/yearly/daily/seasonal means
 #########################################################################
 """
-    monthlyagg(A::ClimArray, f = mean) -> B
+    monthlyagg(A::ClimArray, f = mean; mday = 15) -> B
 Create a new array where the temporal daily information has been aggregated to months
 using the function `f`.
-By convention, the dates of the new array always have day number of `15`.
+The dates of the new array always have day number of `mday`.
 """
-function monthlyagg(A::ClimArray, f = mean)
+function monthlyagg(A::ClimArray, f = mean; mday = 15)
     t0 = dims(A, Time).val
-    startdate = Date(year(t0[1]), month(t0[1]), 15)
-    finaldate = Date(year(t0[end]), month(t0[end]), 16)
+    startdate = Date(year(t0[1]), month(t0[1]), mday)
+    finaldate = Date(year(t0[end]), month(t0[end]), mday+1)
     t = startdate:Month(1):finaldate
     tranges = temporalrange(t0, Dates.month)
     return timegroup(A, f, t, tranges, "monthly")

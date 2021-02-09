@@ -15,6 +15,7 @@ export hasdim, DimensionalArray
 export get_var_as_dimarray
 export Time, Lon, Lat, dims, Coord, Hei, Pre
 export EqArea, Grid, spacestructure
+export DimensionalData # for accessing its functions
 
 @dim Lon IndependentDim "Longitude"
 @dim Lat IndependentDim "Latitude"
