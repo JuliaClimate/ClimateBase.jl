@@ -74,10 +74,11 @@ using ClimateBase # hide
 ClimateBase.COMMONNAMES
 ```
 
-Also, two convenience functions are provided for examining the content of on-disk `.nc` files without loading all data on memory.
+Also, the following convenience functions are provided for examining the content of on-disk `.nc` files without loading all data on memory.
 ```@docs
 nckeys
 ncdetails
+globalattr
 ```
 
 ### Write

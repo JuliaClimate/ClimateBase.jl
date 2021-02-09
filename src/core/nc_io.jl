@@ -5,7 +5,7 @@ https://github.com/rafaqz/GeoData.jl
 =#
 using NCDatasets
 export NCDataset
-export nckeys, ncdetails
+export nckeys, ncdetails, globalattr
 export climarrays_to_nc
 
 dim_to_commonname(::Lat) = "lat"
@@ -38,6 +38,16 @@ function ncdetails(file::String, io = stdout)
     end
 end
 ncdetails(ds::NCDataset, io = stdout) = show(io, MIME"text/plain"(), ds)
+
+"""
+    globalattr(file::String) → Dict
+Return the global attributions of the .nc file.
+"""
+function globalattr(file::String)
+    NCDataset(file) do ds
+        return Dict(ds.attrib)
+    end
+end
 
 """
     ClimArray(file::Union{String,NCDataset}, var::String, name = var) -> A
