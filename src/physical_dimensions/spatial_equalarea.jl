@@ -35,6 +35,9 @@ function ClimArray_eqarea(ds::NCDatasets.AbstractDataset, var::String, name = va
 
         X = ClimArray(A, Tuple(actualdims))
         X = X[Coord(si)]
+        if !any(ismissing, X)
+            X = nomissing(X)
+        end
         return ClimArray(X; name = Symbol(name), attrib)
     else
         error("Don't know how to handle this equal area grid!")

@@ -198,7 +198,6 @@ function climarrays_to_nc(file::String, Xs; globalattr = Dict())
                 @warn "$i-th ClimArray has no name, naming it $(n) instead."
             end
             println("processing variable $(n)...")
-            println("writing dimensions...")
             add_dims_to_ncfile!(ds, dims(X))
             println("writing the CF-variable...")
             attrib = X.attrib
@@ -215,6 +214,7 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
     dnames = dim_to_commonname.(dimensions)
     for (i, d) ∈ enumerate(dnames)
         haskey(ds, d) && continue
+        println("writing dimension $d...")
         v = dimensions[i].val
         # this conversion to DateTime is necessary because CFTime.jl doesn't support Date
         eltype(v) == Date && (v = DateTime.(v))
