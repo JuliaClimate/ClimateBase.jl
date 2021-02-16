@@ -74,10 +74,11 @@ using ClimateBase # hide
 ClimateBase.COMMONNAMES
 ```
 
-Also, two convenience functions are provided for examining the content of on-disk `.nc` files without loading all data on memory.
+Also, the following convenience functions are provided for examining the content of on-disk `.nc` files without loading all data on memory.
 ```@docs
 nckeys
 ncdetails
+globalattr
 ```
 
 ### Write
@@ -114,8 +115,7 @@ function extract_dimension_values_xarray(xa, dnames = collect(xa.dims))
         if d ≠ "time"
             push!(dim_values, x)
         else
-            # This date specification assumes up to day sampling (hence the 1:10)
-            dates = [np.datetime_as_string(y)[1:10] for y in x]
+            dates = [np.datetime_as_string(y)[1:19] for y in x]
             dates = DateTime.(dates)
             push!(dim_values, dates)
         end

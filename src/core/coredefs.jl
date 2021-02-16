@@ -11,10 +11,10 @@ Time = DimensionalData.Ti
 AbDimArray = DimensionalData.AbstractDimArray
 
 export At, Between, Near # Selectors from DimensionalArrays.jl
-export hasdim, DimensionalArray
-export get_var_as_dimarray
+export hasdim, DimensionalArray, dimnum
 export Time, Lon, Lat, dims, Coord, Hei, Pre
 export EqArea, Grid, spacestructure
+export DimensionalData # for accessing its functions
 
 @dim Lon IndependentDim "Longitude"
 @dim Lat IndependentDim "Latitude"
@@ -70,7 +70,7 @@ struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbstractDime
 end
 ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
 ClimArray(A::ClimArray, dims::Tuple = A.dims; name = A.name, attrib = A.attrib) =
-ClimArray(A.data, DimensionalData.formatdims(A.data, dims), A.refdims, name, attrib)
+ClimArray(A.data, DimensionalData.formatdims(A.data, dims), A.refdims, Symbol(name), attrib)
 
 """
     ClimArray(A::Array, dims::Tuple; name = "", attrib = nothing)
