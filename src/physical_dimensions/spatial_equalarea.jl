@@ -70,7 +70,7 @@ end
 function zonalmean(::EqArea, A::AbDimArray)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
-    r = zeros(eltype(A), (length(lats), size.(Ref(A), other)...), other)
+    r = zeros(eltype(A), (length(lats), size.(Ref(A), other)...))
     R = ClimArray(r, (Lat(lats), other...), A.name)
     for (i, r) in enumerate(idxs)
         for j in otheridxs(A, Coord())
