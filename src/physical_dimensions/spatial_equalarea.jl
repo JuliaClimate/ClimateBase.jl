@@ -71,7 +71,7 @@ function zonalmean(::EqArea, A::AbDimArray)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
     r = zeros(eltype(A), (length(lats), size.(Ref(A), other)...))
-    R = ClimArray(r, (Lat(lats), other...), A.name)
+    R = ClimArray(r, (Lat(lats), other...); name=A.name, attrib=A.attrib)
     for (i, r) in enumerate(idxs)
         for j in otheridxs(A, Coord())
             R[Lat(i), j...] = mean(view(A, Coord(r), j...))
@@ -85,7 +85,7 @@ function zonalmean(::EqArea, A::AbDimArray{T, 1}) where {T}
     for (i, r) in enumerate(idxs)
         res[i] = mean(view(A.data, r))
     end
-    return ClimArray(res, (Lat(lats),))
+    return ClimArray(res, (Lat(lats),); name=A.name, attrib=A.attrib)
 end
 
 
