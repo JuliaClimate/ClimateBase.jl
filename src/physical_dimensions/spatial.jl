@@ -159,11 +159,16 @@ end
 function spaceweightassert(A, w)
     if !isnothing(w)
         wdims = dims(w)
+        # Check that longitude/latitude match even if the actual dimensions are not
+        # identical (because they are e.g. not loaded from the same file)
         if length(wdims) == 2
-            @assert wdims == dims(A, (Lon, Lat))
+            @assert Lat ∈ basetypeof.(wdims)
+            @assert Lon ∈ basetypeof.(wdims)
+            @assert val.(wdims) == val.(dims(A, (Lon, Lat)))
             wtype = :d2
         else
-            @assert wdims == dims(A)
+            @assert val.(wdims) == val.(dims(A))
+            @assert basetypeof.(wdims) == basetypeof.(dims(A))
             wtype = :dany
         end
     else
