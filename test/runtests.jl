@@ -30,7 +30,7 @@ for i in 1:length(lats)
 end
 
 A = ClimArray(A, d; name = "insolation")
-B = ClimArray(B, d; attrib = Dict("a" => 2))
+B = ClimArray(B, d; attrib = Dict("a" => 2)) # on purpose without name
 
 # %%
 
@@ -116,7 +116,7 @@ end
     tother = collect(thourly)
     tother[4] = DateTime(2000, 7, 2, 2, 2)
     @test temporal_sampling(tother) == :other
-    
+
     # test yearly temporal weights (i.e., no weighting)
     X = ClimArray(rand(3,3), (Lon(1:3), Time(tyearly[1:3])))
     W = [0, 1, 0]
@@ -165,10 +165,9 @@ end
     Cm = monthlyagg(C)
     @test all(Cm .≈ Bz)
 
-
     Asea = seasonalyagg(A)
     tsea = dims(Asea, Time).val
-    @test Base.step(tsea)  == Month(3)
+    @test Base.step(tsea) == Month(3)
 end
 
 @testset "Spatial weighting" begin

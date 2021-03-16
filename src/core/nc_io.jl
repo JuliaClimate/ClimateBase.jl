@@ -231,7 +231,7 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
         l = length(v)
         defDim(ds, d, l) # add dimension entry
         attrib = dimensions[i].metadata
-        if isnothing(attrib) && haskey(DEFAULT_ATTRIBS, d)
+        if (isnothing(attrib) || attrib == DimensionalData.NoMetadata()) && haskey(DEFAULT_ATTRIBS, d)
             @warn "Dimension $d has no attributes, adding default attributes (mandatory)."
             attrib = DEFAULT_ATTRIBS[d]
         end
