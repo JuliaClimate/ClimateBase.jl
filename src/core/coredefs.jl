@@ -13,7 +13,7 @@ AbDimArray = DimensionalData.AbstractDimArray
 export At, Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, DimensionalArray, dimnum
 export Time, Lon, Lat, dims, Coord, Hei, Pre
-export EqArea, Grid, spacestructure
+export GaussianEqualArea, LonLatGrid, spacestructure
 export DimensionalData # for accessing its functions
 
 @dim Lon IndependentDim "Longitude"
@@ -41,17 +41,20 @@ const COMMONNAMES = Dict(
     "level" => Pre,
 )
 
-
-# the trait EqArea is for equal area grids. Functions can use the `spacestructure` and
-# dispatch on `EqArea` or other types while still being type-stable
-struct EqArea end
-struct Grid end
+# the following traits for the the way space is configured. currently the options are
+# GaussianEqualArea, which is for equal area "grids" (or better points/coordinates)
+# while the LonLatGrid is for standard Longitude x Latitude dimensions.
+# Dispatch on `GaussianEqualArea` or other types is type-stable
+# because it comes from the underlying dimension
+abstract type SpaceType end
+struct GaussianEqualArea <: SpaceType end
+struct LonLatGrid <: SpaceType end
 spacestructure(a::AbDimArray) = spacestructure(dims(a))
 function spacestructure(dims)
     if hasdim(dims, Coord)
-        EqArea()
+        GaussianEqualArea()
     elseif hasdim(dims, Lon) || hasdim(dims, Lat)
-        Grid()
+        LonLatGrid()
     else
         nothing
     end

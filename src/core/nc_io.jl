@@ -85,8 +85,7 @@ end
 # can solve "large memory" or "large data" problems. This funcionality
 # must be sure to load the correct ranges of dimensions as well though!
 
-function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var; eqarea = false)
-    eqarea && return ClimArray_eqarea(ds, var, name)
+function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var)
     svar = string(var)
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)

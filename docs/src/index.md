@@ -30,14 +30,17 @@ DimensionalData.jl allows truly convenient handling of climate data, where it is
 E.g. you can create an array with
 ```@example main
 using ClimateBase, Dates
-Time = ClimateBase.Ti # more intuitive
+Time = ClimateBase.Ti # `Time` is more intuitive than `Ti`
 lats = -90:5:90
 lons = 0:10:359
 t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
+# Here we make all dimension data into proper dimensions:
 dimensions = (Lon(lons), Lat(lats), Time(t))
+# combining the array data with dimensions makes a `ClimArray`:
 A = ClimArray(rand(36, 37, 241), dimensions)
 ```
-and then select a specific timeslice at `Date(2011,5,15)` and a longitude interval between 0 and 30 degrees like so:
+
+You can then select a specific timeslice at `Date(2011,5,15)` and a longitude interval between 0 and 30 degrees like so:
 ```@example main
 B = A[Lon(Between(0, 30)), Time(At(Date(2011,5,15)))]
 ```
@@ -95,7 +98,7 @@ climarrays_to_nc
 ```
 
 ### xarray
-You can use the following functions (which are not defined and exported in `ClimateBase` to avoid dependency on PyCall.jl)
+You can use the following functions (which are not defined and exported in `ClimateBase` to avoid dependency on PyCall.jl) to load data using Python's `xarray`.
 ```julia
 using ClimateBase, Dates
 # This needs to numpy, xarray and dask installed from Conda
@@ -103,7 +106,7 @@ using PyCall
 xr = pyimport("xarray")
 np = pyimport("numpy")
 
-function climarray_from_xarray(xa, fieldname, name = Symbol(fieldname))
+function climarray_from_xarray(xa, fieldname, name = fieldname)
     w = getproperty(xa, Symbol(fieldname))
     raw_data = Array(w.values)
     dnames = collect(w.dims) # dimensions in string name
@@ -161,27 +164,6 @@ time_in_days
 
 ## Spatial
 
-### Types of spatial coordinates
-Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array. Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
-This type of space is called `Grid`. It is assumed throughout that longitude and latitude are measured in **degrees**.
-
-Another type of spatial coordinates is supported, and that is of **equal-area**, called `EqArea`. In `EqArea` the spatial dimension is instead given by a single `Vector` of coordinate locations, i.e. 2-element `SVector(longitude, latitude)`. The dimension of this vector is `Coord`.
-Each point in this vector corresponds to a polygon (typically triangle or trapezoid) that covers equal amount of spatial area as any other point.
-The actual limits of each polygon are not included in the dimension.
-Typical examples of such equal area grids are reduced (or thinned) Gaussian grids or icosahedral-based grids.
-
-!!! warn
-
-    This `EqArea` type is currently in an **experimental phase** and in addition some functions assume that the underlying points are formulated in a Gaussian equal area grid, where the points are sorted by their latitude.
-
-Within ClimateBase.jl aims to work with either type of spatial coordinate system. Therefore, physically inspired averaging functions, like [`spacemean`](@ref) or [`zonalmean`](@ref), work for both types of spatial coordinates.
-In addition, the function `spatialidxs` returns an iterator over the spatial coordinates of the data, and works for both types (grid or equal-area):
-```@docs
-spatialidxs
-```
-
-
-
 ### Spatial aggregation
 ```@docs
 zonalmean
@@ -193,17 +175,32 @@ hemispheric_functions
 lonlatfirst
 ```
 
-## General aggregation
-The physical averages of the previous section are done by taking advantage of a general aggregation syntax, which works with any aggregating function like `mean, sum, std`, etc.
+### Types of spatial coordinates
+Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array. Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
+This type of space is called `LonLatGrid`. It is assumed throughout that longitude and latitude are measured in **degrees**.
+
+Another type of spatial coordinates is supported, and that is of **equal-area**.
+Currently only a single type, `GaussianEqualArea`, exists for this purpose, which represents coordinates in a Gaussian grid as shown here: https://en.wikipedia.org/wiki/Gaussian_grid.
+In `GaussianEqualArea` the spatial information is instead given by single dimension whose elements are coordinate locations, i.e. 2-element `SVector(longitude, latitude)`.
+The dimension name is `Coord`.
+Each point in this dimension corresponds to a polygon (for `GaussianEqualArea` a trapezoid) that covers equal amount of spatial area as any other point.
+The actual limits of each polygon are not included in the dimension for performance reasons.
+
+ClimateBase.jl works with either type of spatial coordinate system.
+Therefore, physically inspired averaging functions, like [`spacemean`](@ref) or [`zonalmean`](@ref), work for both types of spatial coordinates.
+In addition, the function `spatialidxs` returns an iterator over the spatial coordinates of the data, and works for both types (grid or equal-area):
 ```@docs
-dropagg
-collapse
+spatialidxs
 ```
 
 ### Equal area creation
 
-At the moment, support for auto-loading equal area space types from `.nc` data does not exist.
-You can make them yourself using the following approach:
+!!! warn
+    Equal area functionality is currently in an **experimental phase**!
+    You can try using the function `ClimArray_eqarea` to load a `ClimArray` with Gaussian grid directly from a `.nc` file. This function assumes that this grid was created with CDO, using e.g. `cdo remapbil,gea250 IN.nc OUT.nc`.
+
+
+To manually make a Gaussian grid `ClimArray`, try the following approach:
 ```julia
 file = NCDataset("some_file_with_eqarea.nc")
 # the following lines make the coordinates of the equal area, which depends on
@@ -218,7 +215,15 @@ t = Array(file["time"])
 dimensions = (Coord(coords), Time(t))
 # Finally load the array data and make a ClimArray
 data = Array(file["actual_data_like_radiation"])
+data = data[si, :] # permute like the coordinate
 A = ClimArray(data, dimensions)
+```
+
+## General aggregation
+The physical averages of the previous section are done by taking advantage of a general aggregation syntax, which works with any aggregating function like `mean, sum, std`, etc.
+```@docs
+dropagg
+collapse
 ```
 
 ## Timeseries Analysis

@@ -21,7 +21,7 @@ end
 Works for standard grid as well as equal area (`...` necessary because `i` is a `Tuple`).
 """
 spatialidxs(A::AbDimArray) = spatialidxs(spacestructure(A), A)
-function spatialidxs(::Grid, A)
+function spatialidxs(::LonLatGrid, A)
     lons = (Lon(i) for i in 1:size(A, Lon))
     lats = (Lat(i) for i in 1:size(A, Lat))
     return Iterators.product(lons, lats)
@@ -80,7 +80,7 @@ Optionally do the mean for the data in range `r` of the longitude
 Works for both grid and equal area space.
 """
 zonalmean(A::AbDimArray, args...) = zonalmean(spacestructure(A), A, args...)
-zonalmean(::Grid, A::AbDimArray) = dropagg(mean, A, Lon)
+zonalmean(::LonLatGrid, A::AbDimArray) = dropagg(mean, A, Lon)
 
 """
     latmean(A::ClimArray [, r])
@@ -128,7 +128,7 @@ The function works for grid as well as equal area space.
 just an `AbDimArray` with same space as `A`, or of exactly same shape as `A`.
 """
 spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
-function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
+function spaceagg(::LonLatGrid, f, A::AbDimArray, w=nothing)
     wtype = spaceweightassert(A, w)
     cosweights = repeat(cosd.(dims(A, Lat).val)', size(A, Lon))
     # TODO: Extends so that this assertion is not necessary:
@@ -189,7 +189,7 @@ appropriately translating the latitudes of `south` so that both arrays have the 
 latitudinal dimension (and thus can be compared and do opperations between them).
 """
 hemispheric_functions(A) = hemispheric_functions(spacestructure(A), A)
-function hemispheric_functions(::Grid, A)
+function hemispheric_functions(::LonLatGrid, A)
     nh = A[Lat(Between(0,  90))]
     sh = A[Lat(Between(-90, 0))]
     # TODO: this can be a function "reverse dim"
@@ -208,7 +208,7 @@ Notice that this function explicitly does both zonal as well as meridional avera
 Use [`hemispheric_functions`](@ref) to just split `A` into two hemispheres.
 """
 hemispheric_means(A) = hemispheric_means(spacestructure(A), A)
-function hemispheric_means(::Grid, A::AbDimArray)
+function hemispheric_means(::LonLatGrid, A::AbDimArray)
     @assert hasdim(A, Lat)
     if hasdim(A, Lon)
         B = zonalmean(A)
@@ -221,4 +221,4 @@ function hemispheric_means(::Grid, A::AbDimArray)
 end
 
 latitudes(A) = latitudes(spacestructure(A), A)
-latitudes(::Grid, A) = dims(A, Lat).val
+latitudes(::LonLatGrid, A) = dims(A, Lat).val
