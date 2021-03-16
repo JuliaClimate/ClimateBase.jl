@@ -21,11 +21,10 @@ using Pkg; Pkg.add("ClimateBase")
 Make sure your installed version coincides with the one in this docs (see bottom left corner of this page).
 
 ## `ClimArray`: the core data structure
-This project treats "climate data" as an instance of [`ClimArray`](@ref), which (at the moment) uses the DimensionalData.jl interface.
-`ClimArray` is *almost* equivalent to `DimensionalArray`.
-A (brief) introduction to DimensionalData.jl is copied here from its docs, because basic knowledge of how to handle a `ClimArray` is assumed in our docs.
-
-DimensionalData.jl allows truly convenient handling of climate data, where it is important to be able to dimensionally-index data by their values.
+This project treats "climate data" as an instance of [`ClimArray`](@ref).
+At the moment `ClimArray` is a subtype of `DimensionalArray` from DimensionalData.jl.
+A brief introduction to DimensionalData.jl is copied here from its docs, because basic handling of a `ClimArray` comes from DimensionalData.jl.
+DimensionalData.jl allows to dimensionally-index data by their values.
 
 E.g. you can create an array with
 ```@example main
@@ -34,13 +33,15 @@ Time = ClimateBase.Ti # `Time` is more intuitive than `Ti`
 lats = -90:5:90
 lons = 0:10:359
 t = Date(2000, 3, 15):Month(1):Date(2020, 3, 15)
-# Here we make all dimension data into proper dimensions:
+# Here we wrap all dimension data into proper dimensions:
 dimensions = (Lon(lons), Lat(lats), Time(t))
+# where `Lon, Lat, Time` are `Dimension`s exported by ClimateBase
 # combining the array data with dimensions makes a `ClimArray`:
-A = ClimArray(rand(36, 37, 241), dimensions)
+data = rand(36, 37, 241) # same size as `dimensions`
+A = ClimArray(data, dimensions)
 ```
 
-You can then select a specific timeslice at `Date(2011,5,15)` and a longitude interval between 0 and 30 degrees like so:
+You can then select a specific time slice at `Date(2011,5,15)` and a longitude interval between 0 and 30 degrees like so:
 ```@example main
 B = A[Lon(Between(0, 30)), Time(At(Date(2011,5,15)))]
 ```

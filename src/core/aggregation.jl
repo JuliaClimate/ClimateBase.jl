@@ -22,8 +22,9 @@ export dropagg, nomissing, collapse, drop
 
 """
     dropagg(f, A, dims)
-Apply aggregating function `f` (e.g. `sum`) on array `A` across dimension(s) `dims` and drop
-the corresponding dimension(s) from the result (Julia inherently keeps singleton dimensions).
+Apply statistics/aggregating function `f` (e.g. `sum` or `mean`) on array `A` across
+dimension(s) `dims` and drop the corresponding dimension(s) from the result
+(Julia inherently keeps singleton dimensions).
 
 If `A` is one dimensional, `dropagg` will return the single number of applying `f(A)`.
 """
