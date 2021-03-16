@@ -13,37 +13,37 @@ A = ClimArray(rand(36, 37, 241), dimensions)</code></pre><pre class="documenter-
  Time (type Ti): Dates.Date(&quot;2000-03-15&quot;):Dates.Month(1):Dates.Date(&quot;2020-03-15&quot;) (Sampled: Ordered Regular Points)
 and data: 36×37×241 Array{Float64,3}
 [:, :, 1]
- 0.53297    0.271622   0.715999   …  0.2876      0.769114  0.200788
- 0.984812   0.309453   0.0339823     0.686171    0.561572  0.770547
- 0.216543   0.797582   0.177097      0.218099    0.476076  0.551031
- 0.377165   0.611266   0.0746393     0.333608    0.468723  0.516473
- 0.74938    0.721      0.287485      0.611708    0.538065  0.706176
- 0.0749861  0.605332   0.594408   …  0.468787    0.440681  0.0994374
- 0.72859    0.947357   0.86306       0.246874    0.161311  0.376391
- 0.395337   0.0544603  0.825291      0.00980895  0.386691  0.890514
- 0.655875   0.0527773  0.57023       0.689322    0.107734  0.702701
- 0.603799   0.190998   0.20863       0.388244    0.344259  0.874842
- ⋮                                ⋱              ⋮         
- 0.324521   0.336268   0.615601      0.501843    0.677899  0.816082
- 0.763738   0.323551   0.462906      0.908061    0.602571  0.158045
- 0.528281   0.502326   0.708734      0.456209    0.377904  0.768585
- 0.82029    0.628919   0.0780141  …  0.175136    0.769162  0.949087
- 0.935278   0.679294   0.227317      0.625342    0.435929  0.811832
- 0.721938   0.533392   0.957708      0.84819     0.219032  0.91973
- 0.611606   0.963186   0.852862      0.349234    0.188147  0.59977
- 0.787595   0.480505   0.269787      0.872591    0.835743  0.447086
- 0.0758245  0.95669    0.409119   …  0.39307     0.318686  0.528783
+ 0.6058     0.758015  0.576747  0.244727   …  0.170402   0.964171   0.441793
+ 0.956626   0.543931  0.468649  0.0962918     0.482696   0.465872   0.621167
+ 0.596584   0.95693   0.484237  0.059086      0.26692    0.881387   0.123239
+ 0.394546   0.186572  0.738439  0.707837      0.164562   0.285426   0.789708
+ 0.549681   0.380146  0.802707  0.40091       0.822911   0.261113   0.486243
+ 0.796732   0.98363   0.949438  0.212109   …  0.60754    0.0489917  0.836569
+ 0.786127   0.89517   0.108658  0.639854      0.9458     0.557302   0.881613
+ 0.613278   0.045004  0.374337  0.335338      0.693657   0.891809   0.674431
+ 0.633819   0.078378  0.34198   0.688359      0.682787   0.690982   0.0473763
+ 0.0885009  0.929342  0.562853  0.888373      0.144552   0.437998   0.725617
+ ⋮                                         ⋱             ⋮          
+ 0.261923   0.425619  0.428177  0.861325      0.217887   0.544426   0.0219507
+ 0.738053   0.823311  0.661191  0.587244      0.75934    0.494132   0.247745
+ 0.219257   0.521769  0.371395  0.938387      0.178313   0.146761   0.356859
+ 0.64242    0.96482   0.979768  0.403452   …  0.256781   0.968232   0.828237
+ 0.397588   0.211393  0.838722  0.897338      0.578463   0.294649   0.639535
+ 0.543073   0.158948  0.50784   0.747574      0.882705   0.416973   0.0023314
+ 0.419245   0.373497  0.550673  0.857222      0.0565862  0.0321915  0.380575
+ 0.646032   0.295362  0.890655  0.591519      0.108227   0.39713    0.354463
+ 0.90162    0.342549  0.174597  0.377815   …  0.121623   0.0741025  0.130034
 [and 240 more slices...]</pre><p>You can then select a specific timeslice at <code>Date(2011,5,15)</code> and a longitude interval between 0 and 30 degrees like so:</p><pre><code class="language-julia">B = A[Lon(Between(0, 30)), Time(At(Date(2011,5,15)))]</code></pre><pre class="documenter-example-output">ClimArray with dimensions:
  Longitude (type Lon): 0:10:30 (Sampled: Ordered Regular Points)
  Latitude (type Lat): -90:5:90 (Sampled: Ordered Regular Points)
 and data: 4×37 Array{Float64,2}
- 0.278546  0.35625   0.122788   0.574757  …  0.267285   0.17443   0.493339
- 0.14834   0.331999  0.0965917  0.70117      0.0922979  0.641199  0.445678
- 0.354569  0.389804  0.409683   0.625468     0.056505   0.526709  0.837419
- 0.222032  0.508033  0.368487   0.399581     0.429477   0.596456  0.515571</pre><p>With <code>ClimArray</code> you can use convenience, physically-inspired functions that do automatic (and correct) weighting. For example the latitudinal mean of <code>B</code> is simply</p><pre><code class="language-julia">C = latmean(B)</code></pre><pre class="documenter-example-output">ClimArray with dimensions:
+ 0.304915  0.441872  0.945547  0.755098    …  0.0716385  0.265938   0.730382
+ 0.9528    0.985831  0.307608  0.765736       0.0662535  0.0298806  0.616656
+ 0.509784  0.648777  0.849937  0.553219       0.191603   0.124365   0.827247
+ 0.72151   0.676449  0.493134  0.00470148     0.750686   0.190498   0.172303</pre><p>With <code>ClimArray</code> you can use convenience, physically-inspired functions that do automatic (and correct) weighting. For example the latitudinal mean of <code>B</code> is simply</p><pre><code class="language-julia">C = latmean(B)</code></pre><pre class="documenter-example-output">ClimArray with dimensions:
  Longitude (type Lon): 0:10:30 (Sampled: Ordered Regular Points)
 and data: 4-element Array{Float64,1}
-[0.522652, 0.46971, 0.564048, 0.499456]</pre><p>where in this averaging process each data point is weighted by the cosine of its latitude.</p><h3 id="Making-a-ClimArray"><a class="docs-heading-anchor" href="#Making-a-ClimArray">Making a <code>ClimArray</code></a><a id="Making-a-ClimArray-1"></a><a class="docs-heading-anchor-permalink" href="#Making-a-ClimArray" title="Permalink"></a></h3><p>You can create a <code>ClimArray</code> yourself, or you can load data from an <code>.nc</code> file with CF-conventions, see <a href="#NetCDF-IO">NetCDF IO</a>.</p><article class="docstring"><header><a class="docstring-binding" id="ClimateBase.ClimArray-Tuple{AbstractArray,Tuple}" href="#ClimateBase.ClimArray-Tuple{AbstractArray,Tuple}"><code>ClimateBase.ClimArray</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">ClimArray(A::Array, dims::Tuple; name = &quot;&quot;, attrib = nothing)</code></pre><p><code>ClimArray</code> is a structure that contains numerical array data bundled with dimensional information, a name and an <code>attrib</code> field (typically a dictionary) that holds general attributes. You can think of <code>ClimArray</code> as a in-memory representation of a CFVariable.</p><p>At the moment, a <code>ClimArray</code> is using <code>DimensionalArray</code> from DimensionalData.jl, and all basic handling of <code>ClimArray</code> is offered by <code>DimensionalData</code> (see below).</p><p><code>ClimArray</code> is created by passing in standard array data <code>A</code> and a tuple of dimensions <code>dims</code>.</p><p><strong>Example</strong></p><pre><code class="language-julia">using ClimateBase, Dates
+[0.514328, 0.512659, 0.485715, 0.440871]</pre><p>where in this averaging process each data point is weighted by the cosine of its latitude.</p><h3 id="Making-a-ClimArray"><a class="docs-heading-anchor" href="#Making-a-ClimArray">Making a <code>ClimArray</code></a><a id="Making-a-ClimArray-1"></a><a class="docs-heading-anchor-permalink" href="#Making-a-ClimArray" title="Permalink"></a></h3><p>You can create a <code>ClimArray</code> yourself, or you can load data from an <code>.nc</code> file with CF-conventions, see <a href="#NetCDF-IO">NetCDF IO</a>.</p><article class="docstring"><header><a class="docstring-binding" id="ClimateBase.ClimArray-Tuple{AbstractArray,Tuple}" href="#ClimateBase.ClimArray-Tuple{AbstractArray,Tuple}"><code>ClimateBase.ClimArray</code></a> — <span class="docstring-category">Method</span></header><section><div><pre><code class="language-julia">ClimArray(A::Array, dims::Tuple; name = &quot;&quot;, attrib = nothing)</code></pre><p><code>ClimArray</code> is a structure that contains numerical array data bundled with dimensional information, a name and an <code>attrib</code> field (typically a dictionary) that holds general attributes. You can think of <code>ClimArray</code> as a in-memory representation of a CFVariable.</p><p>At the moment, a <code>ClimArray</code> is using <code>DimensionalArray</code> from DimensionalData.jl, and all basic handling of <code>ClimArray</code> is offered by <code>DimensionalData</code> (see below).</p><p><code>ClimArray</code> is created by passing in standard array data <code>A</code> and a tuple of dimensions <code>dims</code>.</p><p><strong>Example</strong></p><pre><code class="language-julia">using ClimateBase, Dates
 Time = ClimateBase.Ti # more intuitive name for time dimension
 lats = -90:5:90
 lons = 0:10:359
