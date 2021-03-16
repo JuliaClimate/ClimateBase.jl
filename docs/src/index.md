@@ -13,8 +13,15 @@ It also serves as the base building block for `ClimateTools`, which offers more 
 The focus of `ClimateBase` is **not** loading data, nor operating on data *on disk*. It is designed for in-memory climate data exploration and manipulation.
 That being said, basic data loading functionality is offered in terms of `NCDatasets`, see below.
 
+### Installation
+This package is registered and you can install it with
+```julia
+using Pkg; Pkg.add("ClimateBase")
+```
+Make sure your installed version coincides with the one in this docs (see bottom left corner of this page).
+
 ## `ClimArray`: the core data structure
-This project treats "climate data" as a [`ClimArray`](@ref), which uses the DimensionalData.jl interface.
+This project treats "climate data" as an instance of [`ClimArray`](@ref), which (at the moment) uses the DimensionalData.jl interface.
 `ClimArray` is *almost* equivalent to `DimensionalArray`.
 A (brief) introduction to DimensionalData.jl is copied here from its docs, because basic knowledge of how to handle a `ClimArray` is assumed in our docs.
 
