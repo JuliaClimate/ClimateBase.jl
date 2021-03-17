@@ -18,10 +18,10 @@ for i in idxs
     slice_at_give_space_point = A[i...]
 end
 ```
-Works for standard grid as well as equal area (`...` necessary because `i` is a `Tuple`).
+Works for all types of space (`...` is necessary because `i` is a `Tuple`).
 """
 spatialidxs(A::AbDimArray) = spatialidxs(spacestructure(A), A)
-function spatialidxs(::Grid, A)
+function spatialidxs(::LonLatGrid, A)
     lons = (Lon(i) for i in 1:size(A, Lon))
     lats = (Lat(i) for i in 1:size(A, Lat))
     return Iterators.product(lons, lats)
@@ -74,20 +74,14 @@ export latmean, spacemean, zonalmean, spaceagg, uniquelats
 """
     zonalmean(A::ClimArray)
 Return the zonal mean of `A`.
-Optionally do the mean for the data in range `r` of the longitude
-(`r` is fed into the dimension so it can be A range or an arbitrary selector).
-
-Works for both grid and equal area space.
 """
-zonalmean(A::AbDimArray, args...) = zonalmean(spacestructure(A), A, args...)
-zonalmean(::Grid, A::AbDimArray) = dropagg(mean, A, Lon)
+zonalmean(A::AbDimArray) = zonalmean(spacestructure(A), A)
+zonalmean(::LonLatGrid, A::AbDimArray) = dropagg(mean, A, Lon)
 
 """
-    latmean(A::ClimArray [, r])
+    latmean(A::ClimArray)
 Return the latitude-mean `A` (mean across dimension `Lat`).
-Optionally do the mean for the data in range `r` of that dimension.
-
-This function properly weights the mean by the cosine of the latitude.
+This function properly weights by the cosine of the latitude.
 """
 function latmean(A::AbDimArray)
     lw = _latweights(A)
@@ -97,8 +91,6 @@ function latmean(A::AbDimArray)
         return sum(A .* lw)
     end
 end
-latmean(A::AbstractDimArray, r) = latmean(A[Lat(r)])
-
 
 # Warning!!! `_latweights` divides by the weight sum, because it is intended to be
 # used only with the `sum` function (for A)
@@ -112,27 +104,26 @@ end
 using StatsBase
 
 """
-    spacemean(A::ClimArray [, w]) = spaceagg(mean, A, w)
+    spacemean(A::ClimArray [, W]) = spaceagg(mean, A, W)
 Average given `A` over its spatial coordinates.
-Optionally provide statistical weights in `w`.
+Optionally provide statistical weights in `W`.
 """
 spacemean(A, exw=nothing) = spaceagg(mean, A, exw)
 
 """
-    spaceagg(f, A::ClimArray, w = nothing)
-Aggregate `A` using function `f` (e.g. `mean`) over all available space (i.e.
+    spaceagg(f, A::ClimArray, W = nothing)
+Aggregate `A` using function `f` (e.g. `mean, std`) over all available space (i.e.
 longitude and latitude) of `A`, weighting every part of `A` by its spatial area.
-The function works for grid as well as equal area space.
 
-`w` can be extra weights, to weight each spatial point with. `w` can either be
-just an `AbDimArray` with same space as `A`, or of exactly same shape as `A`.
+`W` can be extra weights, to weight each spatial point with. `W` can either be
+just a `ClimArray` with same space as `A`, or of exactly same shape as `A`.
 """
 spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
-function spaceagg(::Grid, f, A::AbDimArray, w=nothing)
+function spaceagg(::LonLatGrid, f, A::AbDimArray, w=nothing)
     wtype = spaceweightassert(A, w)
     cosweights = repeat(cosd.(dims(A, Lat).val)', size(A, Lon))
     # TODO: Extends so that this assertion is not necessary:
-    @assert dimindex(A, Lon) < dimindex(A, Lat) "longitude must precede latitude"
+    @assert dimindex(A, Lon) < dimindex(A, Lat) "longitude dimension must precede latitude"
     other = otherdims(A, (Lon, Lat))
     # pre-calculate weights if possible
     if wtype == :no
@@ -167,8 +158,8 @@ function spaceweightassert(A, w)
             @assert val.(wdims) == val.(dims(A, (Lon, Lat)))
             wtype = :d2
         else
-            @assert val.(wdims) == val.(dims(A))
             @assert basetypeof.(wdims) == basetypeof.(dims(A))
+            @assert size(w) == size(A)
             wtype = :dany
         end
     else
@@ -189,7 +180,7 @@ appropriately translating the latitudes of `south` so that both arrays have the 
 latitudinal dimension (and thus can be compared and do opperations between them).
 """
 hemispheric_functions(A) = hemispheric_functions(spacestructure(A), A)
-function hemispheric_functions(::Grid, A)
+function hemispheric_functions(::LonLatGrid, A)
     nh = A[Lat(Between(0,  90))]
     sh = A[Lat(Between(-90, 0))]
     # TODO: this can be a function "reverse dim"
@@ -208,7 +199,7 @@ Notice that this function explicitly does both zonal as well as meridional avera
 Use [`hemispheric_functions`](@ref) to just split `A` into two hemispheres.
 """
 hemispheric_means(A) = hemispheric_means(spacestructure(A), A)
-function hemispheric_means(::Grid, A::AbDimArray)
+function hemispheric_means(::LonLatGrid, A::AbDimArray)
     @assert hasdim(A, Lat)
     if hasdim(A, Lon)
         B = zonalmean(A)
@@ -221,4 +212,4 @@ function hemispheric_means(::Grid, A::AbDimArray)
 end
 
 latitudes(A) = latitudes(spacestructure(A), A)
-latitudes(::Grid, A) = dims(A, Lat).val
+latitudes(::LonLatGrid, A) = dims(A, Lat).val

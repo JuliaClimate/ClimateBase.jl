@@ -41,7 +41,7 @@ ncdetails(ds::NCDataset, io = stdout) = show(io, MIME"text/plain"(), ds)
 
 """
     globalattr(file::String) → Dict
-Return the global attributions of the .nc file.
+Return the global attributes of the .nc file.
 """
 function globalattr(file::String)
     NCDataset(file) do ds
@@ -85,8 +85,7 @@ end
 # can solve "large memory" or "large data" problems. This funcionality
 # must be sure to load the correct ranges of dimensions as well though!
 
-function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var; eqarea = false)
-    eqarea && return ClimArray_eqarea(ds, var, name)
+function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var)
     svar = string(var)
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)
@@ -231,7 +230,7 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
         l = length(v)
         defDim(ds, d, l) # add dimension entry
         attrib = dimensions[i].metadata
-        if isnothing(attrib) && haskey(DEFAULT_ATTRIBS, d)
+        if (isnothing(attrib) || attrib == DimensionalData.NoMetadata()) && haskey(DEFAULT_ATTRIBS, d)
             @warn "Dimension $d has no attributes, adding default attributes (mandatory)."
             attrib = DEFAULT_ATTRIBS[d]
         end

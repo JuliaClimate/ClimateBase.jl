@@ -27,13 +27,10 @@ a dimensional array (with `Time` dimension).
 
 Possible return values are:
 - `:hourly`, where the temporal difference between entries is exactly 1 hour.
-- `:daily`, where the temporal difference between dates are exactly 1 day.
+- `:daily`, where the temporal difference between dates is exactly 1 day.
 - `:monthly`, where all dates have the same day, but different month.
 - `:yearly`, where all dates have the same month+day, but different year.
 - `:other`, which means that `x` doesn't fall to any of the above categories.
-
-For vector input, only the first 3 entries of the temporal information are used
-to deduce the sampling (while for ranges, checking the step is enough).
 """
 temporal_sampling(A::AbstractDimArray) = temporal_sampling(dims(A, Time).val)
 temporal_sampling(t::Dimension) = temporal_sampling(t.val)
@@ -51,16 +48,16 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
         dh = getproperty.(diff(t), :value)
         return all(isequal(3600000), dh) ? :hourly : :other
     elseif !sameday && samemonth
-        :daily
+        return :daily
     elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
         # this clause checks daily data where the days wrap over the end of the month!
-        :daily
+        return :daily
     elseif sameday && !samemonth
-        :monthly
+        return :monthly
     elseif sameday && samemonth && !sameyear
-        :yearly
+        return :yearly
     else
-        :other
+        return :other
     end
 end
 temporal_sampling(t::AbstractVector) = :other
@@ -300,7 +297,7 @@ end
 #########################################################################
 """
     monthlyagg(A::ClimArray, f = mean; mday = 15) -> B
-Create a new array where the temporal daily information has been aggregated to months
+Create a new array where the temporal information has been aggregated into months
 using the function `f`.
 The dates of the new array always have day number of `mday`.
 """
@@ -315,7 +312,7 @@ end
 
 """
     yearlyagg(A::ClimArray, f = mean) -> B
-Create a new array where the temporal information has been aggregated to years
+Create a new array where the temporal information has been aggregated into years
 using the function `f`.
 By convention, the dates of the new array always have month and day number of `1`.
 """
@@ -367,7 +364,7 @@ temporalrange(A::AbstractDimArray, f = Dates.month) = temporalrange(dims(A, Time
 
 """
     seasonalyagg(A::ClimArray, f = mean) -> B
-Create a new array where the temporal information has been aggregated to seasons
+Create a new array where the temporal information has been aggregated into seasons
 using the function `f`.
 By convention, seasons are represented as Dates spaced 3-months apart, where only the
 months December, March, June and September are used to specify the date, with day 1.
