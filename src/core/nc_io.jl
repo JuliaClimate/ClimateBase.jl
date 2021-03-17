@@ -41,7 +41,7 @@ ncdetails(ds::NCDataset, io = stdout) = show(io, MIME"text/plain"(), ds)
 
 """
     globalattr(file::String) → Dict
-Return the global attributions of the .nc file.
+Return the global attributes of the .nc file.
 """
 function globalattr(file::String)
     NCDataset(file) do ds

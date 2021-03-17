@@ -166,6 +166,7 @@ time_in_days
 ## Spatial
 
 ### Spatial aggregation
+All functions in this section work for both types of space, see [Types of spatial coordinates](@ref).
 ```@docs
 zonalmean
 latmean
@@ -177,8 +178,9 @@ lonlatfirst
 ```
 
 ### Types of spatial coordinates
-Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array. Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
+Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array.
 This type of space is called `LonLatGrid`. It is assumed throughout that longitude and latitude are measured in **degrees**.
+Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
 
 Another type of spatial coordinates is supported, and that is of **equal-area**.
 Currently only a single type, `GaussianEqualArea`, exists for this purpose, which represents coordinates in a Gaussian grid as shown here: https://en.wikipedia.org/wiki/Gaussian_grid.
