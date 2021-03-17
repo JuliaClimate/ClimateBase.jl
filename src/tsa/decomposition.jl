@@ -27,3 +27,19 @@ function seasonal_decomposition(A::AbDimArray, fs::Vector)
     end
     return seasonal, residual
 end
+
+function seasonal_decomposition(A::AbDimArray{T, 1}, fs::Vector) where {T}
+    @assert hasdim(A, Time)
+    E = _numbertype(eltype(A))
+    method = Sinusoidal(E.(fs ./ DAYS_IN_ORBIT))
+    seasonal = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A))
+    residual = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A))
+
+    t = dims(A, Time).val
+    truetime = time_in_days(t, E)
+    y = Array(A)
+    sea, res = SignalDecomposition.decompose(truetime, y, method)
+    seasonal .= sea
+    residual .= res
+    return seasonal, residual
+end
