@@ -249,6 +249,15 @@ Currently ClimateBase.jl does not have integrated plotting support. In the near 
 For now, you can use PyCall.jl, matplotlib, and the Python library cartopy.
 In the file [`ClimateBase/plotting/python.jl`](https://github.com/JuliaClimate/ClimateBase.jl/tree/master/plotting/python.jl) we provide two functions that plot maps of `ClimArray` in arbitrary projections: `earthsurface` for `LonLatGrid` and `earthscatter` for `GaussianEqualArea`. You can incorporate these in your source code as a temporary solution.
 
+## Ensemble types
+A dedicated type representing ensembles has no reason to exist in ClimateBase.jl.
+As the package takes advantage of standard Julia datastructures and syntax, those can be used to represent "ensembles". For example to do an "ensemble global mean" you can just do:
+```julia
+E = [ClimArray("ensemble_$i.nc", "x") for i in 1:10]
+global_mean = mean(spacemean(X) for X in E)
+```
+where you see that the "ensemble" was represented just as a `Vector{ClimArray}`.
+
 ## Crash-course to DimensionalData.jl
 ```@docs
 DimensionalData
