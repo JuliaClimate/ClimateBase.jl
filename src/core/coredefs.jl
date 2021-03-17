@@ -140,8 +140,12 @@ function Base.show(io::IO, A::ClimArray)
     printstyled(io, " data: "; color=:green)
     dataA = data(A)
     print(io, summary(dataA), "\n")
-    DimensionalData.custom_show(io, data(A))
+    x = 2length(dims(A)) + attriblength(A.attrib) + 5
+    custom_show(io, data(A), x)
 end
+
+attriblength(d::AbstractDict) = length(d)
+attriblength(d) = 0
 
 # Define summary
 function Base.summary(io::IO, A::ClimArray)
@@ -162,4 +166,25 @@ function Base.summary(io::IO, A::ClimArray)
         show(io, MIME"text/plain"(), A.attrib)
         print(io, '\n')
     end
+end
+
+# Thanks to Michael Abbott for the following function
+function custom_show(io::IO, A::AbstractArray{T,0}, x) where T
+    Base.show(IOContext(io, :compact => true, :limit => true), A)
+end
+function custom_show(io::IO, A::AbstractArray{T,1}, x) where T
+    Base.show(IOContext(io, :compact => true, :limit => true, :displaysize => displaysize(io) .- (x, 0)), A)
+end
+function custom_show(io::IO, A::AbstractArray{T,2}, x) where T
+    Base.print_matrix(IOContext(io, :compact => true, :limit => true, :displaysize => displaysize(io) .- (x, 0)), A)
+end
+function custom_show(io::IO, A::AbstractArray{T,N}, x) where {T,N}
+    o = ones(Int, N-2)
+    frame = A[:, :, o...]
+    onestring = join(o, ", ")
+    println(io, "[:, :, $(onestring)]")
+    Base.print_matrix(
+        IOContext(io, :compact => true, :limit=>true, :displaysize => displaysize(io) .- (x, 0)),
+        frame)
+    print(io, "\n[and ", prod(size(A,d) for d=3:N) - 1," more slices...]")
 end
