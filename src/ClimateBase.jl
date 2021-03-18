@@ -1,7 +1,7 @@
 module ClimateBase
 
-# TODO: Be sure all exported names have docstrings
 include("core/coredefs.jl")
+include("core/prettyprint.jl")
 include("core/nc_io.jl")
 include("core/aggregation.jl")
 
