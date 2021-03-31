@@ -32,21 +32,6 @@ function dropagg(f, A, dims)
     length(size(A)) == 1 && return f(A)
     return dropdims(f(A; dims = dims); dims = dims)
 end
-
-"""
-    collapse(f, A, dim)
-Reduce `A` towards dimension `dim` using the collapsing function `f` (e.g. `mean`).
-This means that `f` is applied across all other dimensions of `A`, each of which are
-subsequently dropped, leaving only the collapsed result of `A` vs. the remaining dimension.
-"""
-function collapse(f, A, dim)
-    di = dimindex(A, dim)
-    dimsA = dims(A)
-    touse = setdiff(eachindex(dimsA), di)
-    return dropagg(f, A; dims = ntuple(i -> dimsA[touse[i]], length(touse)))
-end
-
-dimindex(A, i::Int) = i
 # this method is necessary because of "reshaping" happening
 # in DimensionalData.jl...
 function dropagg(f, A::AbDimArray, dims)
@@ -55,7 +40,13 @@ function dropagg(f, A::AbDimArray, dims)
     DimensionalData.rebuild(r, Array(r.data))
 end
 
-dimindex(A::AbDimArray, Dim) = DimensionalData.dimnum(A, Dim)
+"""
+    collapse(f, A, dim)
+Reduce `A` towards dimension `dim` using the collapsing function `f` (e.g. `mean`).
+This means that `f` is applied across all other dimensions of `A`, each of which are
+subsequently dropped, leaving only the collapsed result of `A` vs. the remaining dimension.
+"""
+collapse(f, A, dim) = dropagg(f, A, otherdims(A, dim))
 
 #########################################################################
 # Other dimensions
