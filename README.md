@@ -7,3 +7,5 @@
 `ClimateBase` is structured to deal with these intricacies, and in addition offer several functionalities commonly used, and sought after, by climate scientists.
 
 In the future it will serve as the base building block for `ClimateTools`, which offers more advanced functionalities, such as bias correction, interpolation and shapefiles  spatial subsetting.
+
+ClimateBase.jl support Julia 1.5+.
