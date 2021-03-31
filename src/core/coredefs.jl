@@ -10,6 +10,9 @@ Time = DimensionalData.Ti
 
 AbDimArray = DimensionalData.AbstractDimArray
 
+dimindex(A, i::Int) = i
+dimindex(A, dim) = DimensionalData.dimnum(A, dim)
+
 export At, Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, dimnum, dims
 export Time, Lon, Lat, dims, Coord, Hei, Pre, Ti
@@ -31,7 +34,7 @@ A dictionary of common names of dimensions (as strings) to actual dimension type
 const COMMONNAMES = Dict(
     "lat" => Lat,
     "latitude" => Lat,
-    "y" => Lat,    
+    "y" => Lat,
     "yc" => Lat,
     "lon" => Lon,
     "long" => Lon,
