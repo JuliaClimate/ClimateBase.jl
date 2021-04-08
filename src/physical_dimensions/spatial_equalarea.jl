@@ -144,7 +144,7 @@ function hemispheric_functions(::GaussianEqualArea, A)
 end
 
 function hemispheric_means(::GaussianEqualArea, A::AbDimArray)
-    shi, nhi = hemisphere_indices(A)
+    nhi, shi = hemisphere_indices(A)
     nh = dropagg(mean, A[Coord(nhi)], Coord)
     sh = dropagg(mean, A[Coord(shi)], Coord)
     return nh, sh
