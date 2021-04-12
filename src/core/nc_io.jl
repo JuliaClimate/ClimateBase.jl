@@ -169,11 +169,6 @@ end
 export Dim # for generic dimensions this must be exported
 
 #########################################################################
-# Reading: UnstructuredGrid
-#########################################################################
-
-
-#########################################################################
 # Making vectors → ranges
 #########################################################################
 function vector2range(x::Vector{<:Real})
@@ -195,6 +190,82 @@ function vector2range(t::Vector{<:Dates.AbstractTime})
 end
 
 vector2range(r::AbstractRange) = r
+
+
+#########################################################################
+# Reading: UnstructuredGrid
+#########################################################################
+export SVector
+
+function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name = var)
+    svar = string(var)
+    cfvar = ds[svar]
+    attrib = Dict(cfvar.attrib)
+
+    # Here we generate the longitudes and latitudes based on whether we have
+    # reduced points or not, and obtain the name of the coord dimension in the `ds`
+    if haskey(ds, "ncells") # this is the equal area grid, so we make a Coord dimension
+        if haskey(ds, "lon")
+            # TODO: This code has not yet been generalized to arbitrary dimensions
+            lons = ds["lon"] |> Array .|> wrap_lon
+            lats = ds["lat"] |> Array
+        elseif haskey(ds, "clon")
+            lons = ds["clon"] |> Array .|> wrap_lon
+            lats = ds["clat"] |> Array
+        else
+            error("""
+            We didn't find key `"lon"` or `"clon"` that represents the longitude of each
+            polygon in an unstructured equal area grid.
+            """)
+        end
+        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+        original_grid_dim = "ncells"
+    elseif haskey("reduced_points")
+        lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
+        original_grid_dim = "rgrid"
+    else
+        error("""
+        We didn't find key `"ncells"` or `"reduced_points"` for unstructered grid.
+        """)
+    end
+
+    # TODO: I've noticed that this converts integer dimension (like pressure)
+    # into Float64, but I'm not sure why...
+    alldims = [NCDatasets.dimnames(cfvar)...]
+
+    # Set up the remaining dimensions of the dataset
+    @assert "rgrid" ∈ alldims
+    i = findfirst(x -> x == original_grid_dim, alldims)
+    remainingdims = deleteat!(copy(alldims), i)
+    actualdims = Any[create_dims(ds, remainingdims)...]
+
+    # Make coordinate dimension
+    si = sortperm(lonlat, by = reverse)
+    coords = Coord(lonlat)
+    insert!(actualdims, i, coords)
+
+    # Create array, sort by latitude and remove missings
+    A = Array(cfvar)
+    X = ClimArray(A, Tuple(actualdims))
+    X = X[Coord(si)]
+    if !any(ismissing, X)
+        X = nomissing(X)
+    end
+    return ClimArray(X; name = Symbol(name), attrib)
+end
+
+function reduced_grid_to_points(lat, reduced_points)
+    lonlat = SVector{2, Float32}[]
+    for (i, θ) in enumerate(lat)
+        n = reduced_points[i]
+        dλ = Float32(360/n)
+        for j in 0:n-1
+            push!(lonlat, SVector(0 + dλ*j, θ))
+        end
+    end
+    return lonlat
+end
+
 
 #########################################################################
 # Saving to .nc files
