@@ -15,7 +15,7 @@ dim_to_commonname(::Pre) = "level"
 dim_to_commonname(D::Dim) = string(DimensionalData.name(D))
 
 #########################################################################
-# NCDatasets → DimensionalArray convertions and loading
+# Utilities
 #########################################################################
 """
     nckeys(file::String)
@@ -48,6 +48,10 @@ function globalattr(file::String)
         return Dict(ds.attrib)
     end
 end
+
+#########################################################################
+# Utilities
+#########################################################################
 
 """
     ClimArray(file::Union{String,NCDataset}, var::String, name = var) -> A

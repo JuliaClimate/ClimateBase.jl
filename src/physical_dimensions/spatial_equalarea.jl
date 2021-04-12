@@ -66,11 +66,11 @@ end
 #########################################################################
 # Spatial functions
 #########################################################################
-function spatialidxs(::GaussianEqualArea, A)
+function spatialidxs(::UnstructuredGrid, A)
     return ((Coord(i),) for i in 1:size(A, Coord))
 end
 
-function zonalmean(::GaussianEqualArea, A::AbDimArray)
+function zonalmean(::UnstructuredGrid, A::AbDimArray)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
     r = zeros(eltype(A), (length(lats), size.(Ref(A), other)...))
@@ -82,7 +82,7 @@ function zonalmean(::GaussianEqualArea, A::AbDimArray)
     end
     return R
 end
-function zonalmean(::GaussianEqualArea, A::AbDimArray{T, 1}) where {T}
+function zonalmean(::UnstructuredGrid, A::AbDimArray{T, 1}) where {T}
     idxs, lats = uniquelats(A)
     res = zeros(T, length(lats))
     for (i, r) in enumerate(idxs)
@@ -118,15 +118,15 @@ function uniquelats(c)
     return idxs, lats
 end
 
-spaceagg(::GaussianEqualArea, f, A, ::Nothing) = dropagg(f, A, Coord)
+spaceagg(::UnstructuredGrid, f, A, ::Nothing) = dropagg(f, A, Coord)
 # I think the best scenario is to modify `dropagg` to take in weights.
-function spaceagg(::GaussianEqualArea, f, A, exw)
+function spaceagg(::UnstructuredGrid, f, A, exw)
     error("TODO")
     w = pweights(Array(exw))
     dropagg(f, A, Coord)
 end
 
-function hemispheric_functions(::GaussianEqualArea, A)
+function hemispheric_functions(::UnstructuredGrid, A)
     c = dims(A, Coord).val
     @assert issorted(c; by = x -> x[2])
     shi, nhi = hemisphere_indices(c)
@@ -143,7 +143,7 @@ function hemispheric_functions(::GaussianEqualArea, A)
     return nh, sh
 end
 
-function hemispheric_means(::GaussianEqualArea, A::AbDimArray)
+function hemispheric_means(::UnstructuredGrid, A::AbDimArray)
     nhi, shi = hemisphere_indices(A)
     nh = dropagg(mean, A[Coord(nhi)], Coord)
     sh = dropagg(mean, A[Coord(shi)], Coord)
@@ -158,7 +158,7 @@ function hemisphere_indices(c)
     return nhi, shi
 end
 
-latitudes(::GaussianEqualArea, A) = unique!([x[2] for x in dims(A, Coord)])
+latitudes(::UnstructuredGrid, A) = unique!([x[2] for x in dims(A, Coord)])
 
 #########################################################################
 # Extention of convenience indexing of `Coord`

@@ -183,10 +183,10 @@ This type of space is called `LonLatGrid`. It is assumed throughout that longitu
 Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
 
 Another type of spatial coordinates is supported, and that is of **equal-area**.
-Currently only a single type, `GaussianEqualArea`, exists for this purpose, which represents coordinates in a Gaussian grid as shown here: https://en.wikipedia.org/wiki/Gaussian_grid.
-In `GaussianEqualArea` the spatial information is instead given by single dimension whose elements are coordinate locations, i.e. 2-element `SVector(longitude, latitude)`.
+Currently only a single type, `UnstructuredGrid`, exists for this purpose, which represents coordinates in a Gaussian grid as shown here: https://en.wikipedia.org/wiki/Gaussian_grid.
+In `UnstructuredGrid` the spatial information is instead given by single dimension whose elements are coordinate locations, i.e. 2-element `SVector(longitude, latitude)`.
 The dimension name is `Coord`.
-Each point in this dimension corresponds to a polygon (for `GaussianEqualArea` a trapezoid) that covers equal amount of spatial area as any other point.
+Each point in this dimension corresponds to a polygon (for `UnstructuredGrid` a trapezoid) that covers equal amount of spatial area as any other point.
 The actual limits of each polygon are not included in the dimension for performance reasons.
 
 ClimateBase.jl works with either type of spatial coordinate system.
@@ -247,7 +247,7 @@ total_toa_albedo
 Currently ClimateBase.jl does not have integrated plotting support. In the near future it will have this based on the upcoming GeoMakie.jl.
 
 For now, you can use PyCall.jl, matplotlib, and the Python library cartopy.
-In the file [`ClimateBase/plotting/python.jl`](https://github.com/JuliaClimate/ClimateBase.jl/tree/master/plotting/python.jl) we provide two functions that plot maps of `ClimArray` in arbitrary projections: `earthsurface` for `LonLatGrid` and `earthscatter` for `GaussianEqualArea`. You can incorporate these in your source code as a temporary solution.
+In the file [`ClimateBase/plotting/python.jl`](https://github.com/JuliaClimate/ClimateBase.jl/tree/master/plotting/python.jl) we provide two functions that plot maps of `ClimArray` in arbitrary projections: `earthsurface` for `LonLatGrid` and `earthscatter` for `UnstructuredGrid`. You can incorporate these in your source code as a temporary solution.
 
 ## Ensemble types
 A dedicated type representing ensembles has no reason to exist in ClimateBase.jl.
