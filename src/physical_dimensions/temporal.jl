@@ -118,7 +118,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
             return l
         end
     else
-        error("maxyearspan: not implemented yet for $tsamp data")
+        error("maxyearspan: not implemented yet for $(tsamp)-sampled data")
     end
 end
 

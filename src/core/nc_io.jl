@@ -228,6 +228,7 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name =
         We didn't find key `"ncells"` or `"reduced_points"` for unstructered grid.
         """)
     end
+    lonlat = convert_to_degrees(lonlat, ds)
 
     # TODO: I've noticed that this converts integer dimension (like pressure)
     # into Float64, but I'm not sure why...
@@ -266,6 +267,13 @@ function reduced_grid_to_points(lat, reduced_points)
     return lonlat
 end
 
+function convert_to_degrees(lonlat, ds)
+    x = haskey(ds, "clat") ? ds["clat"] : ds["lat"]
+    if haskey(x.attrib, "units") == "radian" || any(ll -> ll[1] > 2, lonlat)
+        lonlat = [SVector(lo*180/π, la*180/π) for (lo, la) in lonlat]
+    end
+    return lonlat
+end
 
 #########################################################################
 # Saving to .nc files
