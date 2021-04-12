@@ -204,7 +204,10 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name =
 
     # Here we generate the longitudes and latitudes based on whether we have
     # reduced points or not, and obtain the name of the coord dimension in the `ds`
-    if haskey(ds, "ncells") # this is the equal area grid, so we make a Coord dimension
+    if haskey(ds, "reduced_points")
+        lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
+        original_grid_dim = "rgrid"
+    elseif haskey(ds.dim, "ncells") # this is the equal area grid, so we make a Coord dimension
         if haskey(ds, "lon")
             # TODO: This code has not yet been generalized to arbitrary dimensions
             lons = ds["lon"] |> Array .|> wrap_lon
@@ -220,9 +223,6 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name =
         end
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
         original_grid_dim = "ncells"
-    elseif haskey("reduced_points")
-        lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
-        original_grid_dim = "rgrid"
     else
         error("""
         We didn't find key `"ncells"` or `"reduced_points"` for unstructered grid.
@@ -234,7 +234,7 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name =
     alldims = [NCDatasets.dimnames(cfvar)...]
 
     # Set up the remaining dimensions of the dataset
-    @assert "rgrid" ∈ alldims
+    @assert original_grid_dim ∈ alldims
     i = findfirst(x -> x == original_grid_dim, alldims)
     remainingdims = deleteat!(copy(alldims), i)
     actualdims = Any[create_dims(ds, remainingdims)...]
@@ -306,6 +306,17 @@ function ncwrite(file::String, X::ClimArray; globalattr = Dict())
     ncwrite(file, (X,); globalattr)
 end
 function ncwrite(file::String, Xs; globalattr = Dict())
+
+    # TODO: Fixing this is very easy. Simply make a `"ncells"` dimension, and then write
+    # the `"lon"` and `"lat"` cfvariables to the nc file by decomposing the coordinates
+    # into longitude and latitude.
+    if any(X -> hasdim(X, Coord), Xs)
+        error("""
+        Outputing `UnstructuredGrid` coordinates to .nc files is not yet supported,
+        but it is an easy fix, see source of `ncwrite`.
+        """)
+    end
+
     ds = NCDataset(file, "c"; attrib = globalattr)
     # NCDataset("file.nc", "c"; attrib = globalattr) do ds
         for (i, X) in enumerate(Xs)
