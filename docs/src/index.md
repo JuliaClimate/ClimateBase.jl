@@ -76,7 +76,7 @@ Usually this is done using NCDatasets.jl, but see below for a function that tran
 
 To load a `ClimArray` directly from an `.nc` file do:
 ```@docs
-ClimArray(::Union{String, Vector{String}})
+ncread
 ```
 
 Notice that (at the moment) we use a pre-defined mapping of common names to proper dimensions - please feel free to extend the following via a Pull Request:
@@ -95,7 +95,7 @@ globalattr
 ### Write
 You can also write a bunch of `ClimArray`s directly into an `.nc` file with
 ```@docs
-climarrays_to_nc
+ncwrite
 ```
 
 ### xarray
@@ -178,16 +178,12 @@ lonlatfirst
 ```
 
 ### Types of spatial coordinates
-Most of the time the spatial information of your data is in the form of a Longitude × Latitude grid. This is simply achieved via the existence of two dimensions (`Lon, Lat`) in your dimensional data array.
-This type of space is called `LonLatGrid`. It is assumed throughout that longitude and latitude are measured in **degrees**.
-Height, although representing physical space as well, is not considered part of the "spatial dimensions", and is treated as any other additional dimension.
-
-Another type of spatial coordinates is supported, and that is of **equal-area**.
-Currently only a single type, `UnstructuredGrid`, exists for this purpose, which represents coordinates in a Gaussian grid as shown here: https://en.wikipedia.org/wiki/Gaussian_grid.
-In `UnstructuredGrid` the spatial information is instead given by single dimension whose elements are coordinate locations, i.e. 2-element `SVector(longitude, latitude)`.
-The dimension name is `Coord`.
-Each point in this dimension corresponds to a polygon (for `UnstructuredGrid` a trapezoid) that covers equal amount of spatial area as any other point.
-The actual limits of each polygon are not included in the dimension for performance reasons.
+At the moment the following type of spatial coordinates are supported:
+```@docs
+LonLatGrid
+UnstructuredGrid
+```
+Notice that non-equal area unstructured grids are not supported yet.
 
 ClimateBase.jl works with either type of spatial coordinate system.
 Therefore, physically inspired averaging functions, like [`spacemean`](@ref) or [`zonalmean`](@ref), work for both types of spatial coordinates.

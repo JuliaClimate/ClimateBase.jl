@@ -69,8 +69,9 @@ struct LonLatGrid <: SpaceType end
 
 """
 Space coordinates are represented by a single dimension `Coord`,
-whose elements are `SVector(lon, lat)`.
+elements are coordinate locations, i.e. 2-element `SVector(longitude, latitude)`.
 Each coordinate represents an equal area polygon corresponding to the point in space.
+The actual limits of each polygon are not included in the dimension for performance reasons.
 
 To use functions such as [`zonalmean`](@ref) or [`hemispheric_means`](@ref) with this grid,
 you must first sort the `ClimArray` so that the latitudes
@@ -122,7 +123,9 @@ You can think of `ClimArray` as a in-memory representation of a CFVariable.
 At the moment, a `ClimArray` is using `DimensionalArray` from DimensionalData.jl, and
 all basic handling of `ClimArray` is offered by `DimensionalData` (see below).
 
-`ClimArray` is created by passing in standard array data `A` and a tuple of dimensions `dims`.
+`ClimArray` is created by passing in standard array data `A` and a
+tuple of dimensions `dims`. See [`ncread`](@ref) to automatically create a `ClimArray`
+from a .nc file.
 
 ## Example
 ```julia

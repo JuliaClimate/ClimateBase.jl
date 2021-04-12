@@ -54,7 +54,7 @@ end
 #########################################################################
 """
     ncread(file::Union{String,NCDataset}, var::String; name, grid) → A
-Load the variable `var` from the `file` and convert it into a `ClimArray`
+Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref).
 with proper dimension mapping and also containing the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
 
@@ -80,6 +80,8 @@ We do two performance improvements while loading the data:
 * `grid = nothing` optionally specify whether the underlying grid is `grid = LonLatGrid()`
   or `grid = UnstructuredGrid()`. If `nothing`, we try to deduce automatically based on
   the names of dimensions and other keys of teh `NCDataset`.
+
+See also [`ncwrite`](@ref).
 """
 function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
@@ -309,6 +311,8 @@ The metadata of the arrays in `Xs`, as well as their dimensions, are properly wr
 in the `.nc` file and any necessary type convertions happen automatically.
 
 **WARNING**: We assume that any dimensions shared between the `Xs` are identical.
+
+See also [`ncread`](@ref).
 """
 function ncwrite(file::String, X::ClimArray; globalattr = Dict())
     ncwrite(file, (X,); globalattr)
