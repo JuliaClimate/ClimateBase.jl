@@ -77,8 +77,9 @@ We do two performance improvements while loading the data:
 
 ## Keywords
 * `name = var` optionally rename loaded array.
-* `grid = nothing` optionally specify whether the underlying grid is [`LonLatGrid`](@ref)
-  or [`UnstructuredGrid`](@ref).
+* `grid = nothing` optionally specify whether the underlying grid is `grid = LonLatGrid()`
+  or `grid = UnstructuredGrid()`. If `nothing`, we try to deduce automatically based on
+  the names of dimensions and other keys of teh `NCDataset`.
 """
 function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
@@ -91,8 +92,32 @@ end
 # and only load this part, and correctly and instantly make it a ClimArray, which
 # can solve "large memory" or "large data" problems. This funcionality
 # must be sure to load the correct ranges of dimensions as well though!
+#
+# TODO: Allow reading multiple variables at once. This has the performance benefit
+# of not re-creating dimensions all the time.
 
-function ncread(ds::NCDatasets.AbstractDataset, var::String, name = var)
+function ncread(ds::NCDatasets.AbstractDataset, var::String; name = var, grid = nothing)
+    gridtype = isnothing(grid) ? autodetect_grid(ds, var) : grid
+    if gridtype == UnstructuredGrid()
+        return ncread_unstructured(ds, var, name)
+    else
+        return ncread_lonlat(ds, var, name)
+    end
+end
+
+function autodetect_grid(ds, var)
+    if haskey(ds, "reduced_points") || haskey(ds, "ncells") || haskey(ds, "clon")
+        return UnstructuredGrid()
+    else
+        return LonLatGrid()
+    end
+end
+
+#########################################################################
+# Reading: LonLatGrid and main reading functionality
+#########################################################################
+# Notice that this function properly loads even without any spatial coordinate
+function ncread_lonlat(ds::NCDatasets.AbstractDataset, var::String, name = var)
     svar = string(var)
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)
@@ -142,6 +167,11 @@ function to_proper_dimensions(dnames)
 end
 
 export Dim # for generic dimensions this must be exported
+
+#########################################################################
+# Reading: UnstructuredGrid
+#########################################################################
+
 
 #########################################################################
 # Making vectors → ranges
