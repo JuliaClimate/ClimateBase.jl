@@ -6,7 +6,7 @@ https://github.com/rafaqz/GeoData.jl
 using NCDatasets
 export NCDataset
 export nckeys, ncdetails, globalattr
-export climarrays_to_nc
+export ncread, ncwrite
 
 dim_to_commonname(::Lat) = "lat"
 dim_to_commonname(::Lon) = "lon"
@@ -50,13 +50,12 @@ function globalattr(file::String)
 end
 
 #########################################################################
-# Utilities
+# Reading
 #########################################################################
-
 """
-    ClimArray(file::Union{String,NCDataset}, var::String, name = var) -> A
-Load the variable `var` from the `file` and convert it
-into a `ClimArray` which also contains the variable attributes as a dictionary.
+    ncread(file::Union{String,NCDataset}, var::String; name, grid) → A
+Load the variable `var` from the `file` and convert it into a `ClimArray`
+with proper dimension mapping and also containing the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
 
 Notice that `file` can be an `NCDataset`, which allows you to lazily combine different
@@ -66,8 +65,8 @@ alldata = ["toa_fluxes_2020_\$(i).nc" for i in 1:12]
 file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
-(but you can also directly give the string to a single file `"file.nc"` in `ClimArray`
-if data are contained in a single file for single files).
+(but you can also directly give the string to a single file `"file.nc"`
+if data are contained in a single file).
 
 We do two performance improvements while loading the data:
 1. If there are no missing values in the data (according to CF standards), the
@@ -76,10 +75,14 @@ We do two performance improvements while loading the data:
 2. Dimensions that are ranges (i.e. sampled with constant step size) are automatically
    transformed to a standard Julia `Range` type (which makes sub-selecting faster).
 
+## Keywords
+* `name = var` optionally rename loaded array.
+* `grid = nothing` optionally specify whether the underlying grid is [`LonLatGrid`](@ref)
+  or [`UnstructuredGrid`](@ref).
 """
-function ClimArray(path::Union{String, Vector{String}}, args...; kwargs...)
+function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
-        data = ClimArray(ds, args...; kwargs...)
+        data = ncread(ds, args...; kwargs...)
         return data
     end
 end
@@ -89,7 +92,7 @@ end
 # can solve "large memory" or "large data" problems. This funcionality
 # must be sure to load the correct ranges of dimensions as well though!
 
-function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var)
+function ncread(ds::NCDatasets.AbstractDataset, var::String, name = var)
     svar = string(var)
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)
@@ -188,7 +191,7 @@ const DEFAULT_ATTRIBS = Dict(
 )
 
 """
-    climarrays_to_nc(file::String, Xs; globalattr = Dict())
+    ncwrite(file::String, Xs; globalattr = Dict())
 Write the given `ClimArray` instances (any iterable of `ClimArray`s or a single `ClimArray`)
 to a `.nc` file following CF standard conventions using NCDatasets.jl.
 Optionally specify global attributes for the `.nc` file.
@@ -198,10 +201,10 @@ in the `.nc` file and any necessary type convertions happen automatically.
 
 **WARNING**: We assume that any dimensions shared between the `Xs` are identical.
 """
-function climarrays_to_nc(file::String, X::ClimArray; globalattr = Dict())
-    climarrays_to_nc(file, (X,); globalattr)
+function ncwrite(file::String, X::ClimArray; globalattr = Dict())
+    ncwrite(file, (X,); globalattr)
 end
-function climarrays_to_nc(file::String, Xs; globalattr = Dict())
+function ncwrite(file::String, Xs; globalattr = Dict())
     ds = NCDataset(file, "c"; attrib = globalattr)
     # NCDataset("file.nc", "c"; attrib = globalattr) do ds
         for (i, X) in enumerate(Xs)
