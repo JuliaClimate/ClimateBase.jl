@@ -83,6 +83,9 @@ si = sortperm(coords, by = reverse)
 A = A[Coord(si)]
 ```
 **This is done automatically by [`ncread`](@ref).**
+
+!!! warn
+    `UnstructuredGrid` functionality is currently in an **experimental phase**!
 """
 struct UnstructuredGrid <: SpaceType end
 

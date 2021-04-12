@@ -192,31 +192,7 @@ In addition, the function `spatialidxs` returns an iterator over the spatial coo
 spatialidxs
 ```
 
-### Equal area creation
-
-!!! warn
-    Equal area functionality is currently in an **experimental phase**!
-    You can try using the function `ClimArray_eqarea` to load a `ClimArray` with Gaussian grid directly from a `.nc` file. This function assumes that this grid was created with CDO, using e.g. `cdo remapbil,gea250 IN.nc OUT.nc`.
-
-
-To manually make a Gaussian grid `ClimArray`, try the following approach:
-```julia
-file = NCDataset("some_file_with_eqarea.nc")
-# the following lines make the coordinates of the equal area, which depends on
-# how your .nc file is structured
-lons = Array(file["lon"])
-lats = Array(file["lat"])
-coords = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
-# Sort points by their latitude (important!)
-si = sortperm(coords, by = reverse)
-# Load some remaining dimensions and create the proper `Dimension` tuple:
-t = Array(file["time"])
-dimensions = (Coord(coords), Time(t))
-# Finally load the array data and make a ClimArray
-data = Array(file["actual_data_like_radiation"])
-data = data[si, :] # permute like the coordinate
-A = ClimArray(data, dimensions)
-```
+[`ncread`](@ref) tries to automatically deduce the correct space type and create the appropriate dimension.
 
 ## General aggregation
 The physical averages of the previous section are done by taking advantage of a general aggregation syntax, which works with any aggregating function like `mean, sum, std`, etc.
