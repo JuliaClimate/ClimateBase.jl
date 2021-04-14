@@ -272,7 +272,7 @@ end
 
 function convert_to_degrees(lonlat, ds)
     x = haskey(ds, "clat") ? ds["clat"] : ds["lat"]
-    if haskey(x.attrib, "units") == "radian" || any(ll -> ll[1] > 2, lonlat)
+    if haskey(x.attrib, "units") == "radian" || !any(ll -> abs(ll[2]) > π/2, lonlat)
         lonlat = [SVector(lo*180/π, la*180/π) for (lo, la) in lonlat]
     end
     return lonlat
