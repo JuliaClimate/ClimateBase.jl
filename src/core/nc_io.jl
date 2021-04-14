@@ -78,8 +78,9 @@ We do two performance improvements while loading the data:
 ## Keywords
 * `name = var` optionally rename loaded array.
 * `grid = nothing` optionally specify whether the underlying grid is `grid = LonLatGrid()`
-  or `grid = UnstructuredGrid()`. If `nothing`, we try to deduce automatically based on
-  the names of dimensions and other keys of teh `NCDataset`.
+  or `grid = UnstructuredGrid()`, see [Types of spatial coordinates](@ref).
+  If `nothing`, we try to deduce automatically based on
+  the names of dimensions and other keys of the `NCDataset`.
 
 See also [`ncwrite`](@ref).
 """
