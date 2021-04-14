@@ -85,7 +85,7 @@ end
     w[5] = 1.0
     res = timeagg(mean, A, w)
     @test all(res .≈ A[Time(5)])
-    @test dims(A, Lon) == dims(res, Lon)
+    @test dims(A, Lon).val == dims(res, Lon).val
 
     # TODO: more tests needed here, e.g. for timeagg(mean, t, a, w)
 end
