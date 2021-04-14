@@ -118,7 +118,7 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
             return l
         end
     else
-        error("maxyearspan: not implemented yet for $tsamp data")
+        error("maxyearspan: not implemented yet for $(tsamp)-sampled data")
     end
 end
 
@@ -195,6 +195,7 @@ Perform a proper temporal aggregation of the function `f` (e.g. `mean, std`) on 
 * Each month in `A` is weighted with its length in days (for monthly sampled data)
 
 If you don't want these features, just do [`dropagg`](@ref)`(f, A, Time, W)`.
+This is also done in the case where the time sampling is unknown.
 
 `W` are possible statistical weights that are used in conjuction to the temporal weighting,
 to weight each time point differently.
@@ -210,7 +211,10 @@ function timeagg(f, A::AbDimArray, w = nothing)
     w isa AbDimArray && @assert dims(w) == dims(A)
     w isa Vector && @assert length(w) == size(A, Time)
     tsamp = temporal_sampling(A)
-    r = if tsamp == :daily || tsamp == :other
+    if tsamp == :other
+        return dropagg(f, A, Time) # TODO: Extend dropagg to arbitrary weights
+    end
+    r = if tsamp == :daily
         timeagg_daily(f, A, w)
     elseif tsamp == :monthly
         timeagg_monthly(f, A, w)

@@ -76,7 +76,7 @@ end
     W[Time(5)] .= 1.0
     res = timeagg(mean, A, W)
     @test all(res .≈ A[Time(5)])
-    @test dims(A, Lon) == dims(res, Lon)
+    @test dims(A, Lon).val == dims(res, Lon).val
     res = timeagg(std, A, W)
     @test all(x -> isapprox(x, 0; atol = 1e-8), res)
 
@@ -85,7 +85,7 @@ end
     w[5] = 1.0
     res = timeagg(mean, A, w)
     @test all(res .≈ A[Time(5)])
-    @test dims(A, Lon) == dims(res, Lon)
+    @test dims(A, Lon).val == dims(res, Lon).val
 
     # TODO: more tests needed here, e.g. for timeagg(mean, t, a, w)
 end
@@ -201,9 +201,9 @@ end
 
 @testset "NetCDF file IO" begin
     globat = Dict("history" => "test")
-    climarrays_to_nc("test.nc", (A, B); globalattr = globat)
-    Aloaded = ClimArray("test.nc", "insolation")
-    Bloaded = ClimArray("test.nc", "x2")
+    ncwrite("test.nc", (A, B); globalattr = globat)
+    Aloaded = ncread("test.nc", "insolation")
+    Bloaded = ncread("test.nc", "x2")
 
     @test A.data == Aloaded.data
     @test dims(Aloaded, Lon).metadata["units"] == "degrees_east"

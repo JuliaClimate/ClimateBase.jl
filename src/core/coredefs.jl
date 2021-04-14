@@ -16,7 +16,7 @@ dimindex(A, dim) = DimensionalData.dimnum(A, dim)
 export At, Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, dimnum, dims
 export Time, Lon, Lat, dims, Coord, Hei, Pre, Ti
-export GaussianEqualArea, LonLatGrid, spacestructure
+export UnstructuredGrid, LonLatGrid, spacestructure
 export DimensionalData # for accessing its functions
 
 @dim Lon IndependentDim "Longitude"
@@ -49,18 +49,50 @@ const COMMONNAMES = Dict(
     "level" => Pre,
 )
 
+##########################################################################################
+# Space types
+##########################################################################################
+
 # the following traits for the the way space is configured. currently the options are
-# GaussianEqualArea, which is for equal area "grids" (or better points/coordinates)
+# UnstructuredGrid, which is for equal area "grids" (or better points/coordinates)
 # while the LonLatGrid is for standard Longitude x Latitude dimensions.
-# Dispatch on `GaussianEqualArea` or other types is type-stable
+# Dispatch on `UnstructuredGrid` or other types is type-stable
 # because it comes from the underlying dimension
+
 abstract type SpaceType end
-struct GaussianEqualArea <: SpaceType end
+
+"""
+Space coordinates are represented by two orthogonal dimensions `Lon, Lat`,
+one being longitude and the other being latitude.
+"""
 struct LonLatGrid <: SpaceType end
+
+"""
+Space coordinates are represented by a single dimension `Coord`,
+elements are coordinate locations, i.e. 2-element `SVector(longitude, latitude)`.
+Each coordinate represents an equal area polygon corresponding to the point in space.
+The actual limits of each polygon are not included in the dimension for performance reasons.
+
+To use functions such as [`zonalmean`](@ref) or [`hemispheric_means`](@ref) with this grid,
+you must first sort the `ClimArray` so that the latitudes
+of its coordinates are sorted in ascending order. I.e.
+```julia
+A # some `ClimArray` with a Gaussian grid type.
+coords = dims(A, Coord).val
+si = sortperm(coords, by = reverse)
+A = A[Coord(si)]
+```
+**This is done automatically by [`ncread`](@ref).**
+
+!!! warn
+    `UnstructuredGrid` functionality is currently in an **experimental phase**!
+"""
+struct UnstructuredGrid <: SpaceType end
+
 spacestructure(a::AbDimArray) = spacestructure(dims(a))
 function spacestructure(dims)
     if hasdim(dims, Coord)
-        GaussianEqualArea()
+        UnstructuredGrid()
     elseif hasdim(dims, Lon) || hasdim(dims, Lat)
         LonLatGrid()
     else
@@ -94,7 +126,9 @@ You can think of `ClimArray` as a in-memory representation of a CFVariable.
 At the moment, a `ClimArray` is using `DimensionalArray` from DimensionalData.jl, and
 all basic handling of `ClimArray` is offered by `DimensionalData` (see below).
 
-`ClimArray` is created by passing in standard array data `A` and a tuple of dimensions `dims`.
+`ClimArray` is created by passing in standard array data `A` and a
+tuple of dimensions `dims`. See [`ncread`](@ref) to automatically create a `ClimArray`
+from a .nc file.
 
 ## Example
 ```julia

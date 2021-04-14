@@ -6,7 +6,7 @@ https://github.com/rafaqz/GeoData.jl
 using NCDatasets
 export NCDataset
 export nckeys, ncdetails, globalattr
-export climarrays_to_nc
+export ncread, ncwrite
 
 dim_to_commonname(::Lat) = "lat"
 dim_to_commonname(::Lon) = "lon"
@@ -15,7 +15,7 @@ dim_to_commonname(::Pre) = "level"
 dim_to_commonname(D::Dim) = string(DimensionalData.name(D))
 
 #########################################################################
-# NCDatasets → DimensionalArray convertions and loading
+# Utilities
 #########################################################################
 """
     nckeys(file::String)
@@ -49,10 +49,13 @@ function globalattr(file::String)
     end
 end
 
+#########################################################################
+# Reading
+#########################################################################
 """
-    ClimArray(file::Union{String,NCDataset}, var::String, name = var) -> A
-Load the variable `var` from the `file` and convert it
-into a `ClimArray` which also contains the variable attributes as a dictionary.
+    ncread(file::Union{String,NCDataset}, var::String; name, grid) → A
+Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref).
+with proper dimension mapping and also containing the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
 
 Notice that `file` can be an `NCDataset`, which allows you to lazily combine different
@@ -62,8 +65,8 @@ alldata = ["toa_fluxes_2020_\$(i).nc" for i in 1:12]
 file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
-(but you can also directly give the string to a single file `"file.nc"` in `ClimArray`
-if data are contained in a single file for single files).
+(but you can also directly give the string to a single file `"file.nc"`
+if data are contained in a single file).
 
 We do two performance improvements while loading the data:
 1. If there are no missing values in the data (according to CF standards), the
@@ -72,10 +75,18 @@ We do two performance improvements while loading the data:
 2. Dimensions that are ranges (i.e. sampled with constant step size) are automatically
    transformed to a standard Julia `Range` type (which makes sub-selecting faster).
 
+## Keywords
+* `name = var` optionally rename loaded array.
+* `grid = nothing` optionally specify whether the underlying grid is `grid = LonLatGrid()`
+  or `grid = UnstructuredGrid()`, see [Types of spatial coordinates](@ref).
+  If `nothing`, we try to deduce automatically based on
+  the names of dimensions and other keys of the `NCDataset`.
+
+See also [`ncwrite`](@ref).
 """
-function ClimArray(path::Union{String, Vector{String}}, args...; kwargs...)
+function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
-        data = ClimArray(ds, args...; kwargs...)
+        data = ncread(ds, args...; kwargs...)
         return data
     end
 end
@@ -84,8 +95,32 @@ end
 # and only load this part, and correctly and instantly make it a ClimArray, which
 # can solve "large memory" or "large data" problems. This funcionality
 # must be sure to load the correct ranges of dimensions as well though!
+#
+# TODO: Allow reading multiple variables at once. This has the performance benefit
+# of not re-creating dimensions all the time.
 
-function ClimArray(ds::NCDatasets.AbstractDataset, var::String, name = var)
+function ncread(ds::NCDatasets.AbstractDataset, var::String; name = var, grid = nothing)
+    gridtype = isnothing(grid) ? autodetect_grid(ds, var) : grid
+    if gridtype == UnstructuredGrid()
+        return ncread_unstructured(ds, var, name)
+    else
+        return ncread_lonlat(ds, var, name)
+    end
+end
+
+function autodetect_grid(ds, var)
+    if haskey(ds, "reduced_points") || haskey(ds, "ncells") || haskey(ds, "clon")
+        return UnstructuredGrid()
+    else
+        return LonLatGrid()
+    end
+end
+
+#########################################################################
+# Reading: LonLatGrid and main reading functionality
+#########################################################################
+# Notice that this function properly loads even without any spatial coordinate
+function ncread_lonlat(ds::NCDatasets.AbstractDataset, var::String, name = var)
     svar = string(var)
     cfvar = ds[svar]
     attrib = Dict(cfvar.attrib)
@@ -159,6 +194,90 @@ end
 
 vector2range(r::AbstractRange) = r
 
+
+#########################################################################
+# Reading: UnstructuredGrid
+#########################################################################
+export SVector
+
+function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name = var)
+    svar = string(var)
+    cfvar = ds[svar]
+    attrib = Dict(cfvar.attrib)
+
+    # Here we generate the longitudes and latitudes based on whether we have
+    # reduced points or not, and obtain the name of the coord dimension in the `ds`
+    if haskey(ds, "reduced_points")
+        lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
+        original_grid_dim = "rgrid"
+    elseif haskey(ds.dim, "ncells") # this is the equal area grid, so we make a Coord dimension
+        if haskey(ds, "lon")
+            # TODO: This code has not yet been generalized to arbitrary dimensions
+            lons = ds["lon"] |> Array .|> wrap_lon
+            lats = ds["lat"] |> Array
+        elseif haskey(ds, "clon")
+            lons = ds["clon"] |> Array .|> wrap_lon
+            lats = ds["clat"] |> Array
+        else
+            error("""
+            We didn't find key `"lon"` or `"clon"` that represents the longitude of each
+            polygon in an unstructured equal area grid.
+            """)
+        end
+        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+        original_grid_dim = "ncells"
+    else
+        error("""
+        We didn't find key `"ncells"` or `"reduced_points"` for unstructered grid.
+        """)
+    end
+    lonlat = convert_to_degrees(lonlat, ds)
+
+    # TODO: I've noticed that this converts integer dimension (like pressure)
+    # into Float64, but I'm not sure why...
+    alldims = [NCDatasets.dimnames(cfvar)...]
+
+    # Set up the remaining dimensions of the dataset
+    @assert original_grid_dim ∈ alldims
+    i = findfirst(x -> x == original_grid_dim, alldims)
+    remainingdims = deleteat!(copy(alldims), i)
+    actualdims = Any[create_dims(ds, remainingdims)...]
+
+    # Make coordinate dimension
+    si = sortperm(lonlat, by = reverse)
+    coords = Coord(lonlat)
+    insert!(actualdims, i, coords)
+
+    # Create array, sort by latitude and remove missings
+    A = Array(cfvar)
+    X = ClimArray(A, Tuple(actualdims))
+    X = X[Coord(si)]
+    if !any(ismissing, X)
+        X = nomissing(X)
+    end
+    return ClimArray(X; name = Symbol(name), attrib)
+end
+
+function reduced_grid_to_points(lat, reduced_points)
+    lonlat = SVector{2, Float32}[]
+    for (i, θ) in enumerate(lat)
+        n = reduced_points[i]
+        dλ = Float32(360/n)
+        for j in 0:n-1
+            push!(lonlat, SVector(0 + dλ*j, θ))
+        end
+    end
+    return lonlat
+end
+
+function convert_to_degrees(lonlat, ds)
+    x = haskey(ds, "clat") ? ds["clat"] : ds["lat"]
+    if haskey(x.attrib, "units") == "radian" || any(ll -> ll[1] > 2, lonlat)
+        lonlat = [SVector(lo*180/π, la*180/π) for (lo, la) in lonlat]
+    end
+    return lonlat
+end
+
 #########################################################################
 # Saving to .nc files
 #########################################################################
@@ -184,7 +303,7 @@ const DEFAULT_ATTRIBS = Dict(
 )
 
 """
-    climarrays_to_nc(file::String, Xs; globalattr = Dict())
+    ncwrite(file::String, Xs; globalattr = Dict())
 Write the given `ClimArray` instances (any iterable of `ClimArray`s or a single `ClimArray`)
 to a `.nc` file following CF standard conventions using NCDatasets.jl.
 Optionally specify global attributes for the `.nc` file.
@@ -193,11 +312,24 @@ The metadata of the arrays in `Xs`, as well as their dimensions, are properly wr
 in the `.nc` file and any necessary type convertions happen automatically.
 
 **WARNING**: We assume that any dimensions shared between the `Xs` are identical.
+
+See also [`ncread`](@ref).
 """
-function climarrays_to_nc(file::String, X::ClimArray; globalattr = Dict())
-    climarrays_to_nc(file, (X,); globalattr)
+function ncwrite(file::String, X::ClimArray; globalattr = Dict())
+    ncwrite(file, (X,); globalattr)
 end
-function climarrays_to_nc(file::String, Xs; globalattr = Dict())
+function ncwrite(file::String, Xs; globalattr = Dict())
+
+    # TODO: Fixing this is very easy. Simply make a `"ncells"` dimension, and then write
+    # the `"lon"` and `"lat"` cfvariables to the nc file by decomposing the coordinates
+    # into longitude and latitude.
+    if any(X -> hasdim(X, Coord), Xs)
+        error("""
+        Outputing `UnstructuredGrid` coordinates to .nc files is not yet supported,
+        but it is an easy fix, see source of `ncwrite`.
+        """)
+    end
+
     ds = NCDataset(file, "c"; attrib = globalattr)
     # NCDataset("file.nc", "c"; attrib = globalattr) do ds
         for (i, X) in enumerate(Xs)
