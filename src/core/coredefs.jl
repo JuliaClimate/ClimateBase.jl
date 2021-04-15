@@ -77,7 +77,7 @@ To use functions such as [`zonalmean`](@ref) or [`hemispheric_means`](@ref) with
 you must first sort the `ClimArray` so that the latitudes
 of its coordinates are sorted in ascending order. I.e.
 ```julia
-A # some `ClimArray` with a Gaussian grid type.
+A # some `ClimArray` with unstructured grid type.
 coords = dims(A, Coord).val
 si = sortperm(coords, by = reverse)
 A = A[Coord(si)]
@@ -96,7 +96,7 @@ function spacestructure(dims)
     elseif hasdim(dims, Lon) || hasdim(dims, Lat)
         LonLatGrid()
     else
-        nothing
+        error("Array does not have any spatial dimensions: `Lon`, `Lat`, or `Coord`.")
     end
 end
 
