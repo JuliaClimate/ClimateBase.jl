@@ -181,15 +181,17 @@ function vector2range(x::Vector{<:Real})
         x[i]-x[i-1] ≠ dx && return x # if no constant step, return array as is
     end
     r = x[1]:dx:x[end]
-    return r == x ? r : x
+    return r == x ? r : x # final safety check to ensure equal values
 end
 
 function vector2range(t::Vector{<:Dates.AbstractTime})
     tsamp = temporal_sampling(t)
     period = tsamp2period(tsamp)
     isnothing(period) && return t
-    r = t[1]:period:t[end]
-    return r == t ? r : t
+    t1 = period == :hourly ? t[1] : Date(t[1])
+    tf = period == :hourly ? t[end] : Date(t[end])
+    r = t1:period:tf
+    return r == t ? r : t # final safety check to ensure equal values
 end
 
 vector2range(r::AbstractRange) = r

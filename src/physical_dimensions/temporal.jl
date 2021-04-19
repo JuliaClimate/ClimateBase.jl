@@ -26,22 +26,22 @@ Return the temporal sampling type of `x`, which is either an array of `Date`s or
 a dimensional array (with `Time` dimension).
 
 Possible return values are:
-- `:hourly`, where the temporal difference between entries is exactly 1 hour.
-- `:daily`, where the temporal difference between dates is exactly 1 day.
+- `:hourly`, where the temporal difference between successive entries is exactly 1 hour.
+- `:daily`, where the temporal difference between successive entries is exactly 1 day.
 - `:monthly`, where all dates have the same day, but different month.
-- `:yearly`, where all dates have the same month+day, but different year.
+- `:yearly`, where all dates have the same month and day, but different year.
 - `:other`, which means that `x` doesn't fall to any of the above categories.
 """
 temporal_sampling(A::AbstractDimArray) = temporal_sampling(dims(A, Time).val)
 temporal_sampling(t::Dimension) = temporal_sampling(t.val)
 
 function temporal_sampling(t::AbstractVector{<:TimeType})
-
     function issame(f)
         x0 = f(t[1])
         return all(i -> f(t[i]) == x0, 2:length(t))
     end
     samehour, sameday, samemonth, sameyear = map(issame, (hour, day, month, year))
+    constdailydiff = all(i -> day(t[i])-day(t[i-1]) ∈ (1, -30, -27, -28, -29), 2:length(t))
 
     if !samehour
         # check if they have exactly 1 hour difference
@@ -49,8 +49,8 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
         return all(isequal(3600000), dh) ? :hourly : :other
     elseif !sameday && samemonth
         return :daily
-    elseif !sameday && !samemonth && (day(t[2])-day(t[1])<0 || day(t[3])-day(t[2])<0)
-        # this clause checks daily data where the days wrap over the end of the month!
+    elseif samehour && !sameday && !samemonth && constdailydiff
+        # this clause checks daily data that span more than 1 month
         return :daily
     elseif sameday && !samemonth
         return :monthly
