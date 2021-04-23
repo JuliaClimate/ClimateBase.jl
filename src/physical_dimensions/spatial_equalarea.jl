@@ -38,7 +38,6 @@ function uniquelats(c)
     @assert issorted(c; by = x -> x[2])
     idxs = Vector{UnitRange{Int}}()
     lats = eltype(eltype(c))[]
-    sizehint!(lats, round(Int, sqrt(length(c))))
     iprev = 1
     for i in 2:length(c)
         if c[i][2] != c[i-1][2]
@@ -49,7 +48,6 @@ function uniquelats(c)
     end
     push!(lats, c[end][2])
     push!(idxs, iprev:length(c))
-    sizehint!(lats, length(lats))
     return idxs, lats
 end
 
@@ -63,7 +61,6 @@ end
 
 function hemispheric_functions(::UnstructuredGrid, A)
     c = dims(A, Coord).val
-    @assert issorted(c; by = x -> x[2])
     shi, nhi = hemisphere_indices(c)
     nh = A[Coord(nhi)]
     sh = A[Coord(shi)]
@@ -98,30 +95,18 @@ latitudes(::UnstructuredGrid, A) = unique!([x[2] for x in dims(A, Coord)])
 #########################################################################
 # Extention of convenience indexing of `Coord`
 #########################################################################
-# TODO: this section can be made much more general, but with much more
-# effort: https://github.com/rafaqz/DimensionalData.jl/issues/207
-export coord_latitudes_between
-function coord_latitudes_between(A::ClimArray, l1, l2)
-    coord_latitudes_between(dims(A, Coord).val, l1, l2)
-end
-
+# The code here is exclusively a performance optimization that relies
+# on the fact that we sort coordinates by latitude
 function coord_latitudes_between(c, l1, l2)
     idxs, lats = uniquelats(c)
-    # Notice that lats is guaranteed sorted for gaussian equal area
     i1 = searchsortedfirst(lats, l1)
     i2 = searchsortedlast(lats, l2)
     i1 > i2 && ((i1, i2) = (i2, i1)) # in case bounds are given in reverse order
     return idxs[i1][1]:idxs[i2][end]
 end
 
-# This method is necessary so that I can do A[Coord(Lat(...))]
-function DimensionalData._dims2indices(c::Coord, sel::Coord{ <: Lat{ <: Between}}, emptyval = Colon())
-    l1, l2 = sel.val.val.val
-    return coord_latitudes_between(c, l1, l2) # this is Vector{Int}
-end
-
-# This allows Between to access Coord directly and be translated to latitude
-function DimensionalData.sel2indices(c::Coord, sel::Between{Tuple{X,Y}}) where {X<:Real, Y<:Real}
-    l1, l2 = sel.val
-    return coord_latitudes_between(c, l1, l2) # this is Vector{Int}
+# This modifies what happens on A[Coord(Lat(Between(x,y)))]
+function DimensionalData.sel2indices(c::Coord, sel::Tuple{<:Lat{ <: Between}})
+    l1, l2 = sel[1].val.val
+    return coord_latitudes_between(c.val, l1, l2) # this is Vector{Int}
 end

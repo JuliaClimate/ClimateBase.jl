@@ -62,7 +62,8 @@ Dimension attributes are also given to the dimensions of `A`, if any exist.
 `NCDataset`, which allows you to lazily combine different
 `.nc` data (typically split by time), e.g.
 ```julia
-alldata = ["toa_fluxes_2020_\$(i).nc" for i in 1:12]
+using Glob # for getting all files
+alldata = glob("toa_fluxes_2020_*.nc")
 file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
@@ -242,7 +243,7 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
 
     # Make coordinate dimension
     si = sortperm(lonlat, by = reverse)
-    coords = Coord(lonlat)
+    coords = Coord(lonlat, (Lon, Lat))
     insert!(actualdims, i, coords)
 
     # Create array, sort by latitude and remove missings

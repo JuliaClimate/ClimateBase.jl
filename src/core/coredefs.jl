@@ -21,7 +21,6 @@ export DimensionalData # for accessing its functions
 
 @dim Lon IndependentDim "Longitude"
 @dim Lat IndependentDim "Latitude"
-@dim Coord IndependentDim "Spatial Coordinates"
 @dim Hei IndependentDim "Height"
 @dim Pre IndependentDim "Pressure"
 
@@ -68,10 +67,17 @@ one being longitude and the other being latitude.
 struct LonLatGrid <: SpaceType end
 
 """
-Space coordinates are represented by a single dimension `Coord`,
+Space coordinates are represented by a single dimension `Coord`, whose
 elements are coordinate locations, i.e. 2-element `SVector(longitude, latitude)`.
-Each coordinate represents an equal area polygon corresponding to the point in space.
+Each coordinate represents an **equal area polygon** corresponding to the point in space.
 The actual limits of each polygon are not included in the dimension for performance reasons.
+
+This dimension allows indexing according to the underlying `Lon, Lat` representation,
+e.g. you can do
+```julia
+A # some `ClimArray` with unstructured grid type.
+A[Coord(Lon(Between(0, 30)), Lat(Between(-30, 30)))]
+```
 
 To use functions such as [`zonalmean`](@ref) or [`hemispheric_means`](@ref) with this grid,
 you must first sort the `ClimArray` so that the latitudes
@@ -86,6 +92,7 @@ A = A[Coord(si)]
 
 !!! warn
     `UnstructuredGrid` functionality is currently in an **experimental phase**!
+    Notice that non-equal area unstructured grids are not supported yet.
 """
 struct UnstructuredGrid <: SpaceType end
 
