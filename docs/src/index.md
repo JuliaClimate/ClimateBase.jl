@@ -10,8 +10,7 @@ For example the most common dimensions are longitude, latitude and time.
 `ClimateBase` is structured to deal with these intricacies, and in addition offer several functionalities commonly used, and sought after, by climate scientists.
 It also serves as the base building block for `ClimateTools`, which offers more advanced functionalities.
 
-The focus of `ClimateBase` is **not** loading data, nor operating on data *on disk*. It is designed for in-memory climate data exploration and manipulation.
-That being said, basic data loading functionality is offered in terms of `NCDatasets`, see below.
+At the moment the focus of `ClimateBase` is **not** operating on data *on disk*. It is designed for in-memory climate data exploration and manipulation.
 
 ### Installation
 This package is registered and you can install it with
@@ -183,7 +182,6 @@ At the moment the following type of spatial coordinates are supported:
 LonLatGrid
 UnstructuredGrid
 ```
-Notice that non-equal area unstructured grids are not supported yet.
 
 ClimateBase.jl works with either type of spatial coordinate system.
 Therefore, physically inspired averaging functions, like [`spacemean`](@ref) or [`zonalmean`](@ref), work for both types of spatial coordinates.
