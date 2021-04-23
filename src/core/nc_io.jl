@@ -247,7 +247,7 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name =
 
     # Make coordinate dimension
     si = sortperm(lonlat, by = reverse)
-    coords = Coord(lonlat)
+    coords = Coord(lonlat, (Lon, Lat))
     insert!(actualdims, i, coords)
 
     # Create array, sort by latitude and remove missings

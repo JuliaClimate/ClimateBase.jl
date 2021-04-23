@@ -21,7 +21,6 @@ export DimensionalData # for accessing its functions
 
 @dim Lon IndependentDim "Longitude"
 @dim Lat IndependentDim "Latitude"
-@dim Coord IndependentDim "Spatial Coordinates"
 @dim Hei IndependentDim "Height"
 @dim Pre IndependentDim "Pressure"
 
