@@ -61,12 +61,11 @@ Dimension attributes are also given to the dimensions of `A`, if any exist.
 Notice that `file` can be an `NCDataset`, which allows you to lazily combine different
 `.nc` data (typically split by time), e.g.
 ```julia
-alldata = ["toa_fluxes_2020_\$(i).nc" for i in 1:12]
+using Glob # for getting all files
+alldata = glob("toa_fluxes_2020_*.nc")
 file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
-(but you can also directly give the string to a single file `"file.nc"`
-if data are contained in a single file).
 
 We do two performance improvements while loading the data:
 1. If there are no missing values in the data (according to CF standards), the
