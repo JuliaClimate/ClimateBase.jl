@@ -70,6 +70,8 @@ A = ClimArray(file, "tow_sw_all")
 `var` is a `String` denoting which variable to load.
 For `.nc` data containing groups `var` can also be a tuple `("group_name", "var_name")`
 that loads a specific variable from a specific group.
+In this case, the attributes of both the group and the CF-variable are attributed to
+the created [`ClimArray`](@ref).
 
 See also [`ncdetails`](@ref), [`nckeys`](@ref) and [`ncwrite`](@ref).
 
@@ -81,7 +83,7 @@ We do two performance improvements while loading the data:
    transformed to a standard Julia `Range` type (which makes sub-selecting faster).
 
 ## Keywords
-* `name = var` optionally rename loaded array.
+* `name` optionally rename loaded array.
 * `grid = nothing` optionally specify whether the underlying grid is `grid = LonLatGrid()`
   or `grid = UnstructuredGrid()`, see [Types of spatial coordinates](@ref).
   If `nothing`, we try to deduce automatically based on
@@ -128,7 +130,7 @@ var2name(var::Tuple) = join(var, "_")
 # Notice that this function properly loads even without any spatial coordinate
 function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name)
     cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
-    attrib = Dict(cfvar.attrib)
+    attrib = get_attributes_from_var(ds, cfvar, var)
     A = cfvar |> Array
     dnames = Tuple(NCDatasets.dimnames(cfvar))
     if !any(ismissing, A)
@@ -137,6 +139,14 @@ function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name)
     data = ClimArray(A, create_dims(ds, dnames); name = Symbol(name), attrib = attrib)
     return data
 end
+
+get_attributes_from_var(ds, cfvar, var::String) = Dict(cfvar.attrib)
+function get_attributes_from_var(ds, cfvar, var::Tuple)
+    d1 = Dict(cfvar.attrib)
+    d2 = Dict(ds.group[var[1]].attrib)
+    return merge!(d2, d1)
+end
+
 
 """
     create_dims(ds::NCDatasets.AbstractDataset, dnames)
@@ -214,7 +224,7 @@ export SVector
 
 function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
     cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
-    attrib = Dict(cfvar.attrib)
+    attrib = get_attributes_from_var(ds, cfvar, var)
 
     # Here we generate the longitudes and latitudes based on whether we have
     # reduced points or not, and obtain the name of the coord dimension in the `ds`
