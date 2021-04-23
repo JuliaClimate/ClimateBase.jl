@@ -53,20 +53,25 @@ end
 # Reading
 #########################################################################
 """
-    ncread(file::Union{String,NCDataset}, var::String; name, grid) → A
-Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref).
+    ncread(file, var; name, grid) → A
+Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref)
 with proper dimension mapping and also containing the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
 
-Notice that `file` can be an `NCDataset`, which allows you to lazily combine different
+`file` can be a string to a `.nc` file. Or, it can be an
+`NCDataset`, which allows you to lazily combine different
 `.nc` data (typically split by time), e.g.
 ```julia
 alldata = ["toa_fluxes_2020_\$(i).nc" for i in 1:12]
 file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
-(but you can also directly give the string to a single file `"file.nc"`
-if data are contained in a single file).
+
+`var` is a `String` denoting which variable to load.
+For `.nc` data containing groups `var` can also be a tuple `("group_name", "var_name")`
+that loads a specific variable from a specific group.
+
+See also [`ncdetails`](@ref), [`nckeys`](@ref) and [`ncwrite`](@ref).
 
 We do two performance improvements while loading the data:
 1. If there are no missing values in the data (according to CF standards), the
@@ -81,8 +86,6 @@ We do two performance improvements while loading the data:
   or `grid = UnstructuredGrid()`, see [Types of spatial coordinates](@ref).
   If `nothing`, we try to deduce automatically based on
   the names of dimensions and other keys of the `NCDataset`.
-
-See also [`ncwrite`](@ref).
 """
 function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
@@ -99,8 +102,8 @@ end
 # TODO: Allow reading multiple variables at once. This has the performance benefit
 # of not re-creating dimensions all the time.
 
-function ncread(ds::NCDatasets.AbstractDataset, var::String; name = var, grid = nothing)
-    gridtype = isnothing(grid) ? autodetect_grid(ds, var) : grid
+function ncread(ds::NCDatasets.AbstractDataset, var; name = var2name(var), grid = nothing)
+    gridtype = isnothing(grid) ? autodetect_grid(ds) : grid
     if gridtype == UnstructuredGrid()
         return ncread_unstructured(ds, var, name)
     else
@@ -108,7 +111,7 @@ function ncread(ds::NCDatasets.AbstractDataset, var::String; name = var, grid = 
     end
 end
 
-function autodetect_grid(ds, var)
+function autodetect_grid(ds)
     if haskey(ds, "reduced_points") || haskey(ds, "ncells") || haskey(ds, "clon")
         return UnstructuredGrid()
     else
@@ -116,13 +119,15 @@ function autodetect_grid(ds, var)
     end
 end
 
+var2name(var) = string(var)
+var2name(var::Tuple) = join(var, "_")
+
 #########################################################################
 # Reading: LonLatGrid and main reading functionality
 #########################################################################
 # Notice that this function properly loads even without any spatial coordinate
-function ncread_lonlat(ds::NCDatasets.AbstractDataset, var::String, name = var)
-    svar = string(var)
-    cfvar = ds[svar]
+function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name)
+    cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
     attrib = Dict(cfvar.attrib)
     A = cfvar |> Array
     dnames = Tuple(NCDatasets.dimnames(cfvar))
@@ -166,7 +171,7 @@ function to_proper_dimensions(dnames)
         else
             @warn """
             Dimension name "$n" not in common names. Strongly recommended to ask for
-            adding this name to COMMONNAMES on github. Making generic dimension for now...
+            adding this name to COMMONNAMES on GitHub. Making generic dimension for now...
             """
             push!(r, Dim{Symbol(n)})
         end
@@ -207,9 +212,8 @@ vector2range(r::AbstractRange) = r
 #########################################################################
 export SVector
 
-function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name = var)
-    svar = string(var)
-    cfvar = ds[svar]
+function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
+    cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
     attrib = Dict(cfvar.attrib)
 
     # Here we generate the longitudes and latitudes based on whether we have
