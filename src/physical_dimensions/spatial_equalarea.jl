@@ -105,6 +105,7 @@ function coord_latitudes_between(c, l1, l2)
     return idxs[i1][1]:idxs[i2][end]
 end
 
+# This modifies what happens on A[Coord(Lat(Between(x,y)))]
 function DimensionalData.sel2indices(c::Coord, sel::Tuple{<:Lat{ <: Between}})
     l1, l2 = sel[1].val.val
     return coord_latitudes_between(c.val, l1, l2) # this is Vector{Int}
