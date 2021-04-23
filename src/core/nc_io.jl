@@ -228,31 +228,7 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
 
     # Here we generate the longitudes and latitudes based on whether we have
     # reduced points or not, and obtain the name of the coord dimension in the `ds`
-    if haskey(ds, "reduced_points")
-        lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
-        original_grid_dim = "rgrid"
-    elseif haskey(ds.dim, "ncells") # this is the equal area grid, so we make a Coord dimension
-        if haskey(ds, "lon")
-            # TODO: This code has not yet been generalized to arbitrary dimensions
-            lons = ds["lon"] |> Array .|> wrap_lon
-            lats = ds["lat"] |> Array
-        elseif haskey(ds, "clon")
-            lons = ds["clon"] |> Array .|> wrap_lon
-            lats = ds["clat"] |> Array
-        else
-            error("""
-            We didn't find key `"lon"` or `"clon"` that represents the longitude of each
-            polygon in an unstructured equal area grid.
-            """)
-        end
-        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
-        original_grid_dim = "ncells"
-    else
-        error("""
-        We didn't find key `"ncells"` or `"reduced_points"` for unstructered grid.
-        """)
-    end
-    lonlat = convert_to_degrees(lonlat, ds)
+    lonlat, original_grid_dim = load_coordinate_points(ds)
 
     # TODO: I've noticed that this converts integer dimension (like pressure)
     # into Float64, but I'm not sure why...
@@ -277,6 +253,34 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
         X = nomissing(X)
     end
     return ClimArray(X; name = Symbol(name), attrib)
+end
+
+function load_coordinate_points(ds)
+    if haskey(ds, "reduced_points")
+        lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
+        original_grid_dim = "rgrid"
+    elseif haskey(ds.dim, "ncells") # this is the equal area grid, so we make a Coord dimension
+        if haskey(ds, "lon")
+            lons = ds["lon"] |> Array .|> wrap_lon
+            lats = ds["lat"] |> Array
+        elseif haskey(ds, "clon")
+            lons = ds["clon"] |> Array .|> wrap_lon
+            lats = ds["clat"] |> Array
+        else
+            error("""
+            We didn't find key `"lon"` or `"clon"` that represents the longitude of each
+            polygon in an unstructured equal area grid.
+            """)
+        end
+        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+        original_grid_dim = "ncells"
+    else
+        error("""
+        We didn't find key `"ncells"` or `"reduced_points"` for unstructured grid.
+        """)
+    end
+    lonlat = convert_to_degrees(lonlat, ds)
+    return lonlat, original_grid_dim
 end
 
 function reduced_grid_to_points(lat, reduced_points)
