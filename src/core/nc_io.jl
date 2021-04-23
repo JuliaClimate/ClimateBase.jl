@@ -141,6 +141,11 @@ function create_dims(ds::NCDatasets.AbstractDataset, dnames)
     # true_dims = getindex.(Ref(COMMONNAMES), dnames)
     true_dims = to_proper_dimensions(dnames)
     dim_values = Array.(getindex.(Ref(ds), dnames))
+    # Some stupid datasets return a union{Missing} type for dimensions.
+    # this is of course nonsense, a dimension cannot have "missing" values.
+    if any(d -> Missing <: eltype(d), dim_values)
+        dim_values = nomissing.(dim_values)
+    end
     optimal_values = vector2range.(dim_values)
     attribs = [
         ds[d].attrib isa NCDatasets.BaseAttributes ? Dict(ds[d].attrib) : nothing
