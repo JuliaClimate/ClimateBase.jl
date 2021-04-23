@@ -53,12 +53,13 @@ end
 # Reading
 #########################################################################
 """
-    ncread(file::Union{String,NCDataset}, var::String; name, grid) → A
-Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref).
+    ncread(file, var; name, grid) → A
+Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref)
 with proper dimension mapping and also containing the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
 
-Notice that `file` can be an `NCDataset`, which allows you to lazily combine different
+`file` can be a string to a `.nc` file. Or, it can be an
+`NCDataset`, which allows you to lazily combine different
 `.nc` data (typically split by time), e.g.
 ```julia
 using Glob # for getting all files
@@ -66,6 +67,14 @@ alldata = glob("toa_fluxes_2020_*.nc")
 file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
+
+`var` is a `String` denoting which variable to load.
+For `.nc` data containing groups `var` can also be a tuple `("group_name", "var_name")`
+that loads a specific variable from a specific group.
+In this case, the attributes of both the group and the CF-variable are attributed to
+the created [`ClimArray`](@ref).
+
+See also [`ncdetails`](@ref), [`nckeys`](@ref) and [`ncwrite`](@ref).
 
 We do two performance improvements while loading the data:
 1. If there are no missing values in the data (according to CF standards), the
@@ -75,13 +84,11 @@ We do two performance improvements while loading the data:
    transformed to a standard Julia `Range` type (which makes sub-selecting faster).
 
 ## Keywords
-* `name = var` optionally rename loaded array.
+* `name` optionally rename loaded array.
 * `grid = nothing` optionally specify whether the underlying grid is `grid = LonLatGrid()`
   or `grid = UnstructuredGrid()`, see [Types of spatial coordinates](@ref).
   If `nothing`, we try to deduce automatically based on
   the names of dimensions and other keys of the `NCDataset`.
-
-See also [`ncwrite`](@ref).
 """
 function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
@@ -98,8 +105,8 @@ end
 # TODO: Allow reading multiple variables at once. This has the performance benefit
 # of not re-creating dimensions all the time.
 
-function ncread(ds::NCDatasets.AbstractDataset, var::String; name = var, grid = nothing)
-    gridtype = isnothing(grid) ? autodetect_grid(ds, var) : grid
+function ncread(ds::NCDatasets.AbstractDataset, var; name = var2name(var), grid = nothing)
+    gridtype = isnothing(grid) ? autodetect_grid(ds) : grid
     if gridtype == UnstructuredGrid()
         return ncread_unstructured(ds, var, name)
     else
@@ -107,7 +114,7 @@ function ncread(ds::NCDatasets.AbstractDataset, var::String; name = var, grid = 
     end
 end
 
-function autodetect_grid(ds, var)
+function autodetect_grid(ds)
     if haskey(ds, "reduced_points") || haskey(ds, "ncells") || haskey(ds, "clon")
         return UnstructuredGrid()
     else
@@ -115,14 +122,16 @@ function autodetect_grid(ds, var)
     end
 end
 
+var2name(var) = string(var)
+var2name(var::Tuple) = join(var, "_")
+
 #########################################################################
 # Reading: LonLatGrid and main reading functionality
 #########################################################################
 # Notice that this function properly loads even without any spatial coordinate
-function ncread_lonlat(ds::NCDatasets.AbstractDataset, var::String, name = var)
-    svar = string(var)
-    cfvar = ds[svar]
-    attrib = Dict(cfvar.attrib)
+function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name)
+    cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
+    attrib = get_attributes_from_var(ds, cfvar, var)
     A = cfvar |> Array
     dnames = Tuple(NCDatasets.dimnames(cfvar))
     if !any(ismissing, A)
@@ -132,6 +141,14 @@ function ncread_lonlat(ds::NCDatasets.AbstractDataset, var::String, name = var)
     return data
 end
 
+get_attributes_from_var(ds, cfvar, var::String) = Dict(cfvar.attrib)
+function get_attributes_from_var(ds, cfvar, var::Tuple)
+    d1 = Dict(cfvar.attrib)
+    d2 = Dict(ds.group[var[1]].attrib)
+    return merge!(d2, d1)
+end
+
+
 """
     create_dims(ds::NCDatasets.AbstractDataset, dnames)
 Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
@@ -140,6 +157,11 @@ function create_dims(ds::NCDatasets.AbstractDataset, dnames)
     # true_dims = getindex.(Ref(COMMONNAMES), dnames)
     true_dims = to_proper_dimensions(dnames)
     dim_values = Array.(getindex.(Ref(ds), dnames))
+    # Some stupid datasets return a union{Missing} type for dimensions.
+    # this is of course nonsense, a dimension cannot have "missing" values.
+    if any(d -> Missing <: eltype(d), dim_values)
+        dim_values = nomissing.(dim_values)
+    end
     optimal_values = vector2range.(dim_values)
     attribs = [
         ds[d].attrib isa NCDatasets.BaseAttributes ? Dict(ds[d].attrib) : nothing
@@ -160,7 +182,7 @@ function to_proper_dimensions(dnames)
         else
             @warn """
             Dimension name "$n" not in common names. Strongly recommended to ask for
-            adding this name to COMMONNAMES on github. Making generic dimension for now...
+            adding this name to COMMONNAMES on GitHub. Making generic dimension for now...
             """
             push!(r, Dim{Symbol(n)})
         end
@@ -201,38 +223,13 @@ vector2range(r::AbstractRange) = r
 #########################################################################
 export SVector
 
-function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name = var)
-    svar = string(var)
-    cfvar = ds[svar]
-    attrib = Dict(cfvar.attrib)
+function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
+    cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
+    attrib = get_attributes_from_var(ds, cfvar, var)
 
     # Here we generate the longitudes and latitudes based on whether we have
     # reduced points or not, and obtain the name of the coord dimension in the `ds`
-    if haskey(ds, "reduced_points")
-        lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
-        original_grid_dim = "rgrid"
-    elseif haskey(ds.dim, "ncells") # this is the equal area grid, so we make a Coord dimension
-        if haskey(ds, "lon")
-            # TODO: This code has not yet been generalized to arbitrary dimensions
-            lons = ds["lon"] |> Array .|> wrap_lon
-            lats = ds["lat"] |> Array
-        elseif haskey(ds, "clon")
-            lons = ds["clon"] |> Array .|> wrap_lon
-            lats = ds["clat"] |> Array
-        else
-            error("""
-            We didn't find key `"lon"` or `"clon"` that represents the longitude of each
-            polygon in an unstructured equal area grid.
-            """)
-        end
-        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
-        original_grid_dim = "ncells"
-    else
-        error("""
-        We didn't find key `"ncells"` or `"reduced_points"` for unstructered grid.
-        """)
-    end
-    lonlat = convert_to_degrees(lonlat, ds)
+    lonlat, original_grid_dim = load_coordinate_points(ds)
 
     # TODO: I've noticed that this converts integer dimension (like pressure)
     # into Float64, but I'm not sure why...
@@ -257,6 +254,34 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name =
         X = nomissing(X)
     end
     return ClimArray(X; name = Symbol(name), attrib)
+end
+
+function load_coordinate_points(ds)
+    if haskey(ds, "reduced_points")
+        lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
+        original_grid_dim = "rgrid"
+    elseif haskey(ds.dim, "ncells") # this is the equal area grid, so we make a Coord dimension
+        if haskey(ds, "lon")
+            lons = ds["lon"] |> Array .|> wrap_lon
+            lats = ds["lat"] |> Array
+        elseif haskey(ds, "clon")
+            lons = ds["clon"] |> Array .|> wrap_lon
+            lats = ds["clat"] |> Array
+        else
+            error("""
+            We didn't find key `"lon"` or `"clon"` that represents the longitude of each
+            polygon in an unstructured equal area grid.
+            """)
+        end
+        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+        original_grid_dim = "ncells"
+    else
+        error("""
+        We didn't find key `"ncells"` or `"reduced_points"` for unstructured grid.
+        """)
+    end
+    lonlat = convert_to_degrees(lonlat, ds)
+    return lonlat, original_grid_dim
 end
 
 function reduced_grid_to_points(lat, reduced_points)
