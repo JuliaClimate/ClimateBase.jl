@@ -1,3 +1,5 @@
+DimensionalData.name(::Coord) = "Coordinates"
+
 # printing of a single clim array
 function Base.show(io::IO, ::MIME"text/plain", A::ClimArray)
     summary(io, A)
@@ -21,10 +23,10 @@ function Base.summary(io::IO, A::ClimArray)
         print(io, ")")
     end
 
-    print(io, " with dimensions:\n")
-    for d in dims(A)
-        print(io, " ", d, "\n")
-    end
+    print(io, " with dimensions:")
+    DimensionalData._layout_dims(io, MIME"text/plain"(), dims(A))
+    print(io, "\n")
+
     if !isnothing(A.attrib)
         printstyled(io, "attributes: "; color=:magenta)
         show(io, MIME"text/plain"(), A.attrib)
