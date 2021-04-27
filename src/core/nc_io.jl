@@ -366,7 +366,6 @@ function ncwrite(file::String, Xs; globalattr = Dict())
             end
             println("processing variable $(n)...")
             add_dims_to_ncfile!(ds, dims(X))
-            println("writing the CF-variable...")
             attrib = X.attrib
             isnothing(attrib) && (attrib = Dict())
             dnames = dim_to_commonname.(dims(X))

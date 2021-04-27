@@ -55,7 +55,7 @@ function custom_show(io::IO, A::AbstractArray{T,N}, x) where {T,N}
     print(io, "\n[and ", prod(size(A,d) for d=3:N) - 1," more slices...]")
 end
 
-# printing of a vector of climarrays
+# printing of a tuple of climarrays
 function Base.show(io::IO, A::ClimArray)
     printstyled(io, "ClimArray"; color=:blue)
     if A.name ≠ Symbol("")
@@ -66,4 +66,11 @@ function Base.show(io::IO, A::ClimArray)
     s = join(string.(size(A)), "×")
     d = join([replace(string(basetypeof(d)), "Ti"=>"Time") for d in dims(A)], "×")
     print(io, " with $s $d data")
+end
+# printing of a vector of climarrays
+function Base.show(io::IO, ::MIME"text/plain", Xs::Vector{<:ClimArray})
+    println(io, "$(length(Xs))-element Vector{<:ClimArray}:")
+    for X in Xs
+        println(io, " ", X)
+    end
 end
