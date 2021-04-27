@@ -41,10 +41,9 @@ function sinusoidal_continuation(T, frequencies = [1.0, 2.0]; Tmin = -Inf, Tmax 
         fullT[i...] .= x
     end
     if !isinf(Tmin) && !isinf(Tmin)
-        return clamp.(fullT, Tmin, Tmax)
-    else
-        return fullT
+        fullT = clamp.(fullT, Tmin, Tmax)
     end
+    return nomissing(fullT)
 end
 
 function cosines(t, lpv::Sinusoidal)
