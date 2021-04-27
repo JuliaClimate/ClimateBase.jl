@@ -8,9 +8,6 @@ _numbertype(T) = _numbertype(eltype(T))
 _numbertype(::Type{Union{T, Missing}}) where T = T
 _numbertype(::Type{T}) where {T <: Real} = T
 
-# TODO: This function needs to become more general to allow for time sampling
-# other than monthly (currently explicitly assumed)
-
 # TODO: perhaps it is worth considering a version that makes true time in seconds
 # instead of months, which in the future would allow support of diurnal cycles
 # TODO: YES! Make true time be seconds!
@@ -30,10 +27,10 @@ function sinusoidal_continuation(T, frequencies = [1.0, 2.0]; Tmin = -Inf, Tmax 
     lpv = Sinusoidal(E.(frequencies ./ DAYS_IN_ORBIT))
     fullT = copy(T)
     # TODO: this must be extended to a general "true time" function
-    truetime = Float32.(cumsum(daysinmonth.(dims(T, Time))))
+    truetime = time_in_days(dims(T, Time).val, E)
     for i in otheridxs(T, Time)
         x = T[i...]
-        any(ismissing, x) || continue # this space needs no correction
+        any(ismissing, x) || continue # this timeseries needs no correction
         mi = findall(!ismissing, x)
         x0 = Array{Float32}(x[mi])
         t0 = truetime[mi]

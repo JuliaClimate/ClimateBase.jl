@@ -172,7 +172,7 @@ function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
     elseif ts == :daily
         return T.(1:length(t))
     else
-        error("Don't know how to find days for sampling $(ts)")
+        error("Don't know how to find days for time-sampling $(ts)")
     end
 end
 
