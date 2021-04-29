@@ -122,8 +122,9 @@ spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
 function spaceagg(::LonLatGrid, f, A::AbDimArray, w=nothing)
     wtype = spaceweightassert(A, w)
     cosweights = repeat(cosd.(dims(A, Lat).val)', size(A, Lon))
-    # TODO: Extends so that this assertion is not necessary:
-    @assert dimindex(A, Lon) < dimindex(A, Lat) "longitude dimension must precede latitude"
+    if dimindex(A, Lon) > dimindex(A, Lat)
+        error("At the moment this function assumes that Lon preceeds Lat, use `permutdims`.")
+    end
     other = otherdims(A, (Lon, Lat))
     # pre-calculate weights if possible
     if wtype == :no

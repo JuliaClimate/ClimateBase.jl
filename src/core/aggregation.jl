@@ -1,15 +1,11 @@
 #=
 Data aggregation of any kind
 =#
-function nomissing(da::AbstractArray{Union{T,Missing},N}) where {T,N}
-    any(ismissing, da) && error("array contains missing values")
+function nomissing(da::AbstractArray{Union{T,Missing},N}, check = any(ismissing, da)) where {T,N}
+    check && error("array contains missing values")
     return Array{T,N}(da)
 end
-nomissing(a::AbstractArray, args...) = a
-function nomissing(da::Array{Union{T,Missing},N}, value) where {T,N}
-    return replace(da, missing => T(value))
-end
-nomissing(da::AbDimArray) = DimensionalData.rebuild(da, nomissing(da.data))
+nomissing(da::AbstractArray{<:Union{Real, Dates.TimeType}}, args...) = da
 nomissing(da::ClimArray) = ClimArray(nomissing(da.data), da.dims, da.refdims, da.name, da.attrib)
 
 #########################################################################

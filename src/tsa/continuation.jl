@@ -43,7 +43,7 @@ function sinusoidal_continuation(T, frequencies = [1.0, 2.0]; Tmin = -Inf, Tmax 
     if !isinf(Tmin) && !isinf(Tmin)
         fullT = clamp.(fullT, Tmin, Tmax)
     end
-    return nomissing(fullT)
+    return ClimArray(nomissing(fullT.data), T.dims; name = T.name, attrib = T.attrib)
 end
 
 function cosines(t, lpv::Sinusoidal)
