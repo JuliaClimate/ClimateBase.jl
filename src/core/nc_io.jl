@@ -95,9 +95,9 @@ We do two performance improvements while loading the data:
   provide vectors of the central longitude and central latitude of each grid point.
   This is done e.g. by
   ```julia
-  ds = NCDataset("path/to/grid.jl")
-  lon = Array(ds["clon"])
-  lat = Array(ds["clat"])
+  ds = NCDataset("path/to/grid.jl");
+  lon = Array(ds["clon"]);
+  lat = Array(ds["clat"]);
   ```
   If `lon, lat` are given, `grid` is automatically assumed `UnstructuredGrid()`.
 """
@@ -251,11 +251,12 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
     # reduced points or not, and obtain the name of the coord dimension in the `ds`
     if isnothing(lon)
         lonlat, original_grid_dim = load_coordinate_points(ds)
+        lonlat = convert_to_degrees(lonlat, ds)
     else
-        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+        lonlat = [SVector(lo, la) for (lo, la) in zip(lon, lat)]
         original_grid_dim = intersect(NCDatasets.dimnames(cfvar), POSSIBLE_CELL_NAMES)[1]
+        lonlat = convert_to_degrees(lonlat)
     end
-    lonlat = convert_to_degrees(lonlat, ds)
 
     # TODO: I've noticed that this converts integer dimension (like pressure)
     # into Float64, but I'm not sure why...
