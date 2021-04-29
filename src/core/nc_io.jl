@@ -53,10 +53,11 @@ end
 # Reading
 #########################################################################
 """
-    ncread(file, var; name, grid) → A
+    ncread(file, var; name, kwargs...) → A
 Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref)
 with proper dimension mapping and also containing the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
+See keywords below for specifications for unstructured grids.
 
 `file` can be a string to a `.nc` file. Or, it can be an
 `NCDataset`, which allows you to lazily combine different
@@ -89,6 +90,10 @@ We do two performance improvements while loading the data:
   or `grid = UnstructuredGrid()`, see [Types of spatial coordinates](@ref).
   If `nothing`, we try to deduce automatically based on
   the names of dimensions and other keys of the `NCDataset`.
+* `lon, lat`. These two keywords are useful in unstructured grid data where the grid
+  information is provided in a *separate .nc file*. What we need is the user to
+  provide vectors of the central longitude and central latitude of each grid point.
+  If `lon, lat` are given, `grid` is automatically assumed `UnstructuredGrid()`.
 """
 function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
@@ -105,8 +110,17 @@ end
 # TODO: Allow reading multiple variables at once. This has the performance benefit
 # of not re-creating dimensions all the time.
 
-function ncread(ds::NCDatasets.AbstractDataset, var; name = var2name(var), grid = nothing)
-    gridtype = isnothing(grid) ? autodetect_grid(ds) : grid
+function ncread(ds::NCDatasets.AbstractDataset, var;
+        name = var2name(var), grid = nothing, lon = nothing, lat = nothing,
+    )
+    if lon isa Vector && lat isa Vector
+        gridtype = UnstructuredGrid()
+    elseif isnothing(grid)
+        gridtype = autodetect_grid(ds)
+    else
+        gridtype = grid
+    end
+
     if gridtype == UnstructuredGrid()
         return ncread_unstructured(ds, var, name)
     else
@@ -115,7 +129,7 @@ function ncread(ds::NCDatasets.AbstractDataset, var; name = var2name(var), grid 
 end
 
 function autodetect_grid(ds)
-    if haskey(ds, "reduced_points") || haskey(ds, "ncells") || haskey(ds, "clon")
+    if haskey(ds, "reduced_points") || haskey(ds.dim, "ncells") || haskey(ds, "clon")
         return UnstructuredGrid()
     else
         return LonLatGrid()
@@ -260,7 +274,7 @@ function load_coordinate_points(ds)
     if haskey(ds, "reduced_points")
         lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
         original_grid_dim = "rgrid"
-    elseif haskey(ds.dim, "ncells") # this is the equal area grid, so we make a Coord dimension
+    elseif haskey(ds.dim, "ncells") || haskey(ds, "lon") || haskey(ds, "clon")
         if haskey(ds, "lon")
             lons = ds["lon"] |> Array .|> wrap_lon
             lats = ds["lat"] |> Array
@@ -270,14 +284,15 @@ function load_coordinate_points(ds)
         else
             error("""
             We didn't find key `"lon"` or `"clon"` that represents the longitude of each
-            polygon in an unstructured equal area grid.
+            polygon in an unstructured grid.
             """)
         end
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
         original_grid_dim = "ncells"
     else
         error("""
-        We didn't find key `"ncells"` or `"reduced_points"` for unstructured grid.
+        We didn't find any of the following keys: `"ncells", "reduced_points", "clon", "lon",
+        at least one of which is mandatory for unstructured grid.
         """)
     end
     lonlat = convert_to_degrees(lonlat, ds)
