@@ -53,10 +53,11 @@ end
 # Reading
 #########################################################################
 """
-    ncread(file, var; name, grid) → A
+    ncread(file, var; name, kwargs...) → A
 Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref)
 with proper dimension mapping and also containing the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
+See keywords below for specifications for unstructured grids.
 
 `file` can be a string to a `.nc` file. Or, it can be an
 `NCDataset`, which allows you to lazily combine different
@@ -89,6 +90,16 @@ We do two performance improvements while loading the data:
   or `grid = UnstructuredGrid()`, see [Types of spatial coordinates](@ref).
   If `nothing`, we try to deduce automatically based on
   the names of dimensions and other keys of the `NCDataset`.
+* `lon, lat`. These two keywords are useful in unstructured grid data where the grid
+  information is provided in a *separate .nc file*. What we need is the user to
+  provide vectors of the central longitude and central latitude of each grid point.
+  This is done e.g. by
+  ```julia
+  ds = NCDataset("path/to/grid.jl");
+  lon = Array(ds["clon"]);
+  lat = Array(ds["clat"]);
+  ```
+  If `lon, lat` are given, `grid` is automatically assumed `UnstructuredGrid()`.
 """
 function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
@@ -105,17 +116,26 @@ end
 # TODO: Allow reading multiple variables at once. This has the performance benefit
 # of not re-creating dimensions all the time.
 
-function ncread(ds::NCDatasets.AbstractDataset, var; name = var2name(var), grid = nothing)
-    gridtype = isnothing(grid) ? autodetect_grid(ds) : grid
+function ncread(ds::NCDatasets.AbstractDataset, var;
+        name = var2name(var), grid = nothing, lon = nothing, lat = nothing,
+    )
+    if lon isa Vector && lat isa Vector
+        gridtype = UnstructuredGrid()
+    elseif isnothing(grid)
+        gridtype = autodetect_grid(ds)
+    else
+        gridtype = grid
+    end
+
     if gridtype == UnstructuredGrid()
-        return ncread_unstructured(ds, var, name)
+        return ncread_unstructured(ds, var, name, lon, lat)
     else
         return ncread_lonlat(ds, var, name)
     end
 end
 
 function autodetect_grid(ds)
-    if haskey(ds, "reduced_points") || haskey(ds, "ncells") || haskey(ds, "clon")
+    if haskey(ds, "reduced_points") || haskey(ds.dim, "ncells") || haskey(ds, "clon")
         return UnstructuredGrid()
     else
         return LonLatGrid()
@@ -223,13 +243,20 @@ vector2range(r::AbstractRange) = r
 #########################################################################
 export SVector
 
-function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
+function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, lon, lat)
     cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
     attrib = get_attributes_from_var(ds, cfvar, var)
 
     # Here we generate the longitudes and latitudes based on whether we have
     # reduced points or not, and obtain the name of the coord dimension in the `ds`
-    lonlat, original_grid_dim = load_coordinate_points(ds)
+    if isnothing(lon)
+        lonlat, original_grid_dim = load_coordinate_points(ds)
+        lonlat = convert_to_degrees(lonlat, ds)
+    else
+        lonlat = [SVector(lo, la) for (lo, la) in zip(lon, lat)]
+        original_grid_dim = intersect(NCDatasets.dimnames(cfvar), POSSIBLE_CELL_NAMES)[1]
+        lonlat = convert_to_degrees(lonlat)
+    end
 
     # TODO: I've noticed that this converts integer dimension (like pressure)
     # into Float64, but I'm not sure why...
@@ -256,31 +283,41 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
     return ClimArray(X; name = Symbol(name), attrib)
 end
 
+const POSSIBLE_CELL_NAMES = ["ncells", "cell", "rgrid", "grid"]
+
+function has_unstructured_key(ds)
+    any(x -> haskey(ds.dim, x), POSSIBLE_CELL_NAMES) ||
+    haskey(ds, "lon") || haskey(ds, "clon")
+end
+
 function load_coordinate_points(ds)
     if haskey(ds, "reduced_points")
         lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
-        original_grid_dim = "rgrid"
-    elseif haskey(ds.dim, "ncells") # this is the equal area grid, so we make a Coord dimension
+        original_grid_dim = "rgrid" # TODO: Specific to CDO Gaussian grid
+    elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
             lons = ds["lon"] |> Array .|> wrap_lon
             lats = ds["lat"] |> Array
+            original_grid_dim = NCDatasets.dimnames(ds["lon"])[1]
         elseif haskey(ds, "clon")
             lons = ds["clon"] |> Array .|> wrap_lon
             lats = ds["clat"] |> Array
+            original_grid_dim = NCDatasets.dimnames(ds["clon"])[1]
         else
             error("""
             We didn't find key `"lon"` or `"clon"` that represents the longitude of each
-            polygon in an unstructured equal area grid.
+            polygon in an unstructured grid.
             """)
         end
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
-        original_grid_dim = "ncells"
     else
         error("""
-        We didn't find key `"ncells"` or `"reduced_points"` for unstructured grid.
+        We didn't find any of the following keys: `"ncells", "cells", "reduced_points",
+        "clon", "lon"`, at least one of which is mandatory for unstructured grid.
+        If your data stores the "cell" information with a different name, please open
+        an issue and let us know!
         """)
     end
-    lonlat = convert_to_degrees(lonlat, ds)
     return lonlat, original_grid_dim
 end
 
@@ -297,8 +334,14 @@ function reduced_grid_to_points(lat, reduced_points)
 end
 
 function convert_to_degrees(lonlat, ds)
-    x = haskey(ds, "clat") ? ds["clat"] : ds["lat"]
-    if haskey(x.attrib, "units") == "radian" || !any(ll -> abs(ll[2]) > π/2, lonlat)
+    x = haskey(ds, "clon") ? ds["clon"] : ds["lon"]
+    if get(x.attrib, "units", nothing) == "radian" || !any(ll -> abs(ll[2]) > π/2, lonlat)
+        lonlat = [SVector(lo*180/π, la*180/π) for (lo, la) in lonlat]
+    end
+    return lonlat
+end
+function convert_to_degrees(lonlat)
+    if !any(ll -> abs(ll[2]) > π/2, lonlat)
         lonlat = [SVector(lo*180/π, la*180/π) for (lo, la) in lonlat]
     end
     return lonlat

@@ -1,4 +1,5 @@
 module ClimateBase
+export NCDataset
 
 include("core/coredefs.jl")
 include("core/prettyprint.jl")
