@@ -270,17 +270,24 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
     return ClimArray(X; name = Symbol(name), attrib)
 end
 
+function has_unstructured_key(ds)
+    haskey(ds.dim, "ncells") || haskey(ds.dim, "cell") ||
+    haskey(ds, "lon") || haskey(ds, "clon")
+end
+
 function load_coordinate_points(ds)
     if haskey(ds, "reduced_points")
         lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
         original_grid_dim = "rgrid"
-    elseif haskey(ds.dim, "ncells") || haskey(ds, "lon") || haskey(ds, "clon")
+    elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
             lons = ds["lon"] |> Array .|> wrap_lon
             lats = ds["lat"] |> Array
+            original_grid_dim = NCDatasets.dimnames(ds["lon"])[1]
         elseif haskey(ds, "clon")
             lons = ds["clon"] |> Array .|> wrap_lon
             lats = ds["clat"] |> Array
+            original_grid_dim = NCDatasets.dimnames(ds["clon"])[1]
         else
             error("""
             We didn't find key `"lon"` or `"clon"` that represents the longitude of each
@@ -288,11 +295,12 @@ function load_coordinate_points(ds)
             """)
         end
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
-        original_grid_dim = "ncells"
     else
         error("""
-        We didn't find any of the following keys: `"ncells", "reduced_points", "clon", "lon",
-        at least one of which is mandatory for unstructured grid.
+        We didn't find any of the following keys: `"ncells", "cells", "reduced_points",
+        "clon", "lon"`, at least one of which is mandatory for unstructured grid.
+        If your data stores the "cell" information with a different name, please open
+        an issue and let us know!
         """)
     end
     lonlat = convert_to_degrees(lonlat, ds)
@@ -312,8 +320,14 @@ function reduced_grid_to_points(lat, reduced_points)
 end
 
 function convert_to_degrees(lonlat, ds)
-    x = haskey(ds, "clat") ? ds["clat"] : ds["lat"]
-    if haskey(x.attrib, "units") == "radian" || !any(ll -> abs(ll[2]) > π/2, lonlat)
+    x = haskey(ds, "clon") ? ds["clon"] : ds["lon"]
+    if get(x.attrib, "units", nothing) == "radian" || !any(ll -> abs(ll[2]) > π/2, lonlat)
+        lonlat = [SVector(lo*180/π, la*180/π) for (lo, la) in lonlat]
+    end
+    return lonlat
+end
+function convert_to_degrees(lonlat)
+    if !any(ll -> abs(ll[2]) > π/2, lonlat)
         lonlat = [SVector(lo*180/π, la*180/π) for (lo, la) in lonlat]
     end
     return lonlat
