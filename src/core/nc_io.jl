@@ -93,6 +93,12 @@ We do two performance improvements while loading the data:
 * `lon, lat`. These two keywords are useful in unstructured grid data where the grid
   information is provided in a *separate .nc file*. What we need is the user to
   provide vectors of the central longitude and central latitude of each grid point.
+  This is done e.g. by
+  ```julia
+  ds = NCDataset("path/to/grid.jl")
+  lon = Array(ds["clon"])
+  lat = Array(ds["clat"])
+  ```
   If `lon, lat` are given, `grid` is automatically assumed `UnstructuredGrid()`.
 """
 function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
@@ -122,7 +128,7 @@ function ncread(ds::NCDatasets.AbstractDataset, var;
     end
 
     if gridtype == UnstructuredGrid()
-        return ncread_unstructured(ds, var, name)
+        return ncread_unstructured(ds, var, name, lon, lat)
     else
         return ncread_lonlat(ds, var, name)
     end
@@ -237,13 +243,19 @@ vector2range(r::AbstractRange) = r
 #########################################################################
 export SVector
 
-function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
+function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, lon, lat)
     cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
     attrib = get_attributes_from_var(ds, cfvar, var)
 
     # Here we generate the longitudes and latitudes based on whether we have
     # reduced points or not, and obtain the name of the coord dimension in the `ds`
-    lonlat, original_grid_dim = load_coordinate_points(ds)
+    if isnothing(lon)
+        lonlat, original_grid_dim = load_coordinate_points(ds)
+    else
+        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+        original_grid_dim = intersect(NCDatasets.dimnames(cfvar), POSSIBLE_CELL_NAMES)[1]
+    end
+    lonlat = convert_to_degrees(lonlat, ds)
 
     # TODO: I've noticed that this converts integer dimension (like pressure)
     # into Float64, but I'm not sure why...
@@ -270,15 +282,17 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name)
     return ClimArray(X; name = Symbol(name), attrib)
 end
 
+const POSSIBLE_CELL_NAMES = ["ncells", "cell", "rgrid", "grid"]
+
 function has_unstructured_key(ds)
-    haskey(ds.dim, "ncells") || haskey(ds.dim, "cell") ||
+    any(x -> haskey(ds.dim, x), POSSIBLE_CELL_NAMES) ||
     haskey(ds, "lon") || haskey(ds, "clon")
 end
 
 function load_coordinate_points(ds)
     if haskey(ds, "reduced_points")
         lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
-        original_grid_dim = "rgrid"
+        original_grid_dim = "rgrid" # TODO: Specific to CDO Gaussian grid
     elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
             lons = ds["lon"] |> Array .|> wrap_lon
@@ -303,7 +317,6 @@ function load_coordinate_points(ds)
         an issue and let us know!
         """)
     end
-    lonlat = convert_to_degrees(lonlat, ds)
     return lonlat, original_grid_dim
 end
 
