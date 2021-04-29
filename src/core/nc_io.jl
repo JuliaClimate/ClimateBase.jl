@@ -95,7 +95,7 @@ We do two performance improvements while loading the data:
   provide vectors of the central longitude and central latitude of each grid point.
   This is done e.g. by
   ```julia
-  ds = NCDataset("path/to/grid.jl");
+  ds = NCDataset("path/to/grid.nc");
   lon = Array(ds["clon"]);
   lat = Array(ds["clat"]);
   ```
