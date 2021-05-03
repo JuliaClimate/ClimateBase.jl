@@ -334,7 +334,8 @@ function reduced_grid_to_points(lat, reduced_points)
 end
 
 function convert_to_degrees(lonlat, ds)
-    x = haskey(ds, "clon") ? ds["clon"] : ds["lon"]
+    !(haskey(ds, "clat") || haskey(ds, "lat")) && return convert_to_degrees(lonlat)
+    x = haskey(ds, "clat") ? ds["clat"] : ds["lat"]
     if get(x.attrib, "units", nothing) == "radian" || !any(ll -> abs(ll[2]) > π/2, lonlat)
         lonlat = [SVector(lo*180/π, la*180/π) for (lo, la) in lonlat]
     end
