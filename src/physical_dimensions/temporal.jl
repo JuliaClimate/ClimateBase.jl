@@ -2,7 +2,7 @@
 Handling of time in data as a physical quantity, and time-related data processing
 =#
 using Statistics, StatsBase
-export monthday_indices, maxyearspan, daymonth, realtime_days, time_in_milliseconds
+export monthday_indices, maxyearspan, daymonth, realtime_days, realtime_milliseconds
 export temporal_sampling
 export timemean, timeagg
 export monthlyagg, yearlyagg, temporalrange, seasonalyagg, season
@@ -164,7 +164,7 @@ representing a timeseries `x(t)`.
 As only differences matter in this form, the returned vector always starts from 0.
 The measurement unit of time here is days.
 
-For temporal sampling less than daily return `time_in_milliseconds(t) ./ (24*60*60*1000)`.
+For temporal sampling less than daily return `realtime_milliseconds(t) ./ (24*60*60*1000)`.
 
 Example:
 ```juliarepl
@@ -193,22 +193,23 @@ function realtime_days(t::AbstractArray{<:TimeType}, T = Float32)
     elseif ts == :daily
         return T.(0:length(t)-1)
     else
-        return T.(time_in_milliseconds(t) ./ 86400000)
+        return T.(realtime_milliseconds(t) ./ 86400000)
     end
 end
 realtime_days(A) = realtime_days(dims(A, Ti).val)
 
 """
-    realtime_days(t::AbstractArray{<:TimeType}, T = Float64)
-Convert a given date time array into amount of milliseconds covered by `t` in a
-cumulative manner by taking successive differences of `t` (first entry always 0 here).
+    realtime_milliseconds(t::AbstractArray{<:TimeType}, T = Float64)
+Similar with [`realtime_days`](@ref), but now the measurement unit is millisecond.
+For extra accuracy, direct differences in `t` are used.
 """
-function time_in_milliseconds(t::AbstractArray{<:TimeType}, T = Float64)
+function realtime_milliseconds(t::AbstractArray{<:TimeType}, T = Float64)
+    @assert issorted(t)
     r = cumsum([T(x.value) for x in diff(t)])
     pushfirst!(r, 0)
     return r
 end
-time_in_milliseconds(A) = time_in_milliseconds(dims(A, Ti).val)
+realtime_milliseconds(A) = realtime_milliseconds(dims(A, Ti).val)
 
 
 #########################################################################
