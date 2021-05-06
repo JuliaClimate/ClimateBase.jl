@@ -159,7 +159,7 @@ seasonalyagg
 temporalrange
 maxyearspan
 temporal_sampling
-time_in_days
+realtime_days
 ```
 
 ## Spatial
