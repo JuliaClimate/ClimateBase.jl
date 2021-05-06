@@ -2,7 +2,7 @@
 Handling of time in data as a physical quantity, and time-related data processing
 =#
 using Statistics, StatsBase
-export monthday_indices, maxyearspan, daymonth, time_in_days
+export monthday_indices, maxyearspan, daymonth, time_in_days, time_in_milliseconds
 export temporal_sampling
 export timemean, timeagg
 export monthlyagg, yearlyagg, temporalrange, seasonalyagg, season
@@ -158,23 +158,52 @@ end
 
 """
     time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
-Convert a given date time array into measurement units of days:
-a real-valued array which counts time in days, always increasing (cumulative).
+Convert a given date time array into amount of days cumulatively covered by `t`.
+For temporal sampling less than daily return `time_in_milliseconds(t) ./ (24*60*60*1000)`.
+
+Example:
+```juliarepl
+julia> t = Date(2004):Month(1):Date(2004, 6)
+Date("2004-01-01"):Month(1):Date("2004-06-01")
+
+julia> time_in_days(t)
+6-element Vector{Float32}:
+  31.0
+  60.0
+  91.0
+ 121.0
+ 152.0
+ 182.0
+```
 """
 function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
     ts = temporal_sampling(t)
     if ts == :monthly
         truetime = daysinmonth.(t)
-        return r = T.(cumsum(truetime))
+        return T.(cumsum(truetime))
     elseif ts == :yearly
         truetime = daysinmonth.(t)
-        return r = T.(cumsum(truetime))
+        return T.(cumsum(truetime))
     elseif ts == :daily
         return T.(1:length(t))
     else
-        error("Don't know how to find days for time-sampling $(ts)")
+        return T.(time_in_milliseconds(t) ./ 86400000)
     end
 end
+time_in_days(A) = time_in_days(dims(A, Ti).val)
+
+"""
+    time_in_days(t::AbstractArray{<:TimeType}, T = Float64)
+Convert a given date time array into amount of milliseconds covered by `t` in a
+cumulative manner by taking successive differences of `t` (first entry always 0 here).
+"""
+function time_in_milliseconds(t::AbstractArray{<:TimeType}, T = Float64)
+    r = cumsum([T(x.value) for x in diff(t)])
+    pushfirst!(r, 0)
+    return r
+end
+time_in_milliseconds(A) = time_in_milliseconds(dims(A, Ti).val)
+
 
 #########################################################################
 # temporal statistics
