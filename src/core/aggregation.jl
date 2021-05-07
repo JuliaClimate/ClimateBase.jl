@@ -1,12 +1,56 @@
 #=
-Data aggregation of any kind
+Data aggregation of any kind. Includes handling of missing values as well.
 =#
+#########################################################################
+# missing values handling
+#########################################################################
+export missing_weights
+
 function nomissing(da::AbstractArray{Union{T,Missing},N}, check = any(ismissing, da)) where {T,N}
     check && error("array contains missing values")
     return Array{T,N}(da)
 end
 nomissing(da::AbstractArray{<:Union{Real, Dates.TimeType}}, args...) = da
 nomissing(da::ClimArray) = ClimArray(nomissing(da.data), da.dims, da.refdims, da.name, da.attrib)
+
+
+"""
+    missing_weights(A::ClimArray, val = missing_val(A)) → B, W
+Generate a new array `B` with values like `A`, but with `A`'s missingvalues replaced
+with `val`. Also generate an array of weights, which has the value 0 when `A` had `missing`,
+and the value `1` otherwise.
+
+The output of this function should be used in conjunction with any of ClimateBase.jl
+aggregating functions like `spacemean, timemean, ...`, when your data have `missing`
+values which you want to _completely skip_ during the aggregation process.
+
+This function returns `A, nothing` if `A` has no missing elements.
+"""
+function missing_weights(A::ClimArray{Union{T, Missing}}, val = missing_val(A))
+    B = zeros(T, size(A))
+    W = ones(T, size(A))
+    missing_idxs = findall(ismissing, A)
+    notmissing_idxs = .!(missing_idxs)
+    B[missing_idxs] .= val
+    B[notmissing_idxs] .= view(A, notmissing_idxs)
+    W[missing_idxs] .= 0
+    return ClimArray(B, dims(A); name = A.name, attrib = A.Attrib),
+           ClimArray(W, dims(A); name = "weights_for_missing")
+end
+missing_weights(A::ClimArray{<:Number}, val = nothing) = A, nothing
+
+"""
+    missing_val(A)
+Return the value that should be substituted as "missing" in `A`.
+"""
+function missing_val(A)
+    if A.attrib isa Dict
+        return get(A.attrib, "_FillValue", 0)
+    else
+        return 0
+    end
+end
+
 
 #########################################################################
 # Aggregation of data, dropagg missings, dimensions, etc.
