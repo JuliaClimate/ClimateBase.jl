@@ -32,8 +32,7 @@ end
 A = ClimArray(A, d; name = "insolation")
 B = ClimArray(B, d; attrib = Dict("a" => 2)) # on purpose without name
 
-# %%
-
+# %% General Tests
 @testset "Dropping dimensions" begin
     dt = timemean(A)
     @test dt isa ClimArray
@@ -55,21 +54,33 @@ B = ClimArray(B, d; attrib = Dict("a" => 2)) # on purpose without name
     @test !hasdim(ds, Lon)
     @test !hasdim(ds, Lat)
     @test hasdim(ds, Time)
+    ds = dropagg(mean, A, Time)
+    @test dt isa ClimArray
+    @test !hasdim(dt, Time)
+    @test hasdim(dt, Lon)
+    @test hasdim(dt, Lat)
 end
 
-@testset "Default physical weights" begin
-    x, y = hemispheric_means(B)
-    @test timemean(x) != dropagg(mean, x, Time)
-    d1 = timemean(x) - timemean(y)
-    @test abs(d1) < 0.01
-    d2 = dropagg(mean, x, Time) - dropagg(mean, y, Time)
-    @test d2 < -0.1
-    x = B[:, :, 1]
-    @test zonalmean(latmean(x)) ≈ latmean(zonalmean(x)) ≈ spacemean(x)
-    @test spacemean(x) - mean(x) > 50
-    @test all(y -> abs(y) < 1e-8, spacemean(A))
+@testset "dropagg with weighting" begin
+    # spatiotemporal weights:
+    W = zero(A)
+    W[Time(5)] .= 1.0
+    res = dropagg(mean, A, Time, W)
+    @test all(res .≈ A[Time(5)])
+    @test dims(A, Lon).val == dims(res, Lon).val
+    res = dropagg(std, A, Time, W)
+    @test all(x -> isapprox(x, 0; atol = 1e-8), res)
+
+    # just time weight
+    w = zeros(length(t))
+    w[5] = 1.0
+    res = dropagg(mean, A, Time, w)
+    @test all(res .≈ A[Time(5)])
+    @test dims(A, Lon).val == dims(res, Lon).val
 end
 
+
+# %% Time Tests
 @testset "Temporal weighting" begin
     # spatiotemporal weights:
     W = zero(A)
@@ -170,6 +181,20 @@ end
     @test Base.step(tsea) == Month(3)
 end
 
+# %% Space tests
+@testset "Default physical weights" begin
+    x, y = hemispheric_means(B)
+    @test timemean(x) != dropagg(mean, x, Time)
+    d1 = timemean(x) - timemean(y)
+    @test abs(d1) < 0.01
+    d2 = dropagg(mean, x, Time) - dropagg(mean, y, Time)
+    @test d2 < -0.1
+    x = B[:, :, 1]
+    @test zonalmean(latmean(x)) ≈ latmean(zonalmean(x)) ≈ spacemean(x)
+    @test spacemean(x) - mean(x) > 50
+    @test all(y -> abs(y) < 1e-8, spacemean(A))
+end
+
 @testset "Spatial weighting" begin
     W = zero(A)
     W[Lon(5)] .= 1.0
@@ -199,6 +224,7 @@ end
     end
 end
 
+# %% IO tests
 @testset "NetCDF file IO" begin
     globat = Dict("history" => "test")
     ncwrite("test.nc", (A, B); globalattr = globat)
