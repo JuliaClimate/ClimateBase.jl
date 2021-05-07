@@ -10,7 +10,7 @@ For example the most common dimensions are longitude, latitude and time.
 `ClimateBase` is structured to deal with these intricacies, and in addition offer several functionalities commonly used, and sought after, by climate scientists.
 It also serves as the base building block for `ClimateTools`, which offers more advanced functionalities.
 
-At the moment the focus of `ClimateBase` is **not** operating on data *on disk*. It is designed for in-memory climate data exploration and manipulation.
+At the moment the focus of `ClimateBase` is **not** on operating on data *on disk*. It is designed for in-memory climate data exploration and manipulation.
 
 ### Installation
 This package is registered and you can install it with
@@ -197,6 +197,20 @@ The physical averages of the previous section are done by taking advantage of a 
 ```@docs
 dropagg
 collapse
+```
+
+## Missing data
+When loading an array with [`ncread`](@ref), the values of the return array may contain missing values if the actual data contain missing values according to the CF-standards.
+In other packages or other programming languages these missing values are handled "internally" and e.g. in statistical operations like `mean`, the statistics explicitly skip over missing values.
+For example this is a typical workflow of creating an array, assigning `missing` to all values of an array over land, and then taking the `mean` of the array, which would be the "mean over ocean".
+
+ClimateBase.jl _does not_ follow this approach for two reasons: 1) it does not comply with [Julia's `missing` propagation logic](https://docs.julialang.org/en/v1/manual/missing/), 2) using proper statistical weights gives more power to the user. As you have already seen in the documentation strings of e.g. [`timeagg`](@ref), [`spaceagg`](@ref) or [`dropagg`](@ref), you can provide explicit statistical weights of various forms.
+This gives you more power, because in the case of `missing` your statistical weights can only be 0 (missing value) or 1 (non-missing value). As an example, "pixel" of your spatial grid will have ambiguous values if it is not 100% covered by ocean, and to do a _proper_ average over ocean you should instead provide weights `W` whose value is quite simply the ocean fraction of each pixel.
+
+But what if you already have an array with `missing` values and you want to do what was described in the beginning, e.g. average by skipping the missings? Do not worry, we have you covered! Use the function [`missing_weights`](@ref)!
+```@docs
+missing_weights
+missing_val
 ```
 
 ## Timeseries Analysis
