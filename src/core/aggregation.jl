@@ -4,7 +4,7 @@ Data aggregation of any kind. Includes handling of missing values as well.
 #########################################################################
 # missing values handling
 #########################################################################
-export missing_weights
+export missing_weights, missing_val
 
 function nomissing(da::AbstractArray{Union{T,Missing},N}, check = any(ismissing, da)) where {T,N}
     check && error("array contains missing values")
@@ -16,7 +16,7 @@ nomissing(da::ClimArray) = ClimArray(nomissing(da.data), da.dims, da.refdims, da
 
 """
     missing_weights(A::ClimArray, val = missing_val(A)) → B, W
-Generate a new array `B` with values like `A`, but with `A`'s missingvalues replaced
+Generate a new array `B` with values like `A`, but with `A`'s `missing` values replaced
 with `val`. Also generate an array of weights, which has the value 0 when `A` had `missing`,
 and the value `1` otherwise.
 
@@ -24,7 +24,7 @@ The output of this function should be used in conjunction with any of ClimateBas
 aggregating functions like `spacemean, timemean, ...`, when your data have `missing`
 values which you want to _completely skip_ during the aggregation process.
 
-This function returns `A, nothing` if `A` has no missing elements.
+This function returns `A, nothing` if `A` has no `missing` values.
 """
 function missing_weights(A::ClimArray{Union{T, Missing}}, val = missing_val(A)) where {T}
     B = zeros(T, size(A))
@@ -41,7 +41,8 @@ missing_weights(A::ClimArray{<:Number}, val = nothing) = A, nothing
 
 """
     missing_val(A)
-Return the value that should be substituted as "missing" in `A`.
+Return the value that represents "missing" data in `A`, according to `A`'s metadata.
+If `A` does not have the `_FillValue` metadata, return 0 instead.
 """
 function missing_val(A)
     if A.attrib isa Dict
@@ -87,7 +88,6 @@ end
 
 dropagg(f, A::ClimArray, d, w::Nothing) = dropagg(f, A, d)
 
-# TODO: Test every single clause
 function dropagg(f, A::ClimArray, d, W)
     odims = otherdims(A, d)
     oidxs = otheridxs(A, d)
