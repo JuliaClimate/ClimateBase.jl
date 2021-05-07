@@ -160,6 +160,7 @@ temporalrange
 maxyearspan
 temporal_sampling
 realtime_days
+realtime_milliseconds
 ```
 
 ## Spatial
