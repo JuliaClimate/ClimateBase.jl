@@ -246,7 +246,8 @@ end
 
 @testset "Missings handling" begin
     m = rand(Float64, length.((lons, lats)))
-    midx = [1, 10, 20]
+    midx = CartesianIndices(m)[1:2, :]
+    L = length(midx)
     m[midx] .= -99.9
     M = ClimArray(m, (Lon(lons), Lat(lats)); attrib = Dict("_FillValue" => -99.9), name = "M")
     ncwrite("missing_test.nc", M)
@@ -254,10 +255,14 @@ end
     for i in midx; @test ismissing(M2[i]); end
     # now test `missing_weights`
     B, W = missing_weights(M2)
-    @test W[midx] == zeros(3)
-    @test B[midx] == fill(-99.9, 3)
-    mmean = mean(skipmissing(M.data))
+    @test all(iszero, W.data[midx])
+    @test all(isequal(-99.9), B.data[midx])
+    mmean = mean(skipmissing(M2.data))
     bmean = mean(B, StatsBase.weights(W))
     @test bmean == mmean
     # test `missing_weights` application to zonal mean
+    C = B[3:end, :]
+    z1 = zonalmean(C)
+    z2 = zonalmean(B, W)
+    @test all(z1.data .≈ z2.data)
 end

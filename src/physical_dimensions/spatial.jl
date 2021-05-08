@@ -75,8 +75,7 @@ export latmean, spacemean, zonalmean, spaceagg, uniquelats
     zonalmean(A::ClimArray [, W])
 Return the zonal mean of `A`. Works for both [`LonLatGrid`](@ref) as well as
 [`UnstructuredGrid`](@ref). Optionally provide statistical weights `W`.
-These _must_ be the same `size` as `A`. Use Julia's `repeat` function if you
-only have weights along a single dimension.
+These can be the same `size` as `A` or only having the same latitude structure as `A`.
 """
 zonalmean(A::AbDimArray, W = nothing) = zonalmean(spacestructure(A), A, W)
 zonalmean(::LonLatGrid, A::AbDimArray, W) = dropagg(mean, A, Lon, W)
