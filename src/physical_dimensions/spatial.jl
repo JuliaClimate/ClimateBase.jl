@@ -72,11 +72,13 @@ using StatsBase
 export latmean, spacemean, zonalmean, spaceagg, uniquelats
 
 """
-    zonalmean(A::ClimArray)
-Return the zonal mean of `A`.
+    zonalmean(A::ClimArray [, W])
+Return the zonal mean of `A`. Works for both [`LonLatGrid`](@ref) as well as
+[`UnstructuredGrid`](@ref). Optionally provide statistical weights `W`.
+These can be the same `size` as `A` or only having the same latitude structure as `A`.
 """
-zonalmean(A::AbDimArray) = zonalmean(spacestructure(A), A)
-zonalmean(::LonLatGrid, A::AbDimArray) = dropagg(mean, A, Lon)
+zonalmean(A::AbDimArray, W = nothing) = zonalmean(spacestructure(A), A, W)
+zonalmean(::LonLatGrid, A::AbDimArray, W) = dropagg(mean, A, Lon, W)
 
 """
     latmean(A::ClimArray)
@@ -115,8 +117,8 @@ spacemean(A, exw=nothing) = spaceagg(mean, A, exw)
 Aggregate `A` using function `f` (e.g. `mean, std`) over all available space (i.e.
 longitude and latitude) of `A`, weighting every part of `A` by its spatial area.
 
-`W` can be extra weights, to weight each spatial point with. `W` can either be
-just a `ClimArray` with same space as `A`, or of exactly same shape as `A`.
+`W` can be extra weights, to weight each spatial point with. `W` can either be a
+`ClimArray` with same spatial information as `A`, or having exactly same dimensions as `A`.
 """
 spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
 function spaceagg(::LonLatGrid, f, A::AbDimArray, w=nothing)
