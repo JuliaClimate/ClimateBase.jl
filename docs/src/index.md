@@ -207,7 +207,8 @@ For example this is a typical workflow of creating an array, assigning `missing`
 ClimateBase.jl _does not_ follow this approach for two reasons: 1) it does not comply with [Julia's `missing` propagation logic](https://docs.julialang.org/en/v1/manual/missing/), 2) using proper statistical weights gives more power to the user. As you have already seen in the documentation strings of e.g. [`timeagg`](@ref), [`spaceagg`](@ref) or [`dropagg`](@ref), you can provide explicit statistical weights of various forms.
 This gives you more power, because in the case of `missing` your statistical weights can only be 0 (missing value) or 1 (non-missing value). As an example, "pixel" of your spatial grid will have ambiguous values if it is not 100% covered by ocean, and to do a _proper_ average over ocean you should instead provide weights `W` whose value is quite simply the ocean fraction of each pixel.
 
-But what if you already have an array with `missing` values and you want to do what was described in the beginning, e.g. average by skipping the missings? Do not worry, we have you covered! Use the function [`missing_weights`](@ref)!
+But what if you already have an array with `missing` values and you want to do what was described in the beginning, e.g. average by skipping the missings? Do not worry, we have you covered! Use the function [`missing_weights`](@ref)! See also [`sinusoidal_continuation`](@ref) if the missing values are only in a subset of your temporal coverage.
+
 ```@docs
 missing_weights
 missing_val

@@ -30,11 +30,11 @@ function missing_weights(A::ClimArray{Union{T, Missing}}, val = missing_val(A)) 
     B = zeros(T, size(A))
     W = ones(T, size(A))
     missing_idxs = findall(ismissing, A)
-    notmissing_idxs = .!(missing_idxs)
+    notmissing_idxs = findall(!ismissing, A)
     B[missing_idxs] .= val
-    B[notmissing_idxs] .= view(A, notmissing_idxs)
+    B[notmissing_idxs] .= A.data[notmissing_idxs]
     W[missing_idxs] .= 0
-    return ClimArray(B, dims(A); name = A.name, attrib = A.Attrib),
+    return ClimArray(B, dims(A); name = A.name, attrib = A.attrib),
            ClimArray(W, dims(A); name = "weights_for_missing")
 end
 missing_weights(A::ClimArray{<:Number}, val = nothing) = A, nothing

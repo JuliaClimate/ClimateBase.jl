@@ -1,5 +1,6 @@
 using ClimateBase, Test, Dates
 using Statistics
+import StatsBase
 Time = ClimateBase.Time
 cd(@__DIR__)
 
@@ -241,4 +242,22 @@ end
     @test ds.attrib["history"] == "test"
     close(ds)
     rm("test.nc")
+end
+
+@testset "Missings handling" begin
+    m = rand(Float64, length.((lons, lats)))
+    midx = [1, 10, 20]
+    m[midx] .= -99.9
+    M = ClimArray(m, (Lon(lons), Lat(lats)); attrib = Dict("_FillValue" => -99.9), name = "M")
+    ncwrite("missing_test.nc", M)
+    M2 = ncread("missing_test.nc", "M")
+    for i in midx; @test ismissing(M2[i]); end
+    # now test `missing_weights`
+    B, W = missing_weights(M2)
+    @test W[midx] == zeros(3)
+    @test B[midx] == fill(-99.9, 3)
+    mmean = mean(skipmissing(M.data))
+    bmean = mean(B, StatsBase.weights(W))
+    @test bmean == mmean
+    # test `missing_weights` application to zonal mean
 end
