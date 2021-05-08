@@ -2,7 +2,7 @@
 Handling of time in data as a physical quantity, and time-related data processing
 =#
 using Statistics, StatsBase
-export monthday_indices, maxyearspan, daymonth, time_in_days
+export monthday_indices, maxyearspan, daymonth, realtime_days, realtime_milliseconds
 export temporal_sampling
 export timemean, timeagg
 export monthlyagg, yearlyagg, temporalrange, seasonalyagg, season
@@ -157,24 +157,60 @@ function monthspan(t::TimeType)
 end
 
 """
-    time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
-Convert a given date time array into measurement units of days:
-a real-valued array which counts time in days, always increasing (cumulative).
+    realtime_days(t::AbstractVector{<:TimeType}, T = Float32)
+Convert the given _sequential_ date time vector `t` in a vector in a format of "real time",
+where time is represented by real numbers, increasing cumulatively, as is the case when
+representing a timeseries `x(t)`.
+As only differences matter in this form, the returned vector always starts from 0.
+The measurement unit of time here is days.
+
+For temporal sampling less than daily return `realtime_milliseconds(t) ./ (24*60*60*1000)`.
+
+Example:
+```juliarepl
+julia> t = Date(2004):Month(1):Date(2004, 6)
+Date("2004-01-01"):Month(1):Date("2004-06-01")
+
+julia> realtime_days(t)
+6-element Vector{Float32}:
+   0.0
+  29.0
+  60.0
+  90.0
+ 121.0
+ 151.0
+```
 """
-function time_in_days(t::AbstractArray{<:TimeType}, T = Float32)
+function realtime_days(t::AbstractArray{<:TimeType}, T = Float32)
+    @assert issorted(t)
     ts = temporal_sampling(t)
     if ts == :monthly
-        truetime = daysinmonth.(t)
-        return r = T.(cumsum(truetime))
+        truetime = cumsum(daysinmonth.(t))
+        return T.(truetime .- truetime[1])
     elseif ts == :yearly
-        truetime = daysinmonth.(t)
-        return r = T.(cumsum(truetime))
+        truetime = cumsum(daysinyear.(t))
+        return T.(truetime .- truetime[1])
     elseif ts == :daily
-        return T.(1:length(t))
+        return T.(0:length(t)-1)
     else
-        error("Don't know how to find days for time-sampling $(ts)")
+        return T.(realtime_milliseconds(t) ./ 86400000)
     end
 end
+realtime_days(A) = realtime_days(dims(A, Ti).val)
+
+"""
+    realtime_milliseconds(t::AbstractArray{<:TimeType}, T = Float64)
+Similar with [`realtime_days`](@ref), but now the measurement unit is millisecond.
+For extra accuracy, direct differences in `t` are used.
+"""
+function realtime_milliseconds(t::AbstractArray{<:TimeType}, T = Float64)
+    @assert issorted(t)
+    r = cumsum([T(x.value) for x in diff(t)])
+    pushfirst!(r, 0)
+    return r
+end
+realtime_milliseconds(A) = realtime_milliseconds(dims(A, Ti).val)
+
 
 #########################################################################
 # temporal statistics

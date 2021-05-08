@@ -27,7 +27,7 @@ function sinusoidal_continuation(T, frequencies = [1.0, 2.0]; Tmin = -Inf, Tmax 
     lpv = Sinusoidal(E.(frequencies ./ DAYS_IN_ORBIT))
     fullT = copy(T)
     # TODO: this must be extended to a general "true time" function
-    truetime = time_in_days(dims(T, Time).val, E)
+    truetime = realtime_days(dims(T, Time).val, E)
     for i in otheridxs(T, Time)
         x = T[i...]
         any(ismissing, x) || continue # this timeseries needs no correction
