@@ -7,6 +7,7 @@ export temporal_sampling
 export timemean, timeagg
 export monthlyagg, yearlyagg, temporalrange, seasonalyagg, season
 export DAYS_IN_ORBIT, HOURS_IN_ORBIT
+export interannual_variability
 #########################################################################
 # Datetime related
 #########################################################################
@@ -15,6 +16,7 @@ using Dates
 const DAYS_IN_ORBIT = 365.26
 const HOURS_IN_ORBIT = 365.26*24
 
+"daymonth(t) = day(t), month(t)"
 daymonth(t) = day(t), month(t)
 
 maxyearspan(A::AbstractDimArray, tsamp = temporal_sampling(A)) =
@@ -332,7 +334,6 @@ function timeagg(f, T::AbstractVector{<:TimeType}, a::Vector, w = nothing) # ver
     end
 end
 
-
 #########################################################################
 # Monthly/yearly/daily/seasonal means
 #########################################################################
@@ -450,4 +451,38 @@ function season(t::Dates.AbstractTime)
     else
         1
     end
+end
+
+#########################################################################
+# Other advanced functions
+#########################################################################
+"""
+    interannual_variability(t, x; y0 = year(t[1])) → dates, vals
+Calculate the interannual variability of a vector `x` defined with respect to a time
+vector `t`.
+`dates` are all unique dates present in `t` *disregarding the year* (so only the
+month and day are compared). The `dates` have as year entry `y0`.
+`vals` is a vector of vectors, where `vals[i]` are all the values of `x` that have
+day and month same as `dates[i]`.
+Typically one is interested in `mean.(vals)` and `std.(vals)` which provide the average
+yearly cycle of `x` as well as the standard deviation at each date of the cycle.
+
+    interannual_variability(A::ClimArray) → dates, vals
+If given a `ClimArray`, then the array must have only one dimension (time).
+"""
+function interannual_variability(t, xs; y0 = year(t[1]))
+    dates = unique(daymonth.(t))
+    vals = [eltype(xs)[] for u in dates]
+    for (τ, x) in zip(t, xs)
+        i = findfirst(isequal(daymonth(τ)), dates)
+        push!(vals[i], x)
+    end
+    outdates = [Date(y0, mon, day) for (day, mon) in dates]
+    si = sortperm(outdates)
+    return outdates[si], vals[si]
+end
+
+function interannual_variability(A::ClimArray; kwargs...)
+    @assert length(dims(A)) == 1
+    return interannual_variability(dims(A, Time).val, A.data; kwargs...)
 end
