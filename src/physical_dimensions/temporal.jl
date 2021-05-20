@@ -458,8 +458,8 @@ end
 #########################################################################
 """
     interannual_variability(t, x; y0 = year(t[1])) → dates, vals
-Calculate the interannual variability of a vector `x` defined with respect to a time
-vector `t`.
+Calculate the interannual variability of a vector `x` defined with respect to a datetime
+vector `t` and return `dates, vals`.
 `dates` are all unique dates present in `t` *disregarding the year* (so only the
 month and day are compared). The `dates` have as year entry `y0`.
 `vals` is a vector of vectors, where `vals[i]` are all the values of `x` that have
