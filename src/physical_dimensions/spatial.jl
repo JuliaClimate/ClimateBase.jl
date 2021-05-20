@@ -201,7 +201,7 @@ Return the (proper) averages of `A` over the northern and southern hemispheres.
 Notice that this function explicitly does both zonal as well as meridional averaging.
 Use [`hemispheric_functions`](@ref) to just split `A` into two hemispheres.
 """
-hemispheric_means(A) = hemispheric_means(spacestructure(A), A)
+hemispheric_means(A, args...) = hemispheric_means(spacestructure(A), A, args...)
 function hemispheric_means(::LonLatGrid, A::AbDimArray)
     @assert hasdim(A, Lat)
     if hasdim(A, Lon)

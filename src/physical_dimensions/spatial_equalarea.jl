@@ -106,6 +106,14 @@ function hemispheric_means(::UnstructuredGrid, A::AbDimArray)
     return nh, sh
 end
 
+function hemispheric_means(::UnstructuredGrid, A::AbDimArray, W)
+	@assert size(A) == size(W)
+    nhi, shi = hemisphere_indices(A)
+    nh = dropagg(mean, A[Coord(nhi)], Coord, W[Coord(nhi)])
+    sh = dropagg(mean, A[Coord(shi)], Coord, W[Coord(shi)])
+    return nh, sh
+end
+
 function hemisphere_indices(c)
     idxs, lats = uniquelats(c)
     i = findfirst(x -> x > 0, lats)
