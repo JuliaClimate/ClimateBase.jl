@@ -161,6 +161,7 @@ maxyearspan
 temporal_sampling
 realtime_days
 realtime_milliseconds
+interannual_variability
 ```
 
 ## Spatial
