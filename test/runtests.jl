@@ -103,7 +103,6 @@ end
 end
 
 @testset "Advanced temporal manipulation" begin
-    tdaily = Date(2000, 3, 1):Day(1):Date(2020, 3, 31)
     tyearly = Date(2000, 3, 1):Year(1):Date(2020, 3, 31)
     thourly = DateTime(2000, 3, 1):Hour(1):DateTime(2001, 4, 15)
     mdates = unique!([(year(d), month(d)) for d in tdaily])
@@ -178,7 +177,11 @@ end
         end
         Bz = zonalmean(B)
         Cm = monthlyagg(C)
-        @test all(Cm .≈ Bz)
+        @test size(Cm, Time) == size(B, Time) + 1
+        # For times besides the first and last month, they sould be the same:
+        for k in 5:length(t)-5
+            @test all(Cm[Time(k)] .≈ Bz[Time(k)])
+        end
 
         Asea = seasonalyagg(A)
         tsea = dims(Asea, Time).val
@@ -282,4 +285,5 @@ end
     z1 = zonalmean(C)
     z2 = zonalmean(B, W)
     @test all(z1.data .≈ z2.data)
+    rm("missing_test.nc")
 end
