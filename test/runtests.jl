@@ -193,7 +193,7 @@ end
         for y in unique(year.(t))[1:end-1]
             C[Time(At(Date(y, 3, 15)))] = 0
         end
-        dates, vals = interannual_variability(C)
+        dates, vals = seasonality(C)
         @test length(dates) == 12
         @test all(v -> length(v) == 20, vals)
         @test month(dates[3]) == 3
