@@ -85,7 +85,7 @@ end
 
 function hemispheric_functions(::UnstructuredGrid, A)
     c = dims(A, Coord).val
-    shi, nhi = hemisphere_indices(c)
+    nhi, shi = hemisphere_indices(c)
     nh = A[Coord(nhi)]
     sh = A[Coord(shi)]
     oldc = dims(sh, Coord).val
@@ -114,6 +114,10 @@ function hemispheric_means(::UnstructuredGrid, A::AbDimArray, W)
     return nh, sh
 end
 
+"""
+	hemisphere_indices(coords) → nhi, shi
+Return the indices of coordinates belonging to the north and south hemispheres.
+"""
 function hemisphere_indices(c)
     idxs, lats = uniquelats(c)
     i = findfirst(x -> x > 0, lats)

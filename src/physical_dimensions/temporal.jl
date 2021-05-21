@@ -463,7 +463,8 @@ vector `t` and return `dates, vals`.
 `dates` are all unique dates present in `t` *disregarding the year* (so only the
 month and day are compared). The `dates` have as year entry `y0`.
 `vals` is a vector of vectors, where `vals[i]` are all the values of `x` that have
-day and month same as `dates[i]`.
+day and month same as `dates[i]`. The elements of `vals` are sorted as encountered in `x`.
+
 Typically one is interested in `mean.(vals)` and `std.(vals)` which provide the average
 yearly cycle of `x` as well as the standard deviation at each date of the cycle.
 
