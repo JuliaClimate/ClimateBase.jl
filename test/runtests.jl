@@ -216,3 +216,21 @@ end
     close(ds)
     rm("test.nc")
 end
+
+@testset "Vertical interpolation" begin
+	D = ClimArray([1.:1.:11. 2.:1.:12. 3.:2.:23.], (Hei(0.:2000.:20000.), Ti(1:3)))
+	pressure_levels = [950.,850.,650.,350.,250.,150.] .* 100.
+	D_pre = interpolate_height2pressure(D, pressure_levels,extrapolation_bc=NaN)
+	D_back = interpolate_pressure2height(D_pre, Vector(dims(D,Hei).val),extrapolation_bc=Line())
+	my_dim = Dim{:My_Dim}
+	E = ClimArray([1.:1.:10. 2.:1.:11. 3.:2.:21.], (my_dim(1:10), Ti(1:3)))
+	pressure = ClimArray([1000.:-100.:100. 1000.:-100.:100. 1000.:-100.:100.] *100., (my_dim(1:10), Ti(1:3)))
+	E_pre = interpolation2pressure(E, pressure, pressure_levels; vertical_coord=my_dim, extrapolation_bc=NaN )
+	E_pre2 = interpolation2pressure(reverse(E,dims=my_dim), reverse(pressure,dims=my_dim), pressure_levels; vertical_coord=my_dim, extrapolation_bc=NaN, descending = false )
+
+	@test hasdim(D_pre,Pre())
+	@test dims(D) == dims(D_back)
+	@test E_pre.data == E_pre2.data
+end
+
+	
