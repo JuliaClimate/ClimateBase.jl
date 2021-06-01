@@ -47,7 +47,7 @@ end
 #########################################################################
 # Periodicity of longitude
 #########################################################################
-export lon_distance, wrap_lon
+export lon_distance, wrap_lon, longitude_circshift
 """
     wrap_lon(x)
 Wrap given longitude to -180 to 180 degrees.
@@ -57,11 +57,27 @@ wrap_lon(x) = @. -180 + (360 + ((x+180) % 360)) % 360
 """
     lon_distance(λ1, λ2, Δλ = 360) → δ
 Calculate distance `δ` (also in degrees) between longitudes `λ1, λ2`, but taking into
-account the periodic nature of longitude, which has period 360ᵒ.
+account the periodic nature of longitude, which has period `Δλ = 360ᵒ`.
 """
 function lon_distance(x, y, p = eltype(x)(360))
     moddis = mod(abs(x - y), p)
     min(moddis, p - moddis)
+end
+
+"""
+    longitude_circshift(X::ClimArray, l = size(X, Lon)÷2, wrap = false)
+Perform the same action as `Base.circshift`, but only for the longitudinal dimension
+of `X` with shift `l`. If `wrap = true` the longitudes are wrapped to (-180, 180) degrees.
+"""
+function longitude_circshift(X::ClimArray, l::Int = size(X, Lon)÷2, wrap = false)
+    shifts = map(d -> d isa Lon ? l : 0, dims(X))
+    shifted_data = circshift(X.data, shifts)
+    shifted_lon = mod.(circshift(dims(X, Lon).val, l), 360)
+    if wrap; shifted_lon = wrap_lon.(shifted_lon); end
+    shifted_lon = vector2range(shifted_lon)
+    shifted_dim = Lon(shifted_lon; metadata = dims(X, Lon).metadata)
+    new_dims = map(d -> d isa Lon ? shifted_dim : d, dims(X))
+    return ClimArray(shifted_data, new_dims; name = X.name, attrib = X.attrib)
 end
 
 #########################################################################

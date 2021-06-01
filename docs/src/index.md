@@ -166,7 +166,6 @@ seasonality
 
 ## Spatial
 
-### Spatial aggregation
 All functions in this section work for both types of space, see [Types of spatial coordinates](@ref).
 ```@docs
 zonalmean
@@ -176,6 +175,7 @@ spaceagg
 hemispheric_means
 hemispheric_functions
 lonlatfirst
+longitude_circshift
 ```
 
 ### Types of spatial coordinates
