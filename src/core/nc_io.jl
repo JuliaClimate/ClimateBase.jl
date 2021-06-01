@@ -221,8 +221,8 @@ function vector2range(x::Vector{<:Real})
     for i in 3:length(x)
         x[i]-x[i-1] ≠ dx && return x # if no constant step, return array as is
     end
-    r = x[1]:dx:x[end]
-    return r == x ? r : x # final safety check to ensure equal values
+    # do not check value equality, only difference equality
+    return x[1]:dx:x[end]
 end
 
 function vector2range(t::Vector{<:Dates.AbstractTime})
