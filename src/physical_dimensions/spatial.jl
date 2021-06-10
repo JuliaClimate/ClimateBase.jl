@@ -47,7 +47,7 @@ end
 #########################################################################
 # Periodicity of longitude
 #########################################################################
-export lon_distance, wrap_lon
+export lon_distance, wrap_lon, longitude_circshift
 """
     wrap_lon(x)
 Wrap given longitude to -180 to 180 degrees.
@@ -57,11 +57,27 @@ wrap_lon(x) = @. -180 + (360 + ((x+180) % 360)) % 360
 """
     lon_distance(λ1, λ2, Δλ = 360) → δ
 Calculate distance `δ` (also in degrees) between longitudes `λ1, λ2`, but taking into
-account the periodic nature of longitude, which has period 360ᵒ.
+account the periodic nature of longitude, which has period `Δλ = 360ᵒ`.
 """
 function lon_distance(x, y, p = eltype(x)(360))
     moddis = mod(abs(x - y), p)
     min(moddis, p - moddis)
+end
+
+"""
+    longitude_circshift(X::ClimArray, l = size(X, Lon)÷2, wrap = false)
+Perform the same action as `Base.circshift`, but only for the longitudinal dimension
+of `X` with shift `l`. If `wrap = true` the longitudes are wrapped to (-180, 180) degrees.
+"""
+function longitude_circshift(X::ClimArray, l::Int = size(X, Lon)÷2, wrap = false)
+    shifts = map(d -> d isa Lon ? l : 0, dims(X))
+    shifted_data = circshift(X.data, shifts)
+    shifted_lon = mod.(circshift(dims(X, Lon).val, l), 360)
+    if wrap; shifted_lon = wrap_lon.(shifted_lon); end
+    shifted_lon = vector2range(shifted_lon)
+    shifted_dim = Lon(shifted_lon; metadata = dims(X, Lon).metadata)
+    new_dims = map(d -> d isa Lon ? shifted_dim : d, dims(X))
+    return ClimArray(shifted_data, new_dims; name = X.name, attrib = X.attrib)
 end
 
 #########################################################################
@@ -72,11 +88,13 @@ using StatsBase
 export latmean, spacemean, zonalmean, spaceagg, uniquelats
 
 """
-    zonalmean(A::ClimArray)
-Return the zonal mean of `A`.
+    zonalmean(A::ClimArray [, W])
+Return the zonal mean of `A`. Works for both [`LonLatGrid`](@ref) as well as
+[`UnstructuredGrid`](@ref). Optionally provide statistical weights `W`.
+These can be the same `size` as `A` or only having the same latitude structure as `A`.
 """
-zonalmean(A::AbDimArray) = zonalmean(spacestructure(A), A)
-zonalmean(::LonLatGrid, A::AbDimArray) = dropagg(mean, A, Lon)
+zonalmean(A::AbDimArray, W = nothing) = zonalmean(spacestructure(A), A, W)
+zonalmean(::LonLatGrid, A::AbDimArray, W) = dropagg(mean, A, Lon, W)
 
 """
     latmean(A::ClimArray)
@@ -115,8 +133,8 @@ spacemean(A, exw=nothing) = spaceagg(mean, A, exw)
 Aggregate `A` using function `f` (e.g. `mean, std`) over all available space (i.e.
 longitude and latitude) of `A`, weighting every part of `A` by its spatial area.
 
-`W` can be extra weights, to weight each spatial point with. `W` can either be
-just a `ClimArray` with same space as `A`, or of exactly same shape as `A`.
+`W` can be extra weights, to weight each spatial point with. `W` can either be a
+`ClimArray` with same spatial information as `A`, or having exactly same dimensions as `A`.
 """
 spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
 function spaceagg(::LonLatGrid, f, A::AbDimArray, w=nothing)
@@ -199,7 +217,7 @@ Return the (proper) averages of `A` over the northern and southern hemispheres.
 Notice that this function explicitly does both zonal as well as meridional averaging.
 Use [`hemispheric_functions`](@ref) to just split `A` into two hemispheres.
 """
-hemispheric_means(A) = hemispheric_means(spacestructure(A), A)
+hemispheric_means(A, args...) = hemispheric_means(spacestructure(A), A, args...)
 function hemispheric_means(::LonLatGrid, A::AbDimArray)
     @assert hasdim(A, Lat)
     if hasdim(A, Lon)

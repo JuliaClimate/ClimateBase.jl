@@ -1,12 +1,57 @@
 #=
-Data aggregation of any kind
+Data aggregation of any kind. Includes handling of missing values as well.
 =#
+#########################################################################
+# missing values handling
+#########################################################################
+export missing_weights, missing_val
+
 function nomissing(da::AbstractArray{Union{T,Missing},N}, check = any(ismissing, da)) where {T,N}
     check && error("array contains missing values")
     return Array{T,N}(da)
 end
 nomissing(da::AbstractArray{<:Union{Real, Dates.TimeType}}, args...) = da
 nomissing(da::ClimArray) = ClimArray(nomissing(da.data), da.dims, da.refdims, da.name, da.attrib)
+
+
+"""
+    missing_weights(A::ClimArray, val = missing_val(A)) → B, W
+Generate a new array `B` with values like `A`, but with `A`'s `missing` values replaced
+with `val`. Also generate an array of weights, which has the value 0 when `A` had `missing`,
+and the value `1` otherwise.
+
+The output of this function should be used in conjunction with any of ClimateBase.jl
+aggregating functions like `spacemean, timemean, ...`, when your data have `missing`
+values which you want to _completely skip_ during the aggregation process.
+
+This function returns `A, nothing` if `A` has no `missing` values.
+"""
+function missing_weights(A::ClimArray{Union{T, Missing}}, val = missing_val(A)) where {T}
+    B = zeros(T, size(A))
+    W = ones(T, size(A))
+    missing_idxs = findall(ismissing, A)
+    notmissing_idxs = findall(!ismissing, A)
+    B[missing_idxs] .= val
+    B[notmissing_idxs] .= A.data[notmissing_idxs]
+    W[missing_idxs] .= 0
+    return ClimArray(B, dims(A); name = A.name, attrib = A.attrib),
+           ClimArray(W, dims(A); name = "weights_for_missing")
+end
+missing_weights(A::ClimArray{<:Number}, val = nothing) = A, nothing
+
+"""
+    missing_val(A)
+Return the value that represents "missing" data in `A`, according to `A`'s metadata.
+If `A` does not have the `_FillValue` metadata, return 0 instead.
+"""
+function missing_val(A)
+    if A.attrib isa Dict
+        return get(A.attrib, "_FillValue", 0)
+    else
+        return 0
+    end
+end
+
 
 #########################################################################
 # Aggregation of data, dropagg missings, dimensions, etc.
@@ -17,12 +62,17 @@ nomissing(da::ClimArray) = ClimArray(nomissing(da.data), da.dims, da.refdims, da
 export dropagg, nomissing, collapse, drop
 
 """
-    dropagg(f, A, dims)
+    dropagg(f, A, d [, W])
 Apply statistics/aggregating function `f` (e.g. `sum` or `mean`) on array `A` across
-dimension(s) `dims` and drop the corresponding dimension(s) from the result
+dimension(s) `d` and drop the corresponding dimension(s) from the result
 (Julia inherently keeps singleton dimensions).
 
 If `A` is one dimensional, `dropagg` will return the single number of applying `f(A)`.
+
+Optionally you can provide statistical weights in the form of an array `W`.
+`W` must have same size as `A`. An exception is when `d` is only a single
+dimension, e.g. `d = Lat`; then `W` is also allowed to be a single vector with
+length the same as `dims(A, d)`.
 """
 function dropagg(f, A, dims)
     length(size(A)) == 1 && return f(A)
@@ -35,6 +85,26 @@ function dropagg(f, A::AbDimArray, dims)
     r = dropdims(f(A; dims = dims); dims = dims)
     DimensionalData.rebuild(r, Array(r.data))
 end
+
+dropagg(f, A::ClimArray, d, w::Nothing) = dropagg(f, A, d)
+
+function dropagg(f, A::ClimArray, d, W)
+    odims = otherdims(A, d)
+    oidxs = otheridxs(A, d)
+    D = length(odims)
+    if D == 0 # operation output is a single number
+        return f(A, weights(W))
+    elseif size(A) == size(W)
+        r = map(i -> f(view(A, i), weights(view(W, i))), oidxs)
+    elseif length(size(W)) == 1 && length(W) == length(dims(A, d))
+        fw = weights(W)
+        r = map(i -> f(view(A, i), fw), oidxs)
+    else
+        error("Given weights `W` have invalid form.")
+    end
+    return ClimArray(r, odims; name = A.name)
+end
+
 
 """
     collapse(f, A, dim)

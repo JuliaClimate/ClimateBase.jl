@@ -18,7 +18,7 @@ function seasonal_decomposition(A::AbDimArray, fs::Vector)
     residual = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A))
 
     t = dims(A, Time).val
-    truetime = time_in_days(t, E)
+    truetime = realtime_days(t, E)
     for i in otheridxs(A, Time)
         y = Array(A[i...])
         sea, res = SignalDecomposition.decompose(truetime, y, method)
@@ -36,7 +36,7 @@ function seasonal_decomposition(A::AbDimArray{T, 1}, fs::Vector) where {T}
     residual = DimensionalData.basetypeof(A)(copy(Array(A)), dims(A))
 
     t = dims(A, Time).val
-    truetime = time_in_days(t, E)
+    truetime = realtime_days(t, E)
     y = Array(A)
     sea, res = SignalDecomposition.decompose(truetime, y, method)
     seasonal .= sea

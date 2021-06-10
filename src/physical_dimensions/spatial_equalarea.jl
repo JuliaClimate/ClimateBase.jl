@@ -5,7 +5,7 @@ function spatialidxs(::UnstructuredGrid, A)
     return ((Coord(i),) for i in 1:size(A, Coord))
 end
 
-function zonalmean(::UnstructuredGrid, A::AbDimArray)
+function zonalmean(::UnstructuredGrid, A::AbDimArray, ::Nothing)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
     r = zeros(eltype(A), (length(lats), size.(Ref(A), other)...))
@@ -17,11 +17,35 @@ function zonalmean(::UnstructuredGrid, A::AbDimArray)
     end
     return R
 end
-function zonalmean(::UnstructuredGrid, A::AbDimArray{T, 1}) where {T}
+function zonalmean(::UnstructuredGrid, A::AbDimArray{T, 1}, ::Nothing) where {T}
     idxs, lats = uniquelats(A)
     res = zeros(T, length(lats))
     for (i, r) in enumerate(idxs)
         res[i] = mean(view(A.data, r))
+    end
+    return ClimArray(res, (Lat(lats),); name=A.name, attrib=A.attrib)
+end
+
+# zonal mean with weights
+function zonalmean(::UnstructuredGrid, A::ClimArray, W)
+	@assert size(A) == size(W)
+    idxs, lats = uniquelats(A)
+    other = otherdims(A, Coord())
+    r0 = zeros(eltype(A), (length(lats), size.(Ref(A), other)...))
+    R = ClimArray(r0, (Lat(lats), other...); name=A.name, attrib=A.attrib)
+    for (i, r) in enumerate(idxs)
+        for j in otheridxs(A, Coord())
+            R[Lat(i), j...] = mean(view(A, Coord(r), j...), weights(view(W, Coord(r), j...)))
+        end
+    end
+    return R
+end
+function zonalmean(::UnstructuredGrid, A::ClimArray{T, 1}, W) where {T}
+	@assert size(A) == size(W)
+    idxs, lats = uniquelats(A)
+    res = zeros(T, length(lats))
+    for (i, r) in enumerate(idxs)
+        res[i] = mean(view(A.data, r), weights(view(W.data, r)))
     end
     return ClimArray(res, (Lat(lats),); name=A.name, attrib=A.attrib)
 end
@@ -61,7 +85,7 @@ end
 
 function hemispheric_functions(::UnstructuredGrid, A)
     c = dims(A, Coord).val
-    shi, nhi = hemisphere_indices(c)
+    nhi, shi = hemisphere_indices(c)
     nh = A[Coord(nhi)]
     sh = A[Coord(shi)]
     oldc = dims(sh, Coord).val
@@ -82,6 +106,18 @@ function hemispheric_means(::UnstructuredGrid, A::AbDimArray)
     return nh, sh
 end
 
+function hemispheric_means(::UnstructuredGrid, A::AbDimArray, W)
+	@assert size(A) == size(W)
+    nhi, shi = hemisphere_indices(A)
+    nh = dropagg(mean, A[Coord(nhi)], Coord, W[Coord(nhi)])
+    sh = dropagg(mean, A[Coord(shi)], Coord, W[Coord(shi)])
+    return nh, sh
+end
+
+"""
+	hemisphere_indices(coords) → nhi, shi
+Return the indices of coordinates belonging to the north and south hemispheres.
+"""
 function hemisphere_indices(c)
     idxs, lats = uniquelats(c)
     i = findfirst(x -> x > 0, lats)
