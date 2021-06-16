@@ -7,9 +7,6 @@ const Rd = 287.053
 using Interpolations
 export interpolation2pressure, interpolate_height2pressure, interpolate_pressure2height, pressure2height, height2pressure, hello, Line
 
-function hello()
-    print("hello")
-end
 """
 interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_levels::Vector; heightname=Hei(), extrapolation_bc=NaN )
 Return an ClimArray where the vertical coordinate is pressure. Pressure values need to ascending or descending
