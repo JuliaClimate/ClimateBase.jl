@@ -265,7 +265,7 @@ end
 end
 
 @testset "Vertical interpolation" begin
-	D = ClimArray([1.0:1.0:11.0 2.0:1.0:12.0 3.0:1.0:13.0], (Hei(0.0:2000.0:20000.0), Ti(1:3)))
+	D = ClimArray([1.0:1.0:11.0 2.0:1.0:12.0 3.0:1.0:13.0], (Vector(Hei(0.0:2000.0:20000.0)), Ti(1:3)))
 	pressure_levels = [950.0,850.0,650.0,350.0,250.0,150.0] .* 100.0
 	D_pre = interpolate_height2pressure(D, pressure_levels,extrapolation_bc=NaN)
 	D_back = interpolate_pressure2height(D_pre, Vector(dims(D,Hei).val),extrapolation_bc=Line())
@@ -276,7 +276,7 @@ end
 	E_pre2 = interpolation2pressure(reverse(E,dims=my_dim), reverse(pressure,dims=my_dim), pressure_levels; vertical_coord=my_dim, extrapolation_bc=NaN, descending = false )
 
 	@test hasdim(D_pre,Pre())
-	@test dims(D) == dims(D_back)
+	@test dims(D_back,Hei).val == dims(D,Hei).val && dims(D_back,Ti).val == dims(D,Ti).val
 	@test E_pre.data == E_pre2.data
     @test E_pre[Pre(1)] < E_pre[Pre(2)] < E_pre[Pre(3)] < E_pre[Pre(4)] < E_pre[Pre(5)]
     @test D_pre[Pre(1)] < D_pre[Pre(2)] < D_pre[Pre(3)] < D_pre[Pre(4)] < D_pre[Pre(5)]
