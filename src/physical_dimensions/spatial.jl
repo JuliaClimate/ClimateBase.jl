@@ -188,7 +188,7 @@ function spaceweightassert(A, w)
 end
 
 #########################################################################
-# Hemispheric sum/difference
+# Hemispheric
 #########################################################################
 export hemispheric_means, hemispheric_functions
 
@@ -232,3 +232,24 @@ end
 
 latitudes(A) = latitudes(spacestructure(A), A)
 latitudes(::LonLatGrid, A) = dims(A, Lat).val
+#########################################################################
+# Tropics/extratropics
+#########################################################################
+export tropics_extratropics
+"""
+    tropics_extratropics(A::ClimArray) → tropics, extratropics
+Separate the given array into two arrays: one having latitudes ℓ ∈ [-30, 30], and one
+having all other remaining latitudes.
+"""
+tropics_extratropics(A, args...) = 
+tropics_extratropics(spacestructure(A), A, args...)
+
+function tropics_extratropics(::LonLatGrid, A)
+    tropics = A[Lat(Between(-30, 30))]
+    latdim = dims(A, Lat)
+    extra_idxs_sh = DimensionalData.sel2indices(latdim, Between(-90, -30))
+    extra_idxs_nh = DimensionalData.sel2indices(latdim, Between(30, 90))
+    extra_idxs = vcat(extra_idxs_sh, extra_idxs_nh)
+    extratropics = A[Lat(extra_idxs)]
+    return tropics, extratropics
+end

@@ -245,6 +245,20 @@ end
     end
 end
 
+@testset "tropics/extratropics" begin
+    tropics, extratropics = tropics_extratropics(A)
+    tlats = dims(tropics, Lat).val
+    elats = dims(extratropics, Lat).val
+    @test all(l -> -30 ≤ l ≤ 30, tlats)
+    @test all(l -> abs(l) ≥ 30, elats)
+    @test hasdim(tropics, Ti)
+
+    tmean = spacemean(timemean(tropics))
+    emean = spacemean(timemean(extratropics))
+    amean = spacemean(timemean(A))
+    @test amean ≈ (emean + tmean)/2 rtol = 1e-3
+end
+
 # %% IO tests
 @testset "NetCDF file IO" begin
     globat = Dict("history" => "test")
