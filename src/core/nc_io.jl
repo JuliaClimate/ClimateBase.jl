@@ -157,7 +157,8 @@ function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name)
     if !any(ismissing, A)
         A = nomissing(A)
     end
-    data = ClimArray(A, create_dims(ds, dnames); name = Symbol(name), attrib = attrib)
+    dimensions = create_dims(ds, dnames, A)
+    data = ClimArray(A, dimensions; name = Symbol(name), attrib = attrib)
     return data
 end
 
@@ -173,10 +174,9 @@ end
     create_dims(ds::NCDatasets.AbstractDataset, dnames)
 Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
 """
-function create_dims(ds::NCDatasets.AbstractDataset, dnames)
-    # true_dims = getindex.(Ref(COMMONNAMES), dnames)
+function create_dims(ds::NCDatasets.AbstractDataset, dnames, A)
     true_dims = to_proper_dimensions(dnames)
-    dim_values = Array.(getindex.(Ref(ds), dnames))
+    dim_values = extract_dim_values(ds, dnames, A)
     # Some stupid datasets return a union{Missing} type for dimensions.
     # this is of course nonsense, a dimension cannot have "missing" values.
     if any(d -> Missing <: eltype(d), dim_values)
@@ -184,10 +184,12 @@ function create_dims(ds::NCDatasets.AbstractDataset, dnames)
     end
     optimal_values = vector2range.(dim_values)
     attribs = [
-        ds[d].attrib isa NCDatasets.BaseAttributes ? Dict(ds[d].attrib) : nothing
+        (haskey(ds, d) && ds[d].attrib isa NCDatasets.BaseAttributes) ? 
+            Dict(ds[d].attrib) : 
+            Dict()
         for d in dnames
     ]
-    out = []
+    out = Dimension[]
     for i in 1:length(true_dims)
         push!(out, true_dims[i](optimal_values[i]; metadata = attribs[i]))
     end
@@ -209,8 +211,25 @@ function to_proper_dimensions(dnames)
     end
     return (r...,)
 end
-
 export Dim # for generic dimensions this must be exported
+
+function extract_dim_values(ds::NCDatasets.AbstractDataset, dnames, A)
+    dim_values = AbstractVector[]
+    for (i, n) in enumerate(dnames)
+        if haskey(ds, n)
+            push!(dim_values, Vector(ds[n]))
+        else
+            @warn """
+            Dimension named "$n" does not have values in the dataset.
+            Using the range `1:size(A, i)` as the dimension values instead,
+            where `i` is the dimension index.
+            """
+            push!(dim_values, 1:size(A, i))
+        end
+    end
+    return dim_values
+end
+
 
 #########################################################################
 # Making vectors → ranges
