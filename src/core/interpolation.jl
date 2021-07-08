@@ -9,14 +9,14 @@ export interpolation2pressure, interpolate_height2pressure, interpolate_pressure
 
 """
 interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_levels::Vector; heightname=Hei(), extrapolation_bc=NaN )
-Return an ClimArray where the vertical coordinate is pressure. Pressure values need to ascending or descending
+Return an ClimArray where the vertical coordinate is pressure. Pressure values need to be ascending or descending in order.
 
 `A`: `ClimArray` with some arbitrary height coordinate (height above ground, model levels, etc...) with the variable that should be interpolated
 `pressure`: `ClimArray` with pressure values in Pascal and the same coordinates as `A`.
-`pressure_levels`: Vector which contains the pressure levels in Pascal that A should be interpolated on
-`vertical_coord` : name of the vertical coordinate. Should usually be `Hei` but can be model levels or something else that does not represent physical height
-`extrapolation_bc`: extrapolation is set to `NaN` by default, but can be any value or linear extrapolation with `extrapolation_bc = Line()` For other extrapolation methods use the `Interpolations` package.
-`order` : specifies whether pressure is ordered descendingly or ascendingly along the vertical coordinate
+`pressure_levels`: Vector which contains the pressure levels in Pascal that A should be interpolated on.
+`vertical_coord` : Name of the vertical coordinate, which is usually `Hei` but can be model levels or something else that does not represent physical height.
+`extrapolation_bc`: Extrapolation is set to `NaN` by default, but can be any value or linear extrapolation with `extrapolation_bc = Line()` For other extrapolation methods use the `Interpolations` package.
+`descending` : specifies whether pressure is ordered descendingly or ascendingly along the vertical coordinate. Descending by default.
 """
 function interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_levels::Vector; vertical_coord=Hei(), extrapolation_bc=NaN,descending=true )
 
@@ -72,9 +72,9 @@ end
 interpolate_height2pressure(A::ClimArray, pressure_levels::Vector; extrapolation_bc=NaN )
 Return a `ClimArray` where the vertical coordinate is pressure. Pressure levels are calculated with the `height2pressure` function, based on hydrostatic equilibrium, and then interpolated to the given levels.
 
-`A`: `ClimArray` with height above ground [m] as height coordinate
-`pressure_levels`: Vector which contains the pressure levels in Pascal that `A` should be interpolated on
-`extrapolation_bc`: extrapolation is set to `NaN` by default, but can be any value or linear extrapolation with `extrapolation_bc = Line()` For other extrapolation methods use the `Interpolations` package.
+`A`: `ClimArray` with height above ground [m] as height coordinate.
+`pressure_levels`: Vector which contains the pressure levels in Pascal that `A` should be interpolated on.
+`extrapolation_bc`: Extrapolation is set to `NaN` by default, but can be any value or linear extrapolation with `extrapolation_bc = Line()`. For other extrapolation methods use the `Interpolations` package.
 """
 function interpolate_height2pressure(A::ClimArray,pressure_levels::Vector; extrapolation_bc=NaN)
 
@@ -111,11 +111,11 @@ end
 
 """
 interpolate_pressure2height(A::ClimArray,heights::Vector; extrapolation_bc=NaN)
-Return a `ClimArray` where the vertical coordinate is height above ground.  Height above ground is calculated with the `pressure2height` function, based on hydrostatic equilibrium, and then interpolated to the given heights.
+Return a `ClimArray` where the vertical coordinate is height above ground. Height above ground is calculated with the `pressure2height` function, based on hydrostatic equilibrium, and then interpolated to the given heights.
 
-`A`: ClimArray with pressure [Pa] as height coordinate
-`heights`: Vector which contains the heights that `A` should be interpolated on in meters above ground
-`extrapolation_bc`: extrapolation is set to `NaN` by default, but can be any value or linear extrapolation with `extrapolation_bc = Line()` For other extrapolation methods use the `Interpolations` package.
+`A`: ClimArray with pressure [Pa] as height coordinate.
+`heights`: Vector which contains the heights that `A` should be interpolated on in meters above ground.
+`extrapolation_bc`: Extrapolation is set to `NaN` by default, but can be any value or linear extrapolation with `extrapolation_bc = Line()`. For other extrapolation methods use the `Interpolations` package.
 """
 function interpolate_pressure2height(A::ClimArray,heights::Vector; extrapolation_bc=NaN)
 

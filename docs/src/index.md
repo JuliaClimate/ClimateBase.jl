@@ -199,7 +199,7 @@ spatialidxs
 At the moment only vertical interpolation is implemented.
 
 ### Vertical
-We offer 3 fucntions for vertical interpolation. Extrapolation results in missing values by default, but can also be linear (`extrapolation_bc = Line()`). Check the Interpolations.jl package for more information: https://juliamath.github.io/Interpolations.jl/latest/ For additional extrapolation boundary conditions: https://juliamath.github.io/Interpolations.jl/latest/extrapolation/
+We offer 3 functions for vertical interpolation. Extrapolation results in missing values by default, but can also be linear (`extrapolation_bc = Line()`). Check the Interpolations.jl package for more information: https://juliamath.github.io/Interpolations.jl/latest/ For additional extrapolation boundary conditions: https://juliamath.github.io/Interpolations.jl/latest/extrapolation/
 
 ```@example main
 D = ClimArray([1.:1.:11. 2.:1.:12. 3.:2.:23.], (Hei(0.:2000.:20000.), Ti(1:3)))
