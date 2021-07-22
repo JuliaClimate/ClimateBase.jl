@@ -237,18 +237,18 @@ latitudes(::LonLatGrid, A) = dims(A, Lat).val
 #########################################################################
 export tropics_extratropics
 """
-    tropics_extratropics(A::ClimArray) → tropics, extratropics
-Separate the given array into two arrays: one having latitudes ℓ ∈ [-30, 30], and one
-having all other remaining latitudes.
+    tropics_extratropics(A::ClimArray; lower_lat=30, higher_lat=90) → tropics, extratropics
+Separate the given array into two arrays: one having latitudes ℓ ∈ [-lower_lat, +lower_lat], and one
+having [-higher_lat:-lower_lat, lower_lat:higher_lat].
 """
-tropics_extratropics(A, args...) = 
-tropics_extratropics(spacestructure(A), A, args...)
+tropics_extratropics(A, args...; kwargs...) = 
+tropics_extratropics(spacestructure(A), A, args...; kwargs...)
 
-function tropics_extratropics(::LonLatGrid, A)
-    tropics = A[Lat(Between(-30, 30))]
+function tropics_extratropics(::LonLatGrid, A; lower_lat=30, higher_lat=90)
+    tropics = A[Lat(Between(-lower_lat, lower_lat))]
     latdim = dims(A, Lat)
-    extra_idxs_sh = DimensionalData.sel2indices(latdim, Between(-90, -30))
-    extra_idxs_nh = DimensionalData.sel2indices(latdim, Between(30, 90))
+    extra_idxs_sh = DimensionalData.sel2indices(latdim, Between(-higher_lat, -lower_lat))
+    extra_idxs_nh = DimensionalData.sel2indices(latdim, Between(lower_lat, higher_lat))
     extra_idxs = vcat(extra_idxs_sh, extra_idxs_nh)
     extratropics = A[Lat(extra_idxs)]
     return tropics, extratropics

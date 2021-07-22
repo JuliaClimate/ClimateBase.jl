@@ -257,6 +257,16 @@ end
     emean = spacemean(timemean(extratropics))
     amean = spacemean(timemean(B))
     @test amean ≈ (emean + tmean)/2 rtol = 5
+
+    # Test for keyword options for latitude bounds
+    tropics, extratropics = tropics_extratropics(B, lower_lat=20, higher_lat=78)
+    tlats = dims(tropics, Lat).val
+    elats = dims(extratropics, Lat).val
+    @test all(l -> -20 ≤ l ≤ 20, tlats)
+    @test all(l -> abs(l) ≥ 20, elats)
+    @test maximum(abs.(elats)) <= 78
+    @test hasdim(tropics, Ti) # probably redundant, already tested
+
 end
 
 # %% IO tests
