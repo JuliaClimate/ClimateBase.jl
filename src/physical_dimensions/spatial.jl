@@ -239,7 +239,7 @@ export tropics_extratropics
 """
     tropics_extratropics(A::ClimArray; lower_lat=30, higher_lat=90) → tropics, extratropics
 Separate the given array into two arrays: one having latitudes ℓ ∈ [-lower_lat, +lower_lat], and one
-having [-higher_lat:-lower_lat, lower_lat:higher_lat]. lower_lat defaults to 30 degrees and higher_lat defaults to 90.
+having [-higher_lat:-lower_lat, lower_lat:higher_lat].
 """
 tropics_extratropics(A, args...; kwargs...) = 
 tropics_extratropics(spacestructure(A), A, args...; kwargs...)
