@@ -9,7 +9,7 @@ export interpolation2pressure, interpolate_height2pressure, interpolate_pressure
 
 """
 interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_levels::Vector; heightname=Hei(), extrapolation_bc=NaN )
-Return an ClimArray where the vertical coordinate is pressure. Pressure values need to be ascending or descending in order.
+Return a ClimArray where the vertical coordinate is pressure. Pressure values need to be ascending or descending in order.
 
 `A`: `ClimArray` with some arbitrary height coordinate (height above ground, model levels, etc...) with the variable that should be interpolated
 `pressure`: `ClimArray` with pressure values in Pascal and the same coordinates as `A`.
@@ -37,8 +37,6 @@ function interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_leve
 
     int_array = ClimArray(zeros(eltype(A), Tuple(dimension_lengths)), out_dims ; name = A.name, attrib = A.attrib)
     for i in otheridxs(A, vertical_coord)
-        #print(pressure[i].data)
-
         itp = LinearInterpolation(pressure[i],A[i],extrapolation_bc=extrapolation_bc)
         int_array[i] = itp(pressure_levels)
 
@@ -48,7 +46,7 @@ function interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_leve
 end
 
 """
-pressure2height(height)
+    pressure2height(height)
 Converts pressure [Pa] to height above ground [m].
 The calculation is done under the assumption of hydrostatic equilibrium with a constant lapse rate of -6.5 K/km, starting from a surface temperature T0=288.15 K.
 See also equations 39 and 40 in: Berberan-Santos, M. N., Bodunov, E. N., & Pogliani, L. (1997). On the barometric formula. American Journal of Physics, 65(5), 404-412.
@@ -58,7 +56,7 @@ function pressure2height(pressure)
 end
 
 """
-height2pressure(height)
+    height2pressure(height)
 Converts height above ground [m] to pressure [Pa].
 The calculation is done under the assumption of hydrostatic equilibrium with a constant lapse rate of -6.5 K/km, starting from a surface temperature T0=288.15 K.
 See also equations 39 and 40 in: Berberan-Santos, M. N., Bodunov, E. N., & Pogliani, L. (1997). On the barometric formula. American Journal of Physics, 65(5), 404-412.
@@ -69,7 +67,7 @@ end
 
 
 """
-interpolate_height2pressure(A::ClimArray, pressure_levels::Vector; extrapolation_bc=NaN )
+    interpolate_height2pressure(A::ClimArray, pressure_levels::Vector; extrapolation_bc=NaN )
 Return a `ClimArray` where the vertical coordinate is pressure. Pressure levels are calculated with the `height2pressure` function, based on hydrostatic equilibrium, and then interpolated to the given levels.
 
 `A`: `ClimArray` with height above ground [m] as height coordinate.
@@ -110,7 +108,7 @@ end
 
 
 """
-interpolate_pressure2height(A::ClimArray,heights::Vector; extrapolation_bc=NaN)
+    interpolate_pressure2height(A::ClimArray,heights::Vector; extrapolation_bc=NaN)
 Return a `ClimArray` where the vertical coordinate is height above ground. Height above ground is calculated with the `pressure2height` function, based on hydrostatic equilibrium, and then interpolated to the given heights.
 
 `A`: ClimArray with pressure [Pa] as height coordinate.
