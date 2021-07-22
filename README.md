@@ -8,4 +8,4 @@
 
 In the future it will serve as the base building block for `ClimateTools`, which offers more advanced functionalities, such as bias correction, interpolation and shapefiles  spatial subsetting.
 
-ClimateBase.jl support Julia 1.5+.
+ClimateBase.jl supports Julia 1.5+.
