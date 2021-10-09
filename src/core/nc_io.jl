@@ -285,7 +285,8 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
     @assert original_grid_dim ∈ alldims
     i = findfirst(x -> x == original_grid_dim, alldims)
     remainingdims = deleteat!(copy(alldims), i)
-    actualdims = Any[create_dims(ds, remainingdims)...]
+    A = Array(cfvar)
+    actualdims = Any[create_dims(ds, remainingdims, A)...]
 
     # Make coordinate dimension
     si = sortperm(lonlat, by = reverse)
@@ -293,7 +294,6 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
     insert!(actualdims, i, coords)
 
     # Create array, sort by latitude and remove missings
-    A = Array(cfvar)
     X = ClimArray(A, Tuple(actualdims))
     X = X[Coord(si)]
     if !any(ismissing, X)
