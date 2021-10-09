@@ -81,9 +81,9 @@ function interpolate_height2pressure(A::ClimArray,pressure_levels::Vector; extra
     # The interplation requires ascending coordinates:
     # Pressure has to be ascending, therefore height has to be descending
     if issorted(dims(A,Hei)) ==  true
-        A = reverse(A,dims=Hei())
+        A = reverse(A; dims = Hei)
     else
-        error("Height is not an ascending coordinate. Try reversing with reverse().")
+        error("Height is not an ascending coordinate.")
     end
 
     pressure = height2pressure.(dims(A,Hei()).val)

@@ -3,7 +3,7 @@ Code related with input output (IO) of .nc files directly to/from ClimArrays
 An initial version of parts of this code was taken from:
 https://github.com/rafaqz/GeoData.jl
 =#
-using NCDatasets
+using NCDatasets: NCDatasets, NCDataset
 export NCDataset
 export nckeys, ncdetails, globalattr
 export ncread, ncwrite
@@ -285,7 +285,8 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
     @assert original_grid_dim ∈ alldims
     i = findfirst(x -> x == original_grid_dim, alldims)
     remainingdims = deleteat!(copy(alldims), i)
-    actualdims = Any[create_dims(ds, remainingdims)...]
+    A = Array(cfvar)
+    actualdims = Any[create_dims(ds, remainingdims, A)...]
 
     # Make coordinate dimension
     si = sortperm(lonlat, by = reverse)
@@ -293,7 +294,6 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
     insert!(actualdims, i, coords)
 
     # Create array, sort by latitude and remove missings
-    A = Array(cfvar)
     X = ClimArray(A, Tuple(actualdims))
     X = X[Coord(si)]
     if !any(ismissing, X)
@@ -433,7 +433,7 @@ function ncwrite(file::String, Xs; globalattr = Dict())
             isnothing(attrib) && (attrib = Dict())
             dnames = dim_to_commonname.(dims(X))
             data = Array(X)
-            defVar(ds, n, data, (dnames...,); attrib)
+            NCDatasets.defVar(ds, n, data, (dnames...,); attrib)
         end
         close(ds)
     # end
@@ -448,13 +448,13 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
         # this conversion to DateTime is necessary because CFTime.jl doesn't support Date
         eltype(v) == Date && (v = DateTime.(v))
         l = length(v)
-        defDim(ds, d, l) # add dimension entry
+        NCDatasets.defDim(ds, d, l) # add dimension entry
         attrib = dimensions[i].metadata
         if (isnothing(attrib) || attrib == DimensionalData.NoMetadata()) && haskey(DEFAULT_ATTRIBS, d)
             @warn "Dimension $d has no attributes, adding default attributes (mandatory)."
             attrib = DEFAULT_ATTRIBS[d]
         end
         # write dimension values as a variable as well (mandatory)
-        defVar(ds, d, v, (d, ); attrib = attrib)
+        NCDatasets.defVar(ds, d, v, (d, ); attrib = attrib)
     end
 end
