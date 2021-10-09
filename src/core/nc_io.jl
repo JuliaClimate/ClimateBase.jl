@@ -3,7 +3,7 @@ Code related with input output (IO) of .nc files directly to/from ClimArrays
 An initial version of parts of this code was taken from:
 https://github.com/rafaqz/GeoData.jl
 =#
-using NCDatasets
+using NCDatasets: NCDatasets, NCDataset
 export NCDataset
 export nckeys, ncdetails, globalattr
 export ncread, ncwrite
@@ -433,7 +433,7 @@ function ncwrite(file::String, Xs; globalattr = Dict())
             isnothing(attrib) && (attrib = Dict())
             dnames = dim_to_commonname.(dims(X))
             data = Array(X)
-            defVar(ds, n, data, (dnames...,); attrib)
+            NCDatasets.defVar(ds, n, data, (dnames...,); attrib)
         end
         close(ds)
     # end
@@ -448,13 +448,13 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
         # this conversion to DateTime is necessary because CFTime.jl doesn't support Date
         eltype(v) == Date && (v = DateTime.(v))
         l = length(v)
-        defDim(ds, d, l) # add dimension entry
+        NCDatasets.defDim(ds, d, l) # add dimension entry
         attrib = dimensions[i].metadata
         if (isnothing(attrib) || attrib == DimensionalData.NoMetadata()) && haskey(DEFAULT_ATTRIBS, d)
             @warn "Dimension $d has no attributes, adding default attributes (mandatory)."
             attrib = DEFAULT_ATTRIBS[d]
         end
         # write dimension values as a variable as well (mandatory)
-        defVar(ds, d, v, (d, ); attrib = attrib)
+        NCDatasets.defVar(ds, d, v, (d, ); attrib = attrib)
     end
 end
