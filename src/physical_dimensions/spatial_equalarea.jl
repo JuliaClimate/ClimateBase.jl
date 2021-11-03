@@ -27,7 +27,7 @@ function zonalmean(::UnstructuredGrid, A::AbDimArray{T, 1}, ::Nothing) where {T}
 end
 
 # zonal mean with weights
-function zonalmean(::UnstructuredGrid, A::ClimArray, W)
+function zonalmean(::UnstructuredGrid, A::ClimArray, W::AbstractArray)
 	@assert size(A) == size(W)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
@@ -40,7 +40,7 @@ function zonalmean(::UnstructuredGrid, A::ClimArray, W)
     end
     return R
 end
-function zonalmean(::UnstructuredGrid, A::ClimArray{T, 1}, W) where {T}
+function zonalmean(::UnstructuredGrid, A::ClimArray{T, 1}, W::AbstractArray) where {T}
 	@assert size(A) == size(W)
     idxs, lats = uniquelats(A)
     res = zeros(T, length(lats))
@@ -52,7 +52,7 @@ end
 
 
 """
-    uniquelats(A::AbDimArray) → idxs, lats
+    uniquelats(A::ClimArray) → idxs, lats
     uniquelats(c::Vector{<:AbstractVector}) → idxs, lats
 Find the unique latitudes of `A`. Return the indices (vector of ranges) that each latitude
 in `lats` covers, as well as the latitudes themselves.
@@ -121,8 +121,8 @@ Return the indices of coordinates belonging to the north and south hemispheres.
 function hemisphere_indices(c)
     idxs, lats = uniquelats(c)
     i = findfirst(x -> x > 0, lats)
-    shi = idxs[1][1]:idxs[i][end]
-    nhi = idxs[i+1][1]:idxs[end][end]
+    shi = idxs[1][1]:idxs[i-1][end]
+    nhi = idxs[i][1]:idxs[end][end]
     return nhi, shi
 end
 
