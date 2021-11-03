@@ -2,12 +2,6 @@
 Handling of time in data as a physical quantity, and time-related data processing
 =#
 using Statistics, StatsBase
-export monthday_indices, maxyearspan, daymonth, realtime_days, realtime_milliseconds
-export temporal_sampling
-export timemean, timeagg
-export monthlyagg, yearlyagg, temporalrange, seasonalyagg, season
-export DAYS_IN_ORBIT, HOURS_IN_ORBIT
-export seasonality
 #########################################################################
 # Datetime related
 #########################################################################
@@ -62,12 +56,12 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
         return :other
     end
 end
-temporal_sampling(t::AbstractVector) = :other
-temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
-temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
-temporal_sampling(t::StepRange{<:Any,Day}) = :daily
-temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
-temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
+temporal_sampling(::AbstractVector) = :other
+temporal_sampling(::StepRange{<:Any,Month}) = :monthly
+temporal_sampling(::StepRange{<:Any,Year}) = :yearly
+temporal_sampling(::StepRange{<:Any,Day}) = :daily
+temporal_sampling(::StepRange{<:Any,Hour}) = :hourly
+temporal_sampling(::StepRange{<:Any,<:Any}) = :other
 
 "return the appropriate subtype of `Dates.Period` or `nothing`."
 function tsamp2period(tsamp)
@@ -213,6 +207,16 @@ function realtime_milliseconds(t::AbstractArray{<:TimeType}, T = Float64)
 end
 realtime_milliseconds(A) = realtime_milliseconds(dims(A, Ti).val)
 
+
+"""
+    sametimespan(Xs...) → Ys
+Given several `ClimArray`s, return the same `ClimArray`s but now accessed in the `Time`
+dimension so that they all have span the same time interval.
+"""
+function sametimespan(Xs...)
+    tsamps = temporal_sampling.(Xs)
+    sampling = all(t -> t == :monthly, tsamps) ? :monthly : :other
+end
 
 #########################################################################
 # temporal statistics

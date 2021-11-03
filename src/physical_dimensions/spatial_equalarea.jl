@@ -128,6 +128,26 @@ end
 
 latitudes(::UnstructuredGrid, A) = unique!([x[2] for x in dims(A, Coord)])
 
+function tropics_extratropics(::UnstructuredGrid, A; lower_lat=30)
+    # TODO: Support `higher_lat` keyword
+    c = dims(A, Coord).val
+    idxs, lats = uniquelats(c)
+    i1 = findlast(x -> x < -lower_lat, lats)
+    i2 = findfirst(x -> x > lower_lat, lats)
+    # tropics indices (accounting for hemispheric only data as well)
+    t1 = isnothing(i1) ? 0 : i1
+    t2 = isnothing(i2) ? length(idxs)+1 : i2
+    i_tropics = idxs[t1+1][1]:idxs[t2-1][end]
+    # extratropics indices (accounting for hemispheric only data as well)
+    i_sh_extra = isnothing(i1) ? (1:0) : idxs[1][1]:idxs[i1][end]
+    i_nh_extra = isnothing(i2) ? (1:0) : idxs[i2][1]:idxs[end][end]
+    i_extra = vcat(i_sh_extra, i_nh_extra)
+
+    tropics = A[Coord(i_tropics)]
+    extratropics = A[Coord(i_extra)]
+    return tropics, extratropics
+end
+
 #########################################################################
 # Extention of convenience indexing of `Coord`
 #########################################################################
