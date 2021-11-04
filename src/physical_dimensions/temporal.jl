@@ -212,11 +212,27 @@ realtime_milliseconds(A) = realtime_milliseconds(dims(A, Ti).val)
     sametimespan(Xs...) → Ys
 Given several `ClimArray`s, return the same `ClimArray`s but now accessed in the `Time`
 dimension so that they all have span the same time interval.
+
+`sametimespan` also has more intelligent handling of monthly or yearly sampled data.
 """
 function sametimespan(Xs...)
+    mint = maximum(minimum(dims(X, Time).val) for X in Xs)
+    maxt = minimum(maximum(dims(X, Time).val) for X in Xs)
+    # Make an intelligent decision for monthly/yearly sampled data
     tsamps = temporal_sampling.(Xs)
-    sampling = all(t -> t == :monthly, tsamps) ? :monthly : :other
+    if all(isequal(:monthly), tsamps)
+        mint = Date(year(mint), month(mint), 1)
+        d = daysinmonth(maxt)
+        maxt = Date(year(maxt), month(maxt), d)
+    elseif all(isequal(:yearly), tsamps)
+        mint = Date(year(mint), 1, 1)
+        maxt = Date(year(maxt), 12, 31)
+    end
+    @show mint
+    @show maxt
+    map(X -> X[Time(Between(mint, maxt))], Xs)
 end
+sametimespan(Xs::Tuple) = sametimespan(Xs...)
 
 #########################################################################
 # temporal statistics
