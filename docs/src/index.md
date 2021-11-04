@@ -162,6 +162,7 @@ temporal_sampling
 realtime_days
 realtime_milliseconds
 seasonality
+sametimespan
 ```
 
 ## Spatial

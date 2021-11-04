@@ -27,7 +27,7 @@ function zonalmean(::UnstructuredGrid, A::AbDimArray{T, 1}, ::Nothing) where {T}
 end
 
 # zonal mean with weights
-function zonalmean(::UnstructuredGrid, A::ClimArray, W)
+function zonalmean(::UnstructuredGrid, A::ClimArray, W::AbstractArray)
 	@assert size(A) == size(W)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
@@ -40,7 +40,7 @@ function zonalmean(::UnstructuredGrid, A::ClimArray, W)
     end
     return R
 end
-function zonalmean(::UnstructuredGrid, A::ClimArray{T, 1}, W) where {T}
+function zonalmean(::UnstructuredGrid, A::ClimArray{T, 1}, W::AbstractArray) where {T}
 	@assert size(A) == size(W)
     idxs, lats = uniquelats(A)
     res = zeros(T, length(lats))
@@ -52,7 +52,7 @@ end
 
 
 """
-    uniquelats(A::AbDimArray) → idxs, lats
+    uniquelats(A::ClimArray) → idxs, lats
     uniquelats(c::Vector{<:AbstractVector}) → idxs, lats
 Find the unique latitudes of `A`. Return the indices (vector of ranges) that each latitude
 in `lats` covers, as well as the latitudes themselves.
@@ -121,12 +121,32 @@ Return the indices of coordinates belonging to the north and south hemispheres.
 function hemisphere_indices(c)
     idxs, lats = uniquelats(c)
     i = findfirst(x -> x > 0, lats)
-    shi = idxs[1][1]:idxs[i][end]
-    nhi = idxs[i+1][1]:idxs[end][end]
+    shi = idxs[1][1]:idxs[i-1][end]
+    nhi = idxs[i][1]:idxs[end][end]
     return nhi, shi
 end
 
 latitudes(::UnstructuredGrid, A) = unique!([x[2] for x in dims(A, Coord)])
+
+function tropics_extratropics(::UnstructuredGrid, A; lower_lat=30)
+    # TODO: Support `higher_lat` keyword
+    c = dims(A, Coord).val
+    idxs, lats = uniquelats(c)
+    i1 = findlast(x -> x < -lower_lat, lats)
+    i2 = findfirst(x -> x > lower_lat, lats)
+    # tropics indices (accounting for hemispheric only data as well)
+    t1 = isnothing(i1) ? 0 : i1
+    t2 = isnothing(i2) ? length(idxs)+1 : i2
+    i_tropics = idxs[t1+1][1]:idxs[t2-1][end]
+    # extratropics indices (accounting for hemispheric only data as well)
+    i_sh_extra = isnothing(i1) ? (1:0) : idxs[1][1]:idxs[i1][end]
+    i_nh_extra = isnothing(i2) ? (1:0) : idxs[i2][1]:idxs[end][end]
+    i_extra = vcat(i_sh_extra, i_nh_extra)
+
+    tropics = A[Coord(i_tropics)]
+    extratropics = A[Coord(i_extra)]
+    return tropics, extratropics
+end
 
 #########################################################################
 # Extention of convenience indexing of `Coord`

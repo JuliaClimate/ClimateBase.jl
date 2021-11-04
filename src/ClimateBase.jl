@@ -17,4 +17,6 @@ include("climate/albedo.jl")
 include("tsa/continuation.jl")
 include("tsa/decomposition.jl")
 
+include("exports.jl")
+
 end # module

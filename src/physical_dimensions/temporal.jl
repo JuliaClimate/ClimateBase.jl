@@ -2,12 +2,6 @@
 Handling of time in data as a physical quantity, and time-related data processing
 =#
 using Statistics, StatsBase
-export monthday_indices, maxyearspan, daymonth, realtime_days, realtime_milliseconds
-export temporal_sampling
-export timemean, timeagg
-export monthlyagg, yearlyagg, temporalrange, seasonalyagg, season
-export DAYS_IN_ORBIT, HOURS_IN_ORBIT
-export seasonality
 #########################################################################
 # Datetime related
 #########################################################################
@@ -62,12 +56,12 @@ function temporal_sampling(t::AbstractVector{<:TimeType})
         return :other
     end
 end
-temporal_sampling(t::AbstractVector) = :other
-temporal_sampling(t::StepRange{<:Any,Month}) = :monthly
-temporal_sampling(t::StepRange{<:Any,Year}) = :yearly
-temporal_sampling(t::StepRange{<:Any,Day}) = :daily
-temporal_sampling(t::StepRange{<:Any,Hour}) = :hourly
-temporal_sampling(t::StepRange{<:Any,<:Any}) = :other
+temporal_sampling(::AbstractVector) = :other
+temporal_sampling(::StepRange{<:Any,Month}) = :monthly
+temporal_sampling(::StepRange{<:Any,Year}) = :yearly
+temporal_sampling(::StepRange{<:Any,Day}) = :daily
+temporal_sampling(::StepRange{<:Any,Hour}) = :hourly
+temporal_sampling(::StepRange{<:Any,<:Any}) = :other
 
 "return the appropriate subtype of `Dates.Period` or `nothing`."
 function tsamp2period(tsamp)
@@ -213,6 +207,30 @@ function realtime_milliseconds(t::AbstractArray{<:TimeType}, T = Float64)
 end
 realtime_milliseconds(A) = realtime_milliseconds(dims(A, Ti).val)
 
+
+"""
+    sametimespan(Xs...) → Ys
+Given several `ClimArray`s, return the same `ClimArray`s but now accessed in the `Time`
+dimension so that they all have span the same time interval.
+
+`sametimespan` also has more intelligent handling of monthly or yearly sampled data.
+"""
+function sametimespan(Xs...)
+    mint = maximum(minimum(dims(X, Time).val) for X in Xs)
+    maxt = minimum(maximum(dims(X, Time).val) for X in Xs)
+    # Make an intelligent decision for monthly/yearly sampled data
+    tsamps = temporal_sampling.(Xs)
+    if all(isequal(:monthly), tsamps)
+        mint = Date(year(mint), month(mint), 1)
+        d = daysinmonth(maxt)
+        maxt = Date(year(maxt), month(maxt), d)
+    elseif all(isequal(:yearly), tsamps)
+        mint = Date(year(mint), 1, 1)
+        maxt = Date(year(maxt), 12, 31)
+    end
+    map(X -> X[Time(Between(mint, maxt))], Xs)
+end
+sametimespan(Xs::Tuple) = sametimespan(Xs...)
 
 #########################################################################
 # temporal statistics
