@@ -420,7 +420,7 @@ function ncwrite(file::String, Xs; globalattr = Dict())
     end
 
     # ds = NCDataset(file, "c"; attrib = globalattr)
-    NCDataset("file.nc", "c"; attrib = globalattr) do ds
+    NCDataset(file, "c"; attrib = globalattr) do ds
         for (i, X) in enumerate(Xs)
             n = string(X.name)
             if n == ""
