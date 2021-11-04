@@ -419,8 +419,8 @@ function ncwrite(file::String, Xs; globalattr = Dict())
         """)
     end
 
-    ds = NCDataset(file, "c"; attrib = globalattr)
-    # NCDataset("file.nc", "c"; attrib = globalattr) do ds
+    # ds = NCDataset(file, "c"; attrib = globalattr)
+    NCDataset(file, "c"; attrib = globalattr) do ds
         for (i, X) in enumerate(Xs)
             n = string(X.name)
             if n == ""
@@ -430,13 +430,15 @@ function ncwrite(file::String, Xs; globalattr = Dict())
             println("processing variable $(n)...")
             add_dims_to_ncfile!(ds, dims(X))
             attrib = X.attrib
-            isnothing(attrib) && (attrib = Dict())
+            if (isnothing(attrib) || attrib == DimensionalData.NoMetadata())
+                attrib = Dict()
+            end
             dnames = dim_to_commonname.(dims(X))
             data = Array(X)
             NCDatasets.defVar(ds, n, data, (dnames...,); attrib)
         end
-        close(ds)
-    # end
+        # close(ds)
+    end
 end
 
 function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
