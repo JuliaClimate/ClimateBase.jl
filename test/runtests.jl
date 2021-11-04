@@ -131,6 +131,16 @@ end
         @test temporal_sampling(tother) == :other
     end
 
+    @testset "sametimespan" begin
+        tm1 = Date(2000, 3, 15):Month(1):Date(2010, 3, 1)
+        tm2 = Date(2001, 1, 1):Month(1):Date(2011, 1, 1)
+        A1 = ClimArray(rand(length(tm1)), (Time(tm1),))
+        A2 = ClimArray(rand(length(tm2)), (Time(tm2),))
+        B1, B2 = sametimespan(A1, A2)
+        @test size(B1) == size(B2)
+        @test dims(B1, Time)[1] == Date(2001, 3, 15)
+    end
+    
     @testset "monthlyagg and co." begin
         # test yearly temporal weights (i.e., no weighting)
         X = ClimArray(rand(3,3), (Lon(1:3), Time(tyearly[1:3])))
