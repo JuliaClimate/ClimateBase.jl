@@ -265,7 +265,7 @@ Same as above, but for arbitrary vector `x` accompanied by time vector `t`.
 """
 function timeagg(f, A::AbDimArray, w = nothing)
     !hasdim(A, Time) && error("Array does not have `Time` dimension!")
-    w isa AbDimArray && @assert dims(w) == dims(A)
+    w isa AbDimArray && @assert size(w) == size(A)
     w isa Vector && @assert length(w) == size(A, Time)
     tsamp = temporal_sampling(A)
     if tsamp == :other
