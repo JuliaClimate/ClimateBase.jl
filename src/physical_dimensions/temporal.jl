@@ -269,7 +269,7 @@ function timeagg(f, A::AbDimArray, w = nothing)
     w isa Vector && @assert length(w) == size(A, Time)
     tsamp = temporal_sampling(A)
     if tsamp == :other
-        return dropagg(f, A, Time) # TODO: Extend dropagg to arbitrary weights
+        return dropagg(f, A, Time, w)
     end
     r = if tsamp == :daily
         timeagg_daily(f, A, w)
