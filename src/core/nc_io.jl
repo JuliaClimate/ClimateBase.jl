@@ -137,6 +137,8 @@ end
 function autodetect_grid(ds)
     if haskey(ds, "reduced_points") || haskey(ds.dim, "ncells") || haskey(ds, "clon")
         return UnstructuredGrid()
+    elseif haskey(ds, "lat") && length(size(ds["lat"])) > 1
+        return UnstructuredGrid()
     else
         return LonLatGrid()
     end
@@ -316,12 +318,12 @@ function load_coordinate_points(ds)
         original_grid_dim = "rgrid" # TODO: Specific to CDO Gaussian grid
     elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
-            lons = ds["lon"] |> Array .|> wrap_lon
-            lats = ds["lat"] |> Array
+            lons = ds["lon"] |> Vector .|> wrap_lon
+            lats = ds["lat"] |> Vector
             original_grid_dim = NCDatasets.dimnames(ds["lon"])[1]
         elseif haskey(ds, "clon")
-            lons = ds["clon"] |> Array .|> wrap_lon
-            lats = ds["clat"] |> Array
+            lons = ds["clon"] |> Vector .|> wrap_lon
+            lats = ds["clat"] |> Vector
             original_grid_dim = NCDatasets.dimnames(ds["clon"])[1]
         else
             error("""
@@ -332,10 +334,8 @@ function load_coordinate_points(ds)
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
     else
         error("""
-        We didn't find any of the following keys: `"ncells", "cells", "reduced_points",
-        "clon", "lon"`, at least one of which is mandatory for unstructured grid.
-        If your data stores the "cell" information with a different name, please open
-        an issue and let us know!
+        We couldn't automatically identify the lon/lat values of cell centers.
+        Please provide explicitly keywords `lon, lat` in `ncread`.
         """)
     end
     return lonlat, original_grid_dim
