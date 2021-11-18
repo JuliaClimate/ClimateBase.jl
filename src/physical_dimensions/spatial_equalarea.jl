@@ -1,6 +1,8 @@
 #########################################################################
 # Spatial functions
 #########################################################################
+spaceagg(::UnstructuredGrid, f, A, W = nothing) = dropagg(f, A, Coord, W)
+
 function spatialidxs(::UnstructuredGrid, A)
     return ((Coord(i),) for i in 1:size(A, Coord))
 end
@@ -73,14 +75,6 @@ function uniquelats(c)
     push!(lats, c[end][2])
     push!(idxs, iprev:length(c))
     return idxs, lats
-end
-
-spaceagg(::UnstructuredGrid, f, A, ::Nothing) = dropagg(f, A, Coord)
-# I think the best scenario is to modify `dropagg` to take in weights.
-function spaceagg(::UnstructuredGrid, f, A, exw)
-    error("TODO")
-    w = pweights(Array(exw))
-    dropagg(f, A, Coord)
 end
 
 function hemispheric_functions(::UnstructuredGrid, A)
