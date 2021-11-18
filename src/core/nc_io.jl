@@ -53,7 +53,7 @@ end
 # Reading
 #########################################################################
 """
-    ncread(file, var; name, kwargs...) → A
+    ncread(file, var; kwargs...) → A
 Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref)
 with proper dimension mapping and also containing the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
@@ -64,7 +64,7 @@ See keywords below for specifications for unstructured grids.
 `.nc` data (typically split by time), e.g.
 ```julia
 using Glob # for getting all files
-alldata = glob("toa_fluxes_2020_*.nc")
+alldata = glob("toa_fluxes_*.nc")
 file = NCDataset(alldata; aggdim = "time")
 A = ClimArray(file, "tow_sw_all")
 ```
@@ -77,12 +77,17 @@ the created [`ClimArray`](@ref).
 
 See also [`ncdetails`](@ref), [`nckeys`](@ref) and [`ncwrite`](@ref).
 
-We do two performance improvements while loading the data:
+## Smart loading
+The following things make loading data with `ncread` smarter than directly trying to use
+NCDatasets.jl and then convert to some kind of dimensional container.
+1. Data are directly transformed into `ClimArray`, conserving metadata and dimension names.
 1. If there are no missing values in the data (according to CF standards), the
    returned array is automatically converted to a concrete type (i.e. `Union{Float32, Missing}`
    becomes `Float32`).
-2. Dimensions that are ranges (i.e. sampled with constant step size) are automatically
+1. Dimensions that are ranges (i.e. sampled with constant step size) are automatically
    transformed to a standard Julia `Range` type (which makes sub-selecting faster).
+1. Automatically deducing whether the spatial information is in an orthogonal
+   grid or not, and creating a single `Coord` dimension if not.
 
 ## Keywords
 * `name` optionally rename loaded array.
@@ -136,6 +141,8 @@ end
 
 function autodetect_grid(ds)
     if haskey(ds, "reduced_points") || haskey(ds.dim, "ncells") || haskey(ds, "clon")
+        return UnstructuredGrid()
+    elseif haskey(ds, "lat") && length(size(ds["lat"])) > 1
         return UnstructuredGrid()
     else
         return LonLatGrid()
@@ -204,6 +211,7 @@ function to_proper_dimensions(dnames)
         else
             @warn """
             Dimension name "$n" not in common names.
+            Please consider opening an issue/PR on GitHub proposing "$n" in common names!
             Making a generic dimension named `Dim{:$n}` for now...
             """
             push!(r, Dim{Symbol(n)})
@@ -270,11 +278,9 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
     # reduced points or not, and obtain the name of the coord dimension in the `ds`
     if isnothing(lon)
         lonlat, original_grid_dim = load_coordinate_points(ds)
-        lonlat = convert_to_degrees(lonlat, ds)
     else
         lonlat = [SVector(lo, la) for (lo, la) in zip(lon, lat)]
         original_grid_dim = intersect(NCDatasets.dimnames(cfvar), POSSIBLE_CELL_NAMES)[1]
-        lonlat = convert_to_degrees(lonlat)
     end
 
     # TODO: I've noticed that this converts integer dimension (like pressure)
@@ -282,11 +288,27 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
     alldims = [NCDatasets.dimnames(cfvar)...]
 
     # Set up the remaining dimensions of the dataset
-    @assert original_grid_dim ∈ alldims
-    i = findfirst(x -> x == original_grid_dim, alldims)
-    remainingdims = deleteat!(copy(alldims), i)
-    A = Array(cfvar)
-    actualdims = Any[create_dims(ds, remainingdims, A)...]
+    if original_grid_dim isa Tuple
+        # stupid case where `lon` data are `Matrix`
+        A = Array(cfvar)
+        sizes = [size(A)...]
+        # First, find where lon, lat dimensions are positioned
+        is = findall(x -> x ∈ original_grid_dim, alldims)
+        @assert length(is) == 2
+        remainingdims = deleteat!(copy(alldims), is)
+        actualdims = Any[create_dims(ds, remainingdims, A)...]
+        # Then, reshape A accordingly
+        sizes[is[1]] = sizes[is[1]]*sizes[is[2]]
+        deleteat!(sizes, is[2])
+        A = reshape(A, sizes...)
+        i = is[1]
+    else
+        @assert original_grid_dim ∈ alldims
+        i = findfirst(x -> x == original_grid_dim, alldims)
+        remainingdims = deleteat!(copy(alldims), i)
+        A = Array(cfvar)
+        actualdims = Any[create_dims(ds, remainingdims, A)...]
+    end
 
     # Make coordinate dimension
     si = sortperm(lonlat, by = reverse)
@@ -312,31 +334,38 @@ end
 function load_coordinate_points(ds)
     if haskey(ds, "reduced_points")
         lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
-        original_grid_dim = "rgrid" # TODO: Specific to CDO Gaussian grid
+        original_grid_dim = "rgrid" # Specific to CDO Gaussian grid
+    elseif haskey(ds, "lon") && length(size(ds["lon"])) == 2
+        # This is the case of having a non-orthogonal grid, but 
+        # still saving the lon/lat information as matrices whose dimensions are lon/lat
+        # (this is a rather stupid way to format things, unfortunately)
+        lons = ds["lon"] |> Matrix .|> wrap_lon |> vec
+        lats = ds["lat"] |> Matrix |> vec
+        original_grid_dim = ("lon", "lat")
     elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
-            lons = ds["lon"] |> Array .|> wrap_lon
-            lats = ds["lat"] |> Array
+            lons = ds["lon"] |> Vector .|> wrap_lon
+            lats = ds["lat"] |> Vector
             original_grid_dim = NCDatasets.dimnames(ds["lon"])[1]
         elseif haskey(ds, "clon")
-            lons = ds["clon"] |> Array .|> wrap_lon
-            lats = ds["clat"] |> Array
+            lons = ds["clon"] |> Vector .|> wrap_lon
+            lats = ds["clat"] |> Vector
             original_grid_dim = NCDatasets.dimnames(ds["clon"])[1]
         else
             error("""
             We didn't find key `"lon"` or `"clon"` that represents the longitude of each
-            polygon in an unstructured grid.
+            polygon in a non-orthogonal grid.
             """)
         end
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
     else
         error("""
-        We didn't find any of the following keys: `"ncells", "cells", "reduced_points",
-        "clon", "lon"`, at least one of which is mandatory for unstructured grid.
-        If your data stores the "cell" information with a different name, please open
-        an issue and let us know!
+        We couldn't automatically identify the lon/lat values of cell centers.
+        Please provide explicitly keywords `lon, lat` in `ncread`.
         """)
     end
+    lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+    lonlat = convert_to_degrees(lonlat, ds)
     return lonlat, original_grid_dim
 end
 

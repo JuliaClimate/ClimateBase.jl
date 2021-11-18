@@ -42,6 +42,7 @@ const COMMONNAMES = Dict(
     "longitude" => Lon,
     "time" => Time,
     "t" => Time,
+    "age" => Time,
     "height" => Hei,
     "altitude" => Hei,
     "pressure" => Pre,
