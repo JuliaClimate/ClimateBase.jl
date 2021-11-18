@@ -273,11 +273,9 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
     # reduced points or not, and obtain the name of the coord dimension in the `ds`
     if isnothing(lon)
         lonlat, original_grid_dim = load_coordinate_points(ds)
-        lonlat = convert_to_degrees(lonlat, ds)
     else
         lonlat = [SVector(lo, la) for (lo, la) in zip(lon, lat)]
         original_grid_dim = intersect(NCDatasets.dimnames(cfvar), POSSIBLE_CELL_NAMES)[1]
-        lonlat = convert_to_degrees(lonlat)
     end
 
     # TODO: I've noticed that this converts integer dimension (like pressure)
@@ -285,11 +283,27 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
     alldims = [NCDatasets.dimnames(cfvar)...]
 
     # Set up the remaining dimensions of the dataset
-    @assert original_grid_dim ∈ alldims
-    i = findfirst(x -> x == original_grid_dim, alldims)
-    remainingdims = deleteat!(copy(alldims), i)
-    A = Array(cfvar)
-    actualdims = Any[create_dims(ds, remainingdims, A)...]
+    if original_grid_dim isa Tuple
+        # stupid case where `lon` data are `Matrix`
+        A = Array(cfvar)
+        sizes = [size(A)...]
+        # First, find where lon, lat dimensions are positioned
+        is = findall(x -> x ∈ original_grid_dim, alldims)
+        @assert length(is) == 2
+        remainingdims = deleteat!(copy(alldims), is)
+        actualdims = Any[create_dims(ds, remainingdims, A)...]
+        # Then, reshape A accordingly
+        sizes[is[1]] = sizes[is[1]]*sizes[is[2]]
+        deleteat!(sizes, is[2])
+        A = reshape(A, sizes...)
+        i = is[1]
+    else
+        @assert original_grid_dim ∈ alldims
+        i = findfirst(x -> x == original_grid_dim, alldims)
+        remainingdims = deleteat!(copy(alldims), i)
+        A = Array(cfvar)
+        actualdims = Any[create_dims(ds, remainingdims, A)...]
+    end
 
     # Make coordinate dimension
     si = sortperm(lonlat, by = reverse)
@@ -315,7 +329,14 @@ end
 function load_coordinate_points(ds)
     if haskey(ds, "reduced_points")
         lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
-        original_grid_dim = "rgrid" # TODO: Specific to CDO Gaussian grid
+        original_grid_dim = "rgrid" # Specific to CDO Gaussian grid
+    elseif haskey(ds, "lon") && length(size(ds["lon"])) == 2
+        # This is the case of having a non-orthogonal grid, but 
+        # still saving the lon/lat information as matrices whose dimensions are lon/lat
+        # (this is a rather stupid way to format things, unfortunately)
+        lons = ds["lon"] |> Matrix .|> wrap_lon |> vec
+        lats = ds["lat"] |> Matrix |> vec
+        original_grid_dim = ("lon", "lat")
     elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
             lons = ds["lon"] |> Vector .|> wrap_lon
@@ -328,7 +349,7 @@ function load_coordinate_points(ds)
         else
             error("""
             We didn't find key `"lon"` or `"clon"` that represents the longitude of each
-            polygon in an unstructured grid.
+            polygon in a non-orthogonal grid.
             """)
         end
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
@@ -338,6 +359,8 @@ function load_coordinate_points(ds)
         Please provide explicitly keywords `lon, lat` in `ncread`.
         """)
     end
+    lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+    lonlat = convert_to_degrees(lonlat, ds)
     return lonlat, original_grid_dim
 end
 
