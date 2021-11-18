@@ -204,6 +204,7 @@ function to_proper_dimensions(dnames)
         else
             @warn """
             Dimension name "$n" not in common names.
+            Please consider opening an issue/PR on GitHub proposing "$n" in common names!
             Making a generic dimension named `Dim{:$n}` for now...
             """
             push!(r, Dim{Symbol(n)})
