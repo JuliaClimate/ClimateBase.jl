@@ -65,14 +65,14 @@ function lon_distance(x, y, p = eltype(x)(360))
 end
 
 """
-    longitude_circshift(X::ClimArray, l = size(X, Lon)÷2, wrap = false)
+    longitude_circshift(X::ClimArray, l = size(X, Lon)÷2, wrap = true) → Y::ClimArray
 Perform the same action as `Base.circshift`, but only for the longitudinal dimension
 of `X` with shift `l`. If `wrap = true` the longitudes are wrapped to (-180, 180) degrees.
 """
-function longitude_circshift(X::ClimArray, l::Int = size(X, Lon)÷2, wrap = false)
+function longitude_circshift(X::ClimArray, l::Int = size(X, Lon)÷2, wrap = true)
     shifts = map(d -> d isa Lon ? l : 0, dims(X))
     shifted_data = circshift(X.data, shifts)
-    shifted_lon = mod.(circshift(dims(X, Lon).val, l), 360)
+    shifted_lon = circshift(dims(X, Lon).val, l)
     if wrap; shifted_lon = wrap_lon.(shifted_lon); end
     shifted_lon = vector2range(shifted_lon)
     shifted_dim = Lon(shifted_lon; metadata = dims(X, Lon).metadata)
