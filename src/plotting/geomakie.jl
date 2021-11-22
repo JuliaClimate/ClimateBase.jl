@@ -1,37 +1,49 @@
-# TODO: remove `earthscatter` and `earthsurface` in favor of a single `earthplot`.
-# This uses only the in-place versions `earthscatter!/surface!`.
+# TODO: remove `climscatter` and `climsurface` in favor of a single `earthplot`.
+# This uses only the in-place versions `climscatter!/surface!`.
 # TODO: rename `earthplot` to `climplot`
 
-export earthscatter, earthscatter!, earthsurface!, earthsurface!
+export climscatter, climscatter!, climsurface!, climsurface, climplot
 
-##########################################################################################
-# # Scatter
-##########################################################################################
 """
-    earthscatter(A::ClimArray; kwargs...) → fig, ax, el, cb
-Plot a `ClimArray` with space type `UnstructuredGrid` as a scatter plot with the color
-of the points being the value of `A` at these points. This requires that `A` has only
-one dimension `Coord`, the coordinates.
+    climplot(A::ClimArray; kwargs...) → fig, ax, el, cb
+Main plotting function that dispatches to [`climscatter!`](@ref) if `A` has
+an [`UnstructuredGrid`](@ref) dimension, or to [`climsurface!`](@ref) for [`LonLatGrid`](@ref).
 
-Keyword values are propagated to `scatter` and keys of interest are `cmap, vmin, vmax`.
+Return the figure, axis, plotted element, and colorbar.
+
+Optionally you can provide keyword `scatter = true` to force using the scatterplot.
 """
-function earthscatter(A::ClimArray; 
-        source = "+proj=longlat +datum=WGS84", dest = "+proj=eqearth", 
-        colorbar = true, cbkwargs = NamedTuple(), 
-        kwargs...
-    )
+function climplot(A, args...; scatter = spacestructure(A) == UnstructuredGrid(),
+    source = "+proj=longlat +datum=WGS84", dest = "+proj=eqearth", 
+    colorbar = true, kwargs...)
+    
+    # @assert A has only space dim
+    
+    # vmin = haskey(kwargs, :vmin) ? kwargs[:vmin] : quantile(data, 0.025)
+    # vmax = haskey(kwargs, :vmax) ? kwargs[:vmax] : quantile(data, 0.975)
     fig = GeoMakie.Figure()
-    ax = GeoMakie.GeoAxis(fig[1,1]; source, dest)
-    el = earthscatter!(ax, A; kwargs...)
+    ax = GeoMakie.GeoAxis(fig[1,1]; source, dest, title = string(A.name))
+    if scatter 
+        el = climscatter!(ax, A; kwargs...)
+    else
+        el = climsurface!(ax, A; kwargs...)
+    end
+
     if colorbar
         cb = GeoMakie.Colorbar(fig[1, 2], el; cbkwargs...)
+        if A.attrib isa Dict && haskey(A.attrib, "units")
+            cb.label(A.attrib["units"])
+        end
     else
         cb = nothing
     end
     return fig, ax, el, cb
 end
 
-function earthscatter!(ax, A::ClimArray; title = string(A.name), colormap = :dense, kwargs...)
+##########################################################################################
+# # Scatter
+##########################################################################################
+function climscatter!(ax, A::ClimArray; title = string(A.name), colormap = :dense, kwargs...)
     ax.title = title
     if hasdim(A, Coord)
         coords = dims(A, Coord)
@@ -54,14 +66,14 @@ end
 # # Surface
 ##########################################################################################
 """
-    earthsurface(A::ClimArray; kwargs...) → fig, ax, el, cb
+    climsurface(A::ClimArray; kwargs...) → fig, ax, el, cb
 Plot a `ClimArray` with space type `UnstructuredGrid` as a scatter plot with the color
 of the points being the value of `A` at these points. This requires that `A` has only
 one dimension `Coord`, the coordinates.
 
 Keyword values are propagated to `scatter` and keys of interest are `cmap, vmin, vmax`.
 """
-function earthsurface(A::ClimArray; 
+function climsurface(A::ClimArray; 
         coastlines = true, source = "+proj=longlat", 
         dest = "+proj=eqearth", coastkwargs = NamedTuple(), 
         colorbar = true, cbkwargs = NamedTuple(), 
@@ -69,14 +81,14 @@ function earthsurface(A::ClimArray;
     )
     fig = GeoMakie.Figure()
     ax = GeoMakie.GeoAxis(fig[1,1]; coastlines, source, dest, coastkwargs)
-    el = earthsurface!(ax, A; kwargs...)
+    el = climsurface!(ax, A; kwargs...)
     if colorbar
-        cb = Colorbar(fig[1, 2], el; cbkwargs...)
+        cb = GeoMakie.Colorbar(fig[1, 2], el; cbkwargs...)
     end
     return fig, ax, el, cb
 end
 
-function earthsurface!(ax, A::ClimArray; colormap = :dense, kwargs...)
+function climsurface!(ax, A::ClimArray; colormap = :dense, kwargs...)
     if hasdim(A, Coord)
         # TODO: @pkeil this is for you
         error("Surface plots for `Coord` arrays are not supported yet!")
