@@ -21,7 +21,7 @@ function climplot(A, args...; scatter = spacestructure(A) == UnstructuredGrid(),
     # vmax = haskey(kwargs, :vmax) ? kwargs[:vmax] : quantile(data, 0.975)
 
     fig = GeoMakie.Figure()
-    ax = GeoMakie.GeoAxis(fig[1,1]; source, dest, label = GeoMakie.Observable(name))
+    ax = GeoMakie.GeoAxis(fig[1,1]; source, dest, title = GeoMakie.Observable(""))
     if scatter 
         el = climscatter!(ax, A; kwargs...)
     else
@@ -61,6 +61,8 @@ end
 ##########################################################################################
 # # Surface
 ##########################################################################################
+# TODO: Change this to `contourf`
+
 # Notice that `A` is not declared as `ClimArray`, but assumed to be.
 # Duck-typing for Observables.
 function climsurface!(ax, A; colormap = :dense, kwargs...)
@@ -74,8 +76,7 @@ function climsurface!(ax, A; colormap = :dense, kwargs...)
     lon = dims(B, Lon).val
     lat = dims(B, Lat).val
     data = GeoMakie.lift(B -> B.data, B)
-    # TODO: Change this to `contourf`
-    GeoMakie.hetamap!(ax, lon, lat, data; shading = false, colormap, kwargs...)
+    GeoMakie.surface!(ax, lon, lat, data; shading = false, colormap, kwargs...)
 end
 
 
