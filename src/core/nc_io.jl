@@ -342,6 +342,7 @@ function load_coordinate_points(ds)
         lons = ds["lon"] |> Matrix .|> wrap_lon |> vec
         lats = ds["lat"] |> Matrix |> vec
         original_grid_dim = ("lon", "lat")
+        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
     elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
             lons = ds["lon"] |> Vector .|> wrap_lon
@@ -364,7 +365,6 @@ function load_coordinate_points(ds)
         Please provide explicitly keywords `lon, lat` in `ncread`.
         """)
     end
-    lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
     lonlat = convert_to_degrees(lonlat, ds)
     return lonlat, original_grid_dim
 end
