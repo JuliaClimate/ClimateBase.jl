@@ -53,10 +53,10 @@ end
 # Reading
 #########################################################################
 """
-    ncread(file, var; kwargs...) → A
+    ncread(file, var [, selection]; kwargs...) → A
 Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref)
 with proper dimension mapping and also containing the variable attributes as a dictionary.
-Dimension attributes are also given to the dimensions of `A`, if any exist.
+Dimension attributes are also given to the dimensions of `A`, if any exist. 
 See keywords below for specifications for unstructured grids.
 
 `file` can be a string to a `.nc` file. Or, it can be an
@@ -74,6 +74,16 @@ For `.nc` data containing groups `var` can also be a tuple `("group_name", "var_
 that loads a specific variable from a specific group.
 In this case, the attributes of both the group and the CF-variable are attributed to
 the created [`ClimArray`](@ref).
+
+Optionally you can provide a `selection` for selecting a smaller part of the full array.
+The `selection` must be a tuple of indices that compose the selection and you must specify
+exactly as many ranges as the dimensions of the array and in the correct order.
+For example, if `var` corresponds
+to an array with three dimensions, such syntaxes are possible:
+```julia
+(:, :, 1:3)
+(1:5:100, 1:5:100, [1,5,6])
+```
 
 See also [`ncdetails`](@ref), [`nckeys`](@ref) and [`ncwrite`](@ref).
 
