@@ -295,6 +295,9 @@ end
     @test string(Bloaded.name) == "x2"
     @test dims(Bloaded, Time).metadata["standard_name"] == "time"
 
+    Bpartly = ncread("test.nc", "x2", ([1,4,5], :, 1:3))
+    @test Bpartly.data[:, :, :] == Bloaded.data[[1,4,5], :, 1:3]
+
     ds = NCDataset("test.nc")
     @test ds.attrib["history"] == "test"
     close(ds)

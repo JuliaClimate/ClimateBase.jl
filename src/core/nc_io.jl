@@ -131,7 +131,7 @@ end
 # TODO: Allow reading multiple variables at once. This has the performance benefit
 # of not re-creating dimensions all the time.
 
-function ncread(ds::NCDatasets.AbstractDataset, var;
+function ncread(ds::NCDatasets.AbstractDataset, var, selection = nothing;
         name = var2name(var), grid = nothing, lon = nothing, lat = nothing,
     )
     if lon isa Vector && lat isa Vector
@@ -145,7 +145,7 @@ function ncread(ds::NCDatasets.AbstractDataset, var;
     if gridtype == UnstructuredGrid()
         return ncread_unstructured(ds, var, name, lon, lat)
     else
-        return ncread_lonlat(ds, var, name)
+        return ncread_lonlat(ds, var, name, selection)
     end
 end
 
@@ -166,18 +166,21 @@ var2name(var::Tuple) = join(var, "_")
 # Reading: LonLatGrid and main reading functionality
 #########################################################################
 # Notice that this function properly loads even without any spatial coordinate
-function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name)
+function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name, selection)
     cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
+    sel = isnothing(selection) ? selecteverything(cfvar) : selection
+    @assert length(sel) == length(size(cfvar))
     attrib = get_attributes_from_var(ds, cfvar, var)
-    A = cfvar |> Array
+    A = cfvar[sel...]
     dnames = Tuple(NCDatasets.dimnames(cfvar))
     if !any(ismissing, A)
         A = nomissing(A)
     end
-    dimensions = create_dims(ds, dnames, A)
+    dimensions = create_dims(ds, dnames, sel)
     data = ClimArray(A, dimensions; name = Symbol(name), attrib = attrib)
     return data
 end
+selecteverything(cfvar) = map(i -> 1:i, size(cfvar))
 
 get_attributes_from_var(ds, cfvar, var::String) = Dict(cfvar.attrib)
 function get_attributes_from_var(ds, cfvar, var::Tuple)
@@ -188,12 +191,12 @@ end
 
 
 """
-    create_dims(ds::NCDatasets.AbstractDataset, dnames)
+    create_dims(ds::NCDatasets.AbstractDataset, dnames, cfvar, sel = selecteverything(A))
 Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
 """
-function create_dims(ds::NCDatasets.AbstractDataset, dnames, A)
+function create_dims(ds::NCDatasets.AbstractDataset, dnames, sel = selecteverything(A))
     true_dims = to_proper_dimensions(dnames)
-    dim_values = extract_dim_values(ds, dnames, A)
+    dim_values = extract_dim_values(ds, dnames, sel)
     # Some stupid datasets return a union{Missing} type for dimensions.
     # this is of course nonsense, a dimension cannot have "missing" values.
     if any(d -> Missing <: eltype(d), dim_values)
@@ -231,18 +234,18 @@ function to_proper_dimensions(dnames)
 end
 export Dim # for generic dimensions this must be exported
 
-function extract_dim_values(ds::NCDatasets.AbstractDataset, dnames, A)
+function extract_dim_values(ds::NCDatasets.AbstractDataset, dnames, sel)
     dim_values = AbstractVector[]
     for (i, n) in enumerate(dnames)
         if haskey(ds, n)
-            push!(dim_values, Vector(ds[n]))
+            push!(dim_values, vec(ds[n][sel[i]]))
         else
             @warn """
             Dimension named "$n" does not have values in the dataset.
-            Using the range `1:size(A, i)` as the dimension values instead,
+            Using the range `1:size(cfvar, i)` as the dimension values instead,
             where `i` is the dimension index.
             """
-            push!(dim_values, 1:size(A, i))
+            push!(dim_values, sel[i])
         end
     end
     return dim_values
