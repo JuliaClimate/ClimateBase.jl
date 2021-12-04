@@ -82,7 +82,7 @@ For example, if `var` corresponds
 to an array with three dimensions, such syntaxes are possible:
 ```julia
 (:, :, 1:3)
-(1:5:100, 1:5:100, [1,5,6])
+(1:5:100, 1:1, [1,5,6])
 ```
 
 See also [`ncdetails`](@ref), [`nckeys`](@ref) and [`ncwrite`](@ref).
@@ -143,7 +143,7 @@ function ncread(ds::NCDatasets.AbstractDataset, var, selection = nothing;
     end
 
     if gridtype == UnstructuredGrid()
-        return ncread_unstructured(ds, var, name, lon, lat)
+        return ncread_unstructured(ds, var, name, lon, lat, selection)
     else
         return ncread_lonlat(ds, var, name, selection)
     end
@@ -283,8 +283,11 @@ vector2range(r::AbstractRange) = r
 #########################################################################
 export SVector
 
-function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, lon, lat)
+function ncread_unstructured(
+        ds::NCDatasets.AbstractDataset, var::String, name, lon, lat, selection
+    )
     cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
+    sel = isnothing(selection) ? selecteverything(cfvar) : selection
     attrib = get_attributes_from_var(ds, cfvar, var)
 
     # Here we generate the longitudes and latitudes based on whether we have
@@ -296,14 +299,15 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
         original_grid_dim = intersect(NCDatasets.dimnames(cfvar), POSSIBLE_CELL_NAMES)[1]
     end
 
-    # TODO: I've noticed that this converts integer dimension (like pressure)
-    # into Float64, but I'm not sure why...
-    alldims = [NCDatasets.dimnames(cfvar)...]
+    alldims = Any[NCDatasets.dimnames(cfvar)...]
 
     # Set up the remaining dimensions of the dataset
     if original_grid_dim isa Tuple
+        # TODO: I'm not sure I've set up this to work correctly in the case
+        # of `selection` given by user... Not important to test now.
+
         # stupid case where `lon` data are `Matrix`
-        A = Array(cfvar)
+        A = cfvar[sel...]
         sizes = [size(A)...]
         # First, find where lon, lat dimensions are positioned
         is = findall(x -> x ∈ original_grid_dim, alldims)
@@ -319,11 +323,13 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
         @assert original_grid_dim ∈ alldims
         i = findfirst(x -> x == original_grid_dim, alldims)
         remainingdims = deleteat!(copy(alldims), i)
-        A = Array(cfvar)
-        actualdims = Any[create_dims(ds, remainingdims, A)...]
+        A = cfvar[sel...]
+        remainingsel = Tuple(deleteat!([sel...], i))
+        actualdims = Any[create_dims(ds, remainingdims, remainingsel)...]
     end
 
     # Make coordinate dimension
+    lonlat = lonlat[sel[i]]
     si = sortperm(lonlat, by = reverse)
     coords = Coord(lonlat, (Lon, Lat))
     insert!(actualdims, i, coords)
