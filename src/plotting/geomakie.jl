@@ -22,7 +22,11 @@ function climplot(A, args...; scatter = spacestructure(A) == UnstructuredGrid(),
 
     fig = GeoMakie.Figure()
     ax = GeoMakie.GeoAxis(fig[1,1]; source, dest, title = GeoMakie.Observable(""))
-    if scatter 
+    
+    coastplot = lines!(ax, GeoMakie.coastlines(); color = :black, overdraw = true, coastkwargs...)
+    translate!(coastplot, 0, 0, 99) # ensure they are on top of other plotted elements
+
+    if scatter
         el = climscatter!(ax, A; kwargs...)
     else
         el = climsurface!(ax, A; kwargs...)
