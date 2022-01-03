@@ -147,127 +147,18 @@ end
 xa = xr.open_mfdataset(ERA5_files_path)
 X = climarray_from_xarray(xa, "w", "optional name")
 ```
-
-## Temporal
-Functions related with the `Time` dimension.
-```@docs
-timemean
-timeagg
-monthlyagg
-yearlyagg
-seasonalyagg
-temporalrange
-maxyearspan
-temporal_sampling
-realtime_days
-realtime_milliseconds
-seasonality
-sametimespan
-```
-
-## Spatial
-
-All functions in this section work for both types of space, see [Types of spatial coordinates](@ref).
-```@docs
-zonalmean
-latmean
-spacemean
-spaceagg
-hemispheric_means
-hemispheric_functions
-tropics_extratropics
-lonlatfirst
-longitude_circshift
-```
-
-### Types of spatial coordinates
-At the moment the following type of spatial coordinates are supported:
-```@docs
-LonLatGrid
-UnstructuredGrid
-```
-
-ClimateBase.jl works with either type of spatial coordinate system.
-Therefore, physically inspired averaging functions, like [`spacemean`](@ref) or [`zonalmean`](@ref), work for both types of spatial coordinates.
-In addition, the function `spatialidxs` returns an iterator over the spatial coordinates of the data, and works for both types (grid or equal-area):
-```@docs
-spatialidxs
-```
-
-[`ncread`](@ref) tries to automatically deduce the correct space type and create the appropriate dimension.
-
-
-## Interpolation
-At the moment only vertical interpolation is implemented.
-
-### Vertical
-We offer 3 functions for vertical interpolation. Extrapolation results in missing values by default, but can also be linear (`extrapolation_bc = Line()`). Check the Interpolations.jl package for more information: https://juliamath.github.io/Interpolations.jl/latest/ For additional extrapolation boundary conditions: https://juliamath.github.io/Interpolations.jl/latest/extrapolation/
-
-```@example main
-D = ClimArray([1.0:11.0 2.0:12.0 3.0:2.0:23.0], (Hei(0.0:2000.0:20000.0), Ti(1:3)))
-pressure_levels = [950, 850, 650, 350, 250, 150] .* 100.0
-D_pre = interpolate_height2pressure(D, pressure_levels)
-D_back = interpolate_pressure2height(D_pre, Vector(dims(D,Hei).val),extrapolation_bc=Line())
-
-```
-
-```@docs
-interpolation2pressure
-interpolate_height2pressure
-interpolate_pressure2height
-```
-
-
-## General aggregation
-The physical averages of the previous section are done by taking advantage of a general aggregation syntax, which works with any aggregating function like `mean, sum, std`, etc.
-```@docs
-dropagg
-collapse
-```
-
-## Missing data
-When loading an array with [`ncread`](@ref), the values of the return array may contain missing values if the actual data contain missing values according to the CF-standards.
-In other packages or other programming languages these missing values are handled "internally" and e.g. in statistical operations like `mean`, the statistics explicitly skip over missing values.
-For example this is a typical workflow of creating an array, assigning `missing` to all values of an array over land, and then taking the `mean` of the array, which would be the "mean over ocean".
-
-ClimateBase.jl _does not_ follow this approach for two reasons: 1) it does not comply with [Julia's `missing` propagation logic](https://docs.julialang.org/en/v1/manual/missing/), 2) using proper statistical weights gives more power to the user. As you have already seen in the documentation strings of e.g. [`timeagg`](@ref), [`spaceagg`](@ref) or [`dropagg`](@ref), you can provide explicit statistical weights of various forms.
-This gives you more power, because in the case of `missing` your statistical weights can only be 0 (missing value) or 1 (non-missing value). As an example, "pixel" of your spatial grid will have ambiguous values if it is not 100% covered by ocean, and to do a _proper_ average over ocean you should instead provide weights `W` whose value is quite simply the ocean fraction of each pixel.
-
-But what if you already have an array with `missing` values and you want to do what was described in the beginning, e.g. average by skipping the missings? Do not worry, we have you covered! Use the function [`missing_weights`](@ref)! See also [`sinusoidal_continuation`](@ref) if the missing values are only in a subset of your temporal coverage.
-
-```@docs
-missing_weights
-missing_val
-```
-
-## Timeseries Analysis
-```@docs
-sinusoidal_continuation
-seasonal_decomposition
-```
-
-## Climate quantities
-Functions that calculate climate-related quantities.
-```@docs
-insolation
-surface_atmosphere_contributions
-total_toa_albedo
-```
-
-## Plotting
-Currently ClimateBase.jl does not have integrated plotting support. In the near future it will have this based on the upcoming GeoMakie.jl.
-
-For now, you can use PyCall.jl, matplotlib, and the Python library cartopy.
-In the file [`ClimateBase/plotting/python.jl`](https://github.com/JuliaClimate/ClimateBase.jl/tree/master/plotting/python.jl) we provide two functions that plot maps of `ClimArray` in arbitrary projections: `earthsurface` for `LonLatGrid` and `earthscatter` for `UnstructuredGrid`. You can incorporate these in your source code as a temporary solution.
-
 ## Ensemble types
 A dedicated type representing ensembles has no reason to exist in ClimateBase.jl.
 As the package takes advantage of standard Julia datastructures and syntax, those can be used to represent "ensembles". For example to do an "ensemble global mean" you can just do:
 ```julia
+# load all data
 E = [ClimArray("ensemble_$i.nc", "x") for i in 1:10]
+# mean from all data
 global_mean = mean(spacemean(X) for X in E)
 ```
 where you see that the "ensemble" was represented just as a `Vector{ClimArray}`.
+Of course, this requires that all data can fit into memory, but this is so far the only way ClimateBase.jl operates anyways.
+
 
 ## Crash-course to DimensionalData.jl
 ```@docs

@@ -53,10 +53,10 @@ end
 # Reading
 #########################################################################
 """
-    ncread(file, var; kwargs...) → A
+    ncread(file, var [, selection]; kwargs...) → A
 Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref)
 with proper dimension mapping and also containing the variable attributes as a dictionary.
-Dimension attributes are also given to the dimensions of `A`, if any exist.
+Dimension attributes are also given to the dimensions of `A`, if any exist. 
 See keywords below for specifications for unstructured grids.
 
 `file` can be a string to a `.nc` file. Or, it can be an
@@ -74,6 +74,16 @@ For `.nc` data containing groups `var` can also be a tuple `("group_name", "var_
 that loads a specific variable from a specific group.
 In this case, the attributes of both the group and the CF-variable are attributed to
 the created [`ClimArray`](@ref).
+
+Optionally you can provide a `selection` for selecting a smaller part of the full array.
+The `selection` must be a tuple of indices that compose the selection and you must specify
+exactly as many ranges as the dimensions of the array and in the correct order.
+For example, if `var` corresponds
+to an array with three dimensions, such syntaxes are possible:
+```julia
+(:, :, 1:3)
+(1:5:100, 1:1, [1,5,6])
+```
 
 See also [`ncdetails`](@ref), [`nckeys`](@ref) and [`ncwrite`](@ref).
 
@@ -121,7 +131,7 @@ end
 # TODO: Allow reading multiple variables at once. This has the performance benefit
 # of not re-creating dimensions all the time.
 
-function ncread(ds::NCDatasets.AbstractDataset, var;
+function ncread(ds::NCDatasets.AbstractDataset, var, selection = nothing;
         name = var2name(var), grid = nothing, lon = nothing, lat = nothing,
     )
     if lon isa Vector && lat isa Vector
@@ -133,9 +143,9 @@ function ncread(ds::NCDatasets.AbstractDataset, var;
     end
 
     if gridtype == UnstructuredGrid()
-        return ncread_unstructured(ds, var, name, lon, lat)
+        return ncread_unstructured(ds, var, name, lon, lat, selection)
     else
-        return ncread_lonlat(ds, var, name)
+        return ncread_lonlat(ds, var, name, selection)
     end
 end
 
@@ -156,18 +166,21 @@ var2name(var::Tuple) = join(var, "_")
 # Reading: LonLatGrid and main reading functionality
 #########################################################################
 # Notice that this function properly loads even without any spatial coordinate
-function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name)
+function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name, selection)
     cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
+    sel = isnothing(selection) ? selecteverything(cfvar) : selection
+    @assert length(sel) == length(size(cfvar))
     attrib = get_attributes_from_var(ds, cfvar, var)
-    A = cfvar |> Array
+    A = cfvar[sel...]
     dnames = Tuple(NCDatasets.dimnames(cfvar))
     if !any(ismissing, A)
         A = nomissing(A)
     end
-    dimensions = create_dims(ds, dnames, A)
+    dimensions = create_dims(ds, dnames, sel)
     data = ClimArray(A, dimensions; name = Symbol(name), attrib = attrib)
     return data
 end
+selecteverything(cfvar) = map(i -> 1:i, size(cfvar))
 
 get_attributes_from_var(ds, cfvar, var::String) = Dict(cfvar.attrib)
 function get_attributes_from_var(ds, cfvar, var::Tuple)
@@ -178,12 +191,12 @@ end
 
 
 """
-    create_dims(ds::NCDatasets.AbstractDataset, dnames)
+    create_dims(ds::NCDatasets.AbstractDataset, dnames, cfvar, sel = selecteverything(A))
 Create a tuple of `Dimension`s from the `dnames` (tuple of strings).
 """
-function create_dims(ds::NCDatasets.AbstractDataset, dnames, A)
+function create_dims(ds::NCDatasets.AbstractDataset, dnames, sel = selecteverything(A))
     true_dims = to_proper_dimensions(dnames)
-    dim_values = extract_dim_values(ds, dnames, A)
+    dim_values = extract_dim_values(ds, dnames, sel)
     # Some stupid datasets return a union{Missing} type for dimensions.
     # this is of course nonsense, a dimension cannot have "missing" values.
     if any(d -> Missing <: eltype(d), dim_values)
@@ -221,18 +234,18 @@ function to_proper_dimensions(dnames)
 end
 export Dim # for generic dimensions this must be exported
 
-function extract_dim_values(ds::NCDatasets.AbstractDataset, dnames, A)
+function extract_dim_values(ds::NCDatasets.AbstractDataset, dnames, sel)
     dim_values = AbstractVector[]
     for (i, n) in enumerate(dnames)
         if haskey(ds, n)
-            push!(dim_values, Vector(ds[n]))
+            push!(dim_values, vec(ds[n][sel[i]]))
         else
             @warn """
             Dimension named "$n" does not have values in the dataset.
-            Using the range `1:size(A, i)` as the dimension values instead,
+            Using the range `1:size(cfvar, i)` as the dimension values instead,
             where `i` is the dimension index.
             """
-            push!(dim_values, 1:size(A, i))
+            push!(dim_values, sel[i])
         end
     end
     return dim_values
@@ -270,8 +283,11 @@ vector2range(r::AbstractRange) = r
 #########################################################################
 export SVector
 
-function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, lon, lat)
+function ncread_unstructured(
+        ds::NCDatasets.AbstractDataset, var::String, name, lon, lat, selection
+    )
     cfvar = var isa String ? ds[var] : ds.group[var[1]][var[2]]
+    sel = isnothing(selection) ? selecteverything(cfvar) : selection
     attrib = get_attributes_from_var(ds, cfvar, var)
 
     # Here we generate the longitudes and latitudes based on whether we have
@@ -283,14 +299,15 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
         original_grid_dim = intersect(NCDatasets.dimnames(cfvar), POSSIBLE_CELL_NAMES)[1]
     end
 
-    # TODO: I've noticed that this converts integer dimension (like pressure)
-    # into Float64, but I'm not sure why...
-    alldims = [NCDatasets.dimnames(cfvar)...]
+    alldims = Any[NCDatasets.dimnames(cfvar)...]
 
     # Set up the remaining dimensions of the dataset
     if original_grid_dim isa Tuple
+        # TODO: I'm not sure I've set up this to work correctly in the case
+        # of `selection` given by user... Not important to test now.
+
         # stupid case where `lon` data are `Matrix`
-        A = Array(cfvar)
+        A = cfvar[sel...]
         sizes = [size(A)...]
         # First, find where lon, lat dimensions are positioned
         is = findall(x -> x ∈ original_grid_dim, alldims)
@@ -306,11 +323,13 @@ function ncread_unstructured(ds::NCDatasets.AbstractDataset, var::String, name, 
         @assert original_grid_dim ∈ alldims
         i = findfirst(x -> x == original_grid_dim, alldims)
         remainingdims = deleteat!(copy(alldims), i)
-        A = Array(cfvar)
-        actualdims = Any[create_dims(ds, remainingdims, A)...]
+        A = cfvar[sel...]
+        remainingsel = Tuple(deleteat!([sel...], i))
+        actualdims = Any[create_dims(ds, remainingdims, remainingsel)...]
     end
 
     # Make coordinate dimension
+    lonlat = lonlat[sel[i]]
     si = sortperm(lonlat, by = reverse)
     coords = Coord(lonlat, (Lon, Lat))
     insert!(actualdims, i, coords)
@@ -342,6 +361,7 @@ function load_coordinate_points(ds)
         lons = ds["lon"] |> Matrix .|> wrap_lon |> vec
         lats = ds["lat"] |> Matrix |> vec
         original_grid_dim = ("lon", "lat")
+        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
     elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
             lons = ds["lon"] |> Vector .|> wrap_lon
@@ -364,7 +384,6 @@ function load_coordinate_points(ds)
         Please provide explicitly keywords `lon, lat` in `ncread`.
         """)
     end
-    lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
     lonlat = convert_to_degrees(lonlat, ds)
     return lonlat, original_grid_dim
 end

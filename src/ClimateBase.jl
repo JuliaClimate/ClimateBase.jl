@@ -19,4 +19,11 @@ include("tsa/decomposition.jl")
 
 include("exports.jl")
 
+using Requires
+function __init__()
+    @require GeoMakie="db073c08-6b98-4ee5-b6a4-5efafb3259c6" begin
+        include("plotting/geomakie.jl")
+    end
+end
+
 end # module

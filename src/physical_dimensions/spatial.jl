@@ -65,14 +65,20 @@ function lon_distance(x, y, p = eltype(x)(360))
 end
 
 """
-    longitude_circshift(X::ClimArray, l = size(X, Lon)÷2, wrap = false)
+    longitude_circshift(X::ClimArray [, l]; wrap = true) → Y::ClimArray
 Perform the same action as `Base.circshift`, but only for the longitudinal dimension
-of `X` with shift `l`. If `wrap = true` the longitudes are wrapped to (-180, 180) degrees.
+of `X` with shift `l`. If `wrap = true` the longitudes are wrapped to (-180, 180) degrees
+using the modulo operation.
+
+If `l` is not given, it is as much as necessary so that all longitudes > 180 are
+wrapped.
 """
-function longitude_circshift(X::ClimArray, l::Int = size(X, Lon)÷2, wrap = false)
+function longitude_circshift(X::ClimArray, l = nothing; wrap = true)
+    if isnothing(l); l = count(≥(180), dims(X, Lon).val); end
+    isnothing(l) && return X
     shifts = map(d -> d isa Lon ? l : 0, dims(X))
     shifted_data = circshift(X.data, shifts)
-    shifted_lon = mod.(circshift(dims(X, Lon).val, l), 360)
+    shifted_lon = circshift(dims(X, Lon).val, l)
     if wrap; shifted_lon = wrap_lon.(shifted_lon); end
     shifted_lon = vector2range(shifted_lon)
     shifted_dim = Lon(shifted_lon; metadata = dims(X, Lon).metadata)
@@ -212,10 +218,12 @@ function hemispheric_functions(::LonLatGrid, A)
 end
 
 """
-    hemispheric_means(A) → nh, sh
+    hemispheric_means(A [,W]) → nh, sh
 Return the (proper) averages of `A` over the northern and southern hemispheres.
 Notice that this function explicitly does both zonal as well as meridional averaging.
 Use [`hemispheric_functions`](@ref) to just split `A` into two hemispheres.
+
+Optionally provide weights `W` that need to have the same structure as [`spaceagg`](@ref).
 """
 hemispheric_means(A, args...) = hemispheric_means(spacestructure(A), A, args...)
 function hemispheric_means(::LonLatGrid, A::AbDimArray)

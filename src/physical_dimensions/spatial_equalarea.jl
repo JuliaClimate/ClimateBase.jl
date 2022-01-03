@@ -1,5 +1,41 @@
+"""
+    transform_to_coord(A::ClimArray) → B
+Transform given `A` to a new `B::ClimArray` so that the `Lon, Lat` dimensions in `A`
+are transformed to a `Coord` dimension in `B`.
+"""
+function transform_to_coord(A; name = A.name, attrib = A.attrib)
+    hasdim(A, Coord) && return A
+    @assert hasdim(A, Lon) && hasdim(A, Lat)
+    
+    # First make coord dimension
+    londim = dims(A, Lon)
+    latdim = dims(A, Lat)
+    lonlat = [SVector(l, lat) for lat in latdim for l in londim]
+    coorddim = Coord(lonlat, (Lon, Lat))
+    
+    # Then, reshape A to have this dimension
+    is = dimindex(A, (Lon, Lat))
+    sizes = [size(A)...]
+    sizes[is[1]] = sizes[is[1]]*sizes[is[2]]
+    deleteat!(sizes, is[2])
+    B = reshape(copy(A.data), sizes...)
+    i = is[1]
+
+    # Then, make new dimensions
+    newdims = [dims(A)...]
+    deleteat!(newdims, is)
+    insert!(newdims, i, coorddim)
+    X = ClimArray(B, Tuple(newdims))
+
+    # Don't forget to sort lonlat coordinates
+    si = sortperm(lonlat, by = reverse)
+    X = X[Coord(si)]
+    return ClimArray(X; name = Symbol(name), attrib)
+end
+
+
 #########################################################################
-# Spatial functions
+# Spatial aggregation functions
 #########################################################################
 spaceagg(::UnstructuredGrid, f, A, W = nothing) = dropagg(f, A, Coord, W)
 
@@ -77,6 +113,9 @@ function uniquelats(c)
     return idxs, lats
 end
 
+#########################################################################
+# Special latitude splitting
+#########################################################################
 function hemispheric_functions(::UnstructuredGrid, A)
     c = dims(A, Coord).val
     nhi, shi = hemisphere_indices(c)

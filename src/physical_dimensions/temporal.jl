@@ -278,7 +278,7 @@ function timeagg(f, A::AbDimArray, w = nothing)
     elseif tsamp == :yearly
         timeagg_yearly(f, A, w)
     end
-    R = ClimArray(r, otherdims(A, Time()), A.name)
+    return ClimArray(r, otherdims(A, Time()); name = A.name)
 end
 
 function timeagg_yearly(f, A, w)

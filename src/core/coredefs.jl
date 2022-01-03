@@ -10,11 +10,15 @@ Time = DimensionalData.Ti
 
 AbDimArray = DimensionalData.AbstractDimArray
 
+"""
+    dimindex(A::ClimArray, d) → i
+Get the index of dimension `d`.
+"""
 dimindex(A, i::Int) = i
 dimindex(A, dim) = DimensionalData.dimnum(A, dim)
 
 export At, Between, Near # Selectors from DimensionalArrays.jl
-export hasdim, dimnum, dims
+export hasdim, dims, dimindex
 export Time, Lon, Lat, dims, Coord, Hei, Pre, Ti
 export UnstructuredGrid, LonLatGrid, spacestructure
 export DimensionalData # for accessing its functions

@@ -9,4 +9,5 @@ export monthday_indices, maxyearspan, daymonth, realtime_days, realtime_millisec
 temporal_sampling, timemean, timeagg, monthlyagg, yearlyagg, temporalrange, seasonalyagg, 
 season, DAYS_IN_ORBIT, HOURS_IN_ORBIT, seasonality, sametimespan
 
-#
+# Spatial
+export transform_to_coord

@@ -37,7 +37,11 @@ makedocs(modules = [ClimateBase, DimensionalData],
         ),
     pages = [
         "Introduction" => "index.md",
-        ],
+        "Statistics" => "statistics.md",
+        "Plotting" => "plotting.md",
+        "Advanced functionality" => "advanced.md",
+    ],
+    expandfirst = ["index.md",]
 )
 
 if CI
