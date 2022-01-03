@@ -255,8 +255,9 @@ total_toa_albedo
 ```
 
 ## Plotting
-Currently ClimateBase.jl does not have integrated plotting support. In the near future it will have this based on the upcoming GeoMakie.jl.
+*TODO* Plotting now works with GeoMakie.jl
 
+### Python based plotting with `cartopy`
 For now, you can use PyCall.jl, matplotlib, and the Python library cartopy.
 In the file [`ClimateBase/plotting/python.jl`](https://github.com/JuliaClimate/ClimateBase.jl/tree/master/plotting/python.jl) we provide two functions that plot maps of `ClimArray` in arbitrary projections: `earthsurface` for `LonLatGrid` and `earthscatter` for `UnstructuredGrid`. You can incorporate these in your source code as a temporary solution.
 
@@ -264,10 +265,13 @@ In the file [`ClimateBase/plotting/python.jl`](https://github.com/JuliaClimate/C
 A dedicated type representing ensembles has no reason to exist in ClimateBase.jl.
 As the package takes advantage of standard Julia datastructures and syntax, those can be used to represent "ensembles". For example to do an "ensemble global mean" you can just do:
 ```julia
+# load all data
 E = [ClimArray("ensemble_$i.nc", "x") for i in 1:10]
+# mean from all data
 global_mean = mean(spacemean(X) for X in E)
 ```
 where you see that the "ensemble" was represented just as a `Vector{ClimArray}`.
+Of course, this requires that all data can fit into memory, but this is so far the only way ClimateBase.jl operates anyways.
 
 ## Crash-course to DimensionalData.jl
 ```@docs

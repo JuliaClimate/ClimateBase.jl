@@ -1,7 +1,3 @@
-# TODO: remove `climscatter` and `climsurface` in favor of a single `earthplot`.
-# This uses only the in-place versions `climscatter!/surface!`.
-# TODO: rename `earthplot` to `climplot`
-
 export climscatter, climscatter!, climsurface!, climsurface, climplot
 
 """
@@ -17,6 +13,7 @@ function climplot(A, args...; scatter = spacestructure(A) == UnstructuredGrid(),
     source = "+proj=longlat +datum=WGS84", dest = "+proj=eqearth", 
     colorbar = true, name = string(DimensionalData.name(A)), kwargs...)
     
+    # TODO: Perhaps setting custom colorrange leads to better plots?
     # vmin = haskey(kwargs, :vmin) ? kwargs[:vmin] : quantile(data, 0.025)
     # vmax = haskey(kwargs, :vmax) ? kwargs[:vmax] : quantile(data, 0.975)
 
@@ -25,6 +22,8 @@ function climplot(A, args...; scatter = spacestructure(A) == UnstructuredGrid(),
     
     coastplot = lines!(ax, GeoMakie.coastlines(); color = :black, overdraw = true, coastkwargs...)
     translate!(coastplot, 0, 0, 99) # ensure they are on top of other plotted elements
+
+    # TODO: @assert A has only space dimension
 
     if scatter
         el = climscatter!(ax, A; kwargs...)
@@ -46,19 +45,16 @@ end
 # Notice that `A` is not declared as `ClimArray`, but assumed to be.
 # Duck-typing for Observables.
 function climscatter!(ax, A; colormap = :dense, kwargs...)
-    # TODO: @assert A has only space
-    # TODO: Just keep everytihng as vector static vector, no reason to split lon lat...
     if hasdim(A, Coord)
         lonlat = dims(A, Coord).val
-        data = GeoMakie.lift(A -> A.data, A)
     elseif dims(A)[1] isa Lon
         londim = dims(A, Lon)
         latdim = dims(A, Lat)
         lonlat = [GeoMakie.Point2f0(l,lat) for lat in latdim for l in londim]
-        data = GeoMakie.lift(A -> vec(A.data), A)
     else
         error("Unknown spatial dimensions for input.")
     end
+    data = GeoMakie.lift(A -> vec(A.data), A)
     GeoMakie.scatter!(ax, lonlat; color = data, colormap, kwargs...)
 end
 
