@@ -8,6 +8,10 @@ an [`UnstructuredGrid`](@ref) dimension, or to [`climsurface!`](@ref) for [`LonL
 Return the figure, axis, plotted element, and colorbar.
 
 Optionally you can provide keyword `scatter = true` to force using the scatterplot.
+
+Plotting from ClimateBase.jl also works with `Observable`s that enclose a `ClimArray`.
+You can update the values of the observable with another `ClimArray` with the same spatial
+dimension, and the plot will be updated. See documentation online for examples.
 """
 function climplot(A, args...; scatter = spacestructure(A) == UnstructuredGrid(),
     source = "+proj=longlat +datum=WGS84", dest = "+proj=eqearth", 
