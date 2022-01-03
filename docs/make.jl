@@ -41,6 +41,7 @@ makedocs(modules = [ClimateBase, DimensionalData],
         "Plotting" => "plotting.md",
         "Advanced functionality" => "advanced.md",
     ],
+    expandfirst = ["index.md",]
 )
 
 if CI
