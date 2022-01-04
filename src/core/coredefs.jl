@@ -2,7 +2,7 @@
 # Basic imports and dimension definitions
 ##########################################################################################
 using DimensionalData
-using DimensionalData: @dim, hasdim, Dimension, IndependentDim
+using DimensionalData.Dimensions, DimensionalData.LookUp
 using DimensionalData: basetypeof
 using Dates
 
@@ -17,11 +17,22 @@ Get the index of dimension `d`.
 dimindex(A, i::Int) = i
 dimindex(A, dim) = DimensionalData.dimnum(A, dim)
 
-export At, Between, Near # Selectors from DimensionalArrays.jl
+"""
+    gnv(object) → x
+Short for "get numeric value", this function will return the pure numeric value
+of the given object. Convenience function for quickly gettin the numeric data of
+dimensional arrays or dimensions.
+"""
+gnv(x) = x
+gnv(x::AbDimArray) = DimensionalData.parent(x)
+gnv(x::Dimension) = DimensionalData.parent(DimensionalData.parent(x))
+
+export At, (..), Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, dims, dimindex
 export Time, Lon, Lat, dims, Coord, Hei, Pre, Ti
 export UnstructuredGrid, LonLatGrid, spacestructure
 export DimensionalData # for accessing its functions
+export gnv
 
 @dim Lon IndependentDim "Longitude"
 @dim Lat IndependentDim "Latitude"
@@ -116,7 +127,7 @@ end
 # ClimArray definition and DimensionalData.jl extensions
 ##########################################################################################
 export ClimArray
-struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbstractDimensionalArray{T,N,D,A}
+struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbDimArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
