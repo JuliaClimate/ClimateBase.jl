@@ -167,9 +167,9 @@ A = ClimArray(data, dimensions)
 ```
 """
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
-    ClimArray(A, dims, refdims, Symbol(name), attrib)
+    ClimArray(A, format(dims, A), refdims, Symbol(name), attrib)
 ClimArray(A::AbstractArray, dims::Tuple, name; refdims=(), attrib=nothing) =
-    ClimArray(A, dims, refdims, Symbol(name), attrib)
+    ClimArray(A, format(dims, A), refdims, Symbol(name), attrib)
 
 Base.parent(A::ClimArray) = A.data
 Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
@@ -177,7 +177,7 @@ Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalDa
 
 DimensionalData.metadata(A::ClimArray) = A.attrib
 DimensionalData.rebuild(A::ClimArray, data::Any, dims::Tuple=dims(A), refdims=DimensionalData.refdims(A),
-name="", attrib=nothing) = ClimArray(data, dims, refdims, Symbol(name), attrib)
+name="", attrib=nothing) = ClimArray(data, format(dims, data), refdims, Symbol(name), attrib)
 DimensionalData.basetypeof(::ClimArray) = ClimArray
 
 DimensionalData.rebuild(

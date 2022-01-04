@@ -33,6 +33,7 @@ temporal_sampling(t::Dimension) = temporal_sampling(t.val)
 
 function temporal_sampling(t::AbstractVector{<:TimeType})
     function issame(f)
+        f === hour && eltype(t) <: Date && return true
         x0 = f(t[1])
         return all(i -> f(t[i]) == x0, 2:length(t))
     end
