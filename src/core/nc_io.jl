@@ -5,7 +5,7 @@ https://github.com/rafaqz/GeoData.jl
 =#
 using NCDatasets: NCDatasets, NCDataset
 export NCDataset
-export nckeys, ncdetails, globalattr
+export nckeys, ncdetails, globalattr, ncsize
 export ncread, ncwrite
 
 dim_to_commonname(::Lat) = "lat"
@@ -29,15 +29,26 @@ end
 nckeys(a::NCDataset) = keys(a)
 
 """
-    ncdetails(file::String, io = stdout)
+    ncdetails(file, io = stdout)
 Print details about the `.nc` file in `file` on `io`.
 """
-function ncdetails(file::String, io = stdout)
+function ncdetails(file, io = stdout)
     NCDataset(file) do ds
         show(io, MIME"text/plain"(), ds)
     end
 end
 ncdetails(ds::NCDataset, io = stdout) = show(io, MIME"text/plain"(), ds)
+
+"""
+    ncsize(file, var)
+Return the size of the variable of the `.nc` file without actually loading any data.
+"""
+function ncsize(file, var)
+    NCDataset(file) do ds
+        return size(ds[var])
+    end
+end
+
 
 """
     globalattr(file::String) → Dict
@@ -84,6 +95,7 @@ to an array with three dimensions, such syntaxes are possible:
 (:, :, 1:3)
 (1:5:100, 1:1, [1,5,6])
 ```
+The function [`ncsize`](@ref) can be useful for `selection`.
 
 See also [`ncdetails`](@ref), [`nckeys`](@ref) and [`ncwrite`](@ref).
 
