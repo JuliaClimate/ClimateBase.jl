@@ -17,11 +17,22 @@ Get the index of dimension `d`.
 dimindex(A, i::Int) = i
 dimindex(A, dim) = DimensionalData.dimnum(A, dim)
 
+"""
+    gnv(object) → x
+Short for "get numeric value", this function will return the pure numeric value
+of the given object. Convenience function for quickly gettin the numeric data of
+dimensional arrays or dimensions.
+"""
+gnv(x) = x
+gnv(x::AbDimArray) = DimensionalData.parent(x)
+gnv(x::Dimension) = x.val
+
 export At, Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, dims, dimindex
 export Time, Lon, Lat, dims, Coord, Hei, Pre, Ti
 export UnstructuredGrid, LonLatGrid, spacestructure
 export DimensionalData # for accessing its functions
+export gnv
 
 @dim Lon IndependentDim "Longitude"
 @dim Lat IndependentDim "Latitude"
