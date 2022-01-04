@@ -21,7 +21,7 @@ Make sure your installed version coincides with the one in this docs (see bottom
 
 ## `ClimArray`: the core data structure
 This project treats "climate data" as an instance of [`ClimArray`](@ref).
-At the moment `ClimArray` is a subtype of `DimensionalArray` from DimensionalData.jl.
+At the moment `ClimArray` is a subtype of `DimArray` from DimensionalData.jl.
 A brief introduction to DimensionalData.jl is copied here from its docs, because basic handling of a `ClimArray` comes from DimensionalData.jl.
 DimensionalData.jl allows to dimensionally-index data by their values.
 

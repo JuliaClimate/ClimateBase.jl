@@ -19,13 +19,13 @@ dimindex(A, dim) = DimensionalData.dimnum(A, dim)
 
 """
     gnv(object) → x
-Short for "get numeric value", this function will return the pure numeric value
-of the given object. Convenience function for quickly gettin the numeric data of
+Short for "get numeric value", this function will return the pure numeric value(s)
+of the given object. Convenience function for quickly getting the numeric data of
 dimensional arrays or dimensions.
 """
 gnv(x) = x
-gnv(x::AbDimArray) = DimensionalData.parent(x)
-gnv(x::Dimension) = DimensionalData.parent(DimensionalData.parent(x))
+gnv(x::Union{AbDimArray, LookupArray}) = parent(x)
+gnv(x::Dimension) = parent(parent(x))
 
 export At, (..), Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, dims, dimindex
@@ -134,9 +134,9 @@ struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbDimArray{T
     name::Symbol
     attrib::Me
 end
-ClimArray(A::DimensionalArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
+ClimArray(A::AbDimArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
 ClimArray(A::ClimArray, dims::Tuple = A.dims; name = A.name, attrib = A.attrib) =
-ClimArray(A.data, DimensionalData.formatdims(A.data, dims), A.refdims, Symbol(name), attrib)
+ClimArray(A.data, dims, A.refdims, Symbol(name), attrib)
 
 """
     ClimArray(A::Array, dims::Tuple; name = "", attrib = nothing)
@@ -146,7 +146,7 @@ information, a name and an `attrib` field (typically a dictionary) that holds ge
 attributes.
 You can think of `ClimArray` as a in-memory representation of a CFVariable.
 
-At the moment, a `ClimArray` is using `DimensionalArray` from DimensionalData.jl, and
+At the moment, a `ClimArray` is using `DimArray` from DimensionalData.jl, and
 all basic handling of `ClimArray` is offered by `DimensionalData` (see below).
 
 `ClimArray` is created by passing in standard array data `A` and a
@@ -167,9 +167,9 @@ A = ClimArray(data, dimensions)
 ```
 """
 ClimArray(A::AbstractArray, dims::Tuple; refdims=(), name="", attrib=nothing) =
-    ClimArray(A, DimensionalData.formatdims(A, dims), refdims, Symbol(name), attrib)
+    ClimArray(A, dims, refdims, Symbol(name), attrib)
 ClimArray(A::AbstractArray, dims::Tuple, name; refdims=(), attrib=nothing) =
-    ClimArray(A, DimensionalData.formatdims(A, dims), refdims, Symbol(name), attrib)
+    ClimArray(A, dims, refdims, Symbol(name), attrib)
 
 Base.parent(A::ClimArray) = A.data
 Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
