@@ -1,6 +1,6 @@
 using ClimateBase, Test, Dates
 using Statistics
-# using Interpolations
+using Interpolations
 import StatsBase
 Time = ClimateBase.Time
 cd(@__DIR__)
@@ -290,10 +290,10 @@ end
     Bloaded = ncread("test.nc", "x2")
 
     @test A.data == Aloaded.data
-    @test dims(Aloaded, Lon).metadata["units"] == "degrees_east"
+    @test DimensionalData.metadata(dims(Aloaded, Lon))["units"] == "degrees_east"
     @test B.data == Bloaded.data
     @test string(Bloaded.name) == "x2"
-    @test dims(Bloaded, Time).metadata["standard_name"] == "time"
+    @test DimensionalData.metadata(dims(Bloaded, Time))["standard_name"] == "time"
 
     Bpartly = ncread("test.nc", "x2", ([1,4,5], :, 1:3))
     @test Bpartly.data[:, :, :] == Bloaded.data[[1,4,5], :, 1:3]
