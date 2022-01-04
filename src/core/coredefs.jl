@@ -176,14 +176,12 @@ Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalDa
     setindex!(A.data, x, I...)
 
 DimensionalData.metadata(A::ClimArray) = A.attrib
-DimensionalData.rebuild(A::ClimArray, data::Any, dims::Tuple=dims(A), refdims=DimensionalData.refdims(A),
-name="", attrib=nothing) = ClimArray(data, format(dims, data), refdims, Symbol(name), attrib)
 DimensionalData.basetypeof(::ClimArray) = ClimArray
 
 DimensionalData.rebuild(
     A::ClimArray;
-    data=data(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
-) = ClimArray(data, dims, refdims, name, metadata)
+    data=gnv(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
+) = ClimArray(data, format(dims, data), refdims, name, metadata)
 
 
 # The following basic methods allow indexing with tuples, (Time(5), Lon(3))

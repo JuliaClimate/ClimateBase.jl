@@ -1,6 +1,6 @@
 using ClimateBase, Test, Dates
 using Statistics
-using Interpolations
+using ClimateBase.Interpolations
 import StatsBase
 Time = ClimateBase.Time
 cd(@__DIR__)
@@ -340,7 +340,7 @@ end
     E_pre2 = interpolation2pressure(reverse(E,dims=my_dim), reverse(pressure,dims=my_dim), pressure_levels; vertical_coord=my_dim, extrapolation_bc=NaN, descending = false )
 
     @test hasdim(D_pre,Pre())
-    @test dims(D_back,Hei).val == dims(D,Hei).val && dims(D_back,Ti).val == dims(D,Ti).val
+    @test gnv(dims(D_back,Hei)) == gnv(dims(D,Hei)) && gnv(dims(D_back,Ti)) == gnv(dims(D,Ti))
     @test E_pre.data == E_pre2.data
     @test E_pre[Pre(1)] < E_pre[Pre(2)] < E_pre[Pre(3)] < E_pre[Pre(4)] < E_pre[Pre(5)]
     @test D_pre[Pre(1)] < D_pre[Pre(2)] < D_pre[Pre(3)] < D_pre[Pre(4)] < D_pre[Pre(5)]

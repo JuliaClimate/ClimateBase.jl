@@ -86,24 +86,21 @@ function interpolate_height2pressure(A::ClimArray,pressure_levels::Vector; extra
         error("Height is not an ascending coordinate.")
     end
 
-    pressure = height2pressure.(dims(A,Hei()).val)
+    pressure = height2pressure.(gnv(dims(A,Hei())))
 
     # construct output Array:
     pre = Pre(pressure_levels; metadata = Dict())
     dims_no_height = otherdims(A, Hei())
-    out_dims = (dims_no_height...,pre)
+    out_dims = (dims_no_height..., pre)
     dimension_lengths = length.(out_dims)
 
-    int_array = ClimArray(zeros(eltype(A), Tuple(dimension_lengths)), out_dims ; name = A.name, attrib = A.attrib)
+    int_array = ClimArray(zeros(eltype(A), Tuple(dimension_lengths)), out_dims; name = A.name, attrib = A.attrib)
 
     for i in otheridxs(A, Hei())
-
         itp = LinearInterpolation(pressure,A[i],extrapolation_bc=extrapolation_bc)
         int_array[i] = itp(pressure_levels)
-
     end
     return int_array
-
 end
 
 
