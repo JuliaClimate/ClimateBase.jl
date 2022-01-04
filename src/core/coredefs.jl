@@ -2,7 +2,7 @@
 # Basic imports and dimension definitions
 ##########################################################################################
 using DimensionalData
-using DimensionalData.Dimensions, DimensionalData.LookUp
+using DimensionalData.Dimensions, DimensionalData.LookupArrays
 using DimensionalData: basetypeof
 using Dates
 
