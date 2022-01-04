@@ -255,8 +255,8 @@ tropics_extratropics(spacestructure(A), A, args...; kwargs...)
 function tropics_extratropics(::LonLatGrid, A; lower_lat=30, higher_lat=90)
     tropics = A[Lat(Between(-lower_lat, lower_lat))]
     latdim = dims(A, Lat)
-    extra_idxs_sh = DimensionalData.sel2indices(latdim, Between(-higher_lat, -lower_lat))
-    extra_idxs_nh = DimensionalData.sel2indices(latdim, Between(lower_lat, higher_lat))
+    extra_idxs_sh = DimensionalData.selectindices(latdim, Between(-higher_lat, -lower_lat))
+    extra_idxs_nh = DimensionalData.selectindices(latdim, Between(lower_lat, higher_lat))
     extra_idxs = vcat(extra_idxs_sh, extra_idxs_nh)
     extratropics = A[Lat(extra_idxs)]
     return tropics, extratropics
