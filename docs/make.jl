@@ -37,6 +37,7 @@ makedocs(modules = [ClimateBase, DimensionalData],
         ),
     pages = [
         "Introduction" => "index.md",
+        "NetCDF IO" => "netcdf.md",
         "Statistics" => "statistics.md",
         "Plotting" => "plotting.md",
         "Advanced functionality" => "advanced.md",
