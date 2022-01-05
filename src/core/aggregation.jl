@@ -153,7 +153,7 @@ end
 #########################################################################
 #=
 """
-    boardcast_dims(f, A, B)
+    broadcast_dims(f, A, B)
 Apply bivariate function `f` (e.g. multiplication `*`) across the (first) matching dimension
 of `A` and `B`, where `B` has only one dimension.
 For normal Julia arrays match is done on the first matching dimension size.
@@ -168,18 +168,18 @@ for every `i` across the matching dimension.
 
 Useful when wanting to weight a field `A` based on its latitude or time.
 """
-function boardcast_dims(f, A::AbDimArray, B::AbDimArray)
-    @assert length(size(B)) == 1 "3rd argument of boardcast_dims must be a vector"
+function broadcast_dims(f, A::AbDimArray, B::AbDimArray)
+    @assert length(size(B)) == 1 "3rd argument of broadcast_dims must be a vector"
     m = find_matching_dim(A, B)
     # Array(data) necessary because reshapes somewhow fail to play well with the code...
-    C = boardcast_dims(f, Array(data(A)), Array(data(B)), m)
+    C = broadcast_dims(f, Array(data(A)), Array(data(B)), m)
     return DimensionalData.basetypeof(A)(C, dims(A))
 end
 
-boardcast_dims(f, A::AbstractArray, B, m::Int = find_matching_dim(A, B)) =
-boardcast_dims!(copy(A), f, A, B, m)
+broadcast_dims(f, A::AbstractArray, B, m::Int = find_matching_dim(A, B)) =
+broadcast_dims!(copy(A), f, A, B, m)
 
-function boardcast_dims!(C, f, A::AbstractArray{T, N}, B::AbstractVector, m::Int) where {T, N}
+function broadcast_dims!(C, f, A::AbstractArray{T, N}, B::AbstractVector, m::Int) where {T, N}
     shape = ntuple(i -> (i==m) ? length(B) : 1, N)
     b = reshape(B, shape)
     C .= f.(A, b)
@@ -200,4 +200,4 @@ function find_matching_dim(A::AbstractArray, B::AbstractVector)::Int
 end
 
 =#
-export boardcast_dims
+export broadcast_dims

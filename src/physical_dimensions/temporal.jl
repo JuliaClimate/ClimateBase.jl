@@ -302,7 +302,7 @@ function timeagg_monthly(f, A::AbDimArray, w)
     elseif w isa Vector
         tw .* w
     elseif w isa AbDimArray
-        _w = boardcast_dims(*, w, ClimArray(tw, (Time(t),)))
+        _w = broadcast_dims(*, w, ClimArray(tw, (Time(t),)))
         @view _w[Time(1:mys)]
     end
     other = otherdims(A, Time)

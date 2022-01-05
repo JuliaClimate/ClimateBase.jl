@@ -110,7 +110,7 @@ This function properly weights by the cosine of the latitude.
 function latmean(A::AbDimArray)
     lw = _latweights(A)
     if ndims(A) > 1
-        return dropagg(sum, boardcast_dims(*, A, lw), Lat)
+        return dropagg(sum, broadcast_dims(*, A, lw), Lat)
     else
         return sum(A .* lw)
     end

@@ -36,7 +36,11 @@ B = ClimArray(B, d; attrib = Dict("a" => 2)) # on purpose without name
 
 # %% Pretty printing
 @testset "pretty printing" begin
-    P = sprint
+    P = sprint(show, MIME"text/plain"(), A)
+    @test contains(P, "ClimArray")
+    @test contains(P, "Lon")
+    @test contains(P, "data")
+    @test contains(P, "44")
 end
 
 # %% General Statistics Tests
