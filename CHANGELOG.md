@@ -1,0 +1,1 @@
+_Changelog for ClimateBase.jl is kept from version 0.14 onwards_
