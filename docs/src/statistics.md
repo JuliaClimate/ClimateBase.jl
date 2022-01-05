@@ -19,7 +19,7 @@ sametimespan
 
 ## Spatial
 
-All functions in this section work for both types of space, see [Types of spatial coordinates](@ref).
+All functions in this section work for both types of space, see [Types of spatial information](@ref).
 ```@docs
 zonalmean
 latmean
@@ -32,11 +32,11 @@ lonlatfirst
 longitude_circshift
 ```
 
-### Types of spatial coordinates
-At the moment the following type of spatial coordinates are supported:
+### Types of spatial information
+Spatial information (excluding height/pressure dimensions) in ClimateBase.jl exists in one of two forms:
 ```@docs
-LonLatGrid
-UnstructuredGrid
+OrthogonalSpace
+CoordinateSpace
 ```
 
 ClimateBase.jl works with either type of spatial coordinate system.

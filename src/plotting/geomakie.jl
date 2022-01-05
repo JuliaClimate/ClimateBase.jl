@@ -3,7 +3,7 @@ export climscatter, climscatter!, climsurface!, climsurface, climplot
 """
     climplot(A::ClimArray; kwargs...) → fig, ax, el, cb
 Main plotting function that dispatches to [`climscatter!`](@ref) if `A` has
-an [`UnstructuredGrid`](@ref) dimension, or to [`climsurface!`](@ref) for [`LonLatGrid`](@ref).
+an [`CoordinateSpace`](@ref) dimension, or to [`climsurface!`](@ref) for [`OrthogonalSpace`](@ref).
 
 Return the figure, axis, plotted element, and colorbar.
 
@@ -13,7 +13,7 @@ Plotting from ClimateBase.jl also works with `Observable`s that enclose a `ClimA
 You can update the values of the observable with another `ClimArray` with the same spatial
 dimension, and the plot will be updated. See documentation online for examples.
 """
-function climplot(A, args...; scatter = spacestructure(A) == UnstructuredGrid(),
+function climplot(A, args...; scatter = spacestructure(A) == CoordinateSpace(),
     source = "+proj=longlat +datum=WGS84", dest = "+proj=eqearth", 
     colorbar = true, name = string(DimensionalData.name(A)), kwargs...)
     

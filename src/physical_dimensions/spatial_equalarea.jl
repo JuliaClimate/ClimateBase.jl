@@ -60,13 +60,13 @@ end
 #########################################################################
 # Spatial aggregation functions
 #########################################################################
-spaceagg(::UnstructuredGrid, f, A, W = nothing) = dropagg(f, A, Coord, W)
+spaceagg(::CoordinateSpace, f, A, W = nothing) = dropagg(f, A, Coord, W)
 
-function spatialidxs(::UnstructuredGrid, A)
+function spatialidxs(::CoordinateSpace, A)
     return ((Coord(i),) for i in 1:size(A, Coord))
 end
 
-function zonalmean(::UnstructuredGrid, A::AbDimArray, ::Nothing)
+function zonalmean(::CoordinateSpace, A::AbDimArray, ::Nothing)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
     r = zeros(eltype(A), (length(lats), size.(Ref(A), other)...))
@@ -78,7 +78,7 @@ function zonalmean(::UnstructuredGrid, A::AbDimArray, ::Nothing)
     end
     return R
 end
-function zonalmean(::UnstructuredGrid, A::AbDimArray{T, 1}, ::Nothing) where {T}
+function zonalmean(::CoordinateSpace, A::AbDimArray{T, 1}, ::Nothing) where {T}
     idxs, lats = uniquelats(A)
     res = zeros(T, length(lats))
     for (i, r) in enumerate(idxs)
@@ -88,7 +88,7 @@ function zonalmean(::UnstructuredGrid, A::AbDimArray{T, 1}, ::Nothing) where {T}
 end
 
 # zonal mean with weights
-function zonalmean(::UnstructuredGrid, A::ClimArray, W::AbstractArray)
+function zonalmean(::CoordinateSpace, A::ClimArray, W::AbstractArray)
 	@assert size(A) == size(W)
     idxs, lats = uniquelats(A)
     other = otherdims(A, Coord())
@@ -101,7 +101,7 @@ function zonalmean(::UnstructuredGrid, A::ClimArray, W::AbstractArray)
     end
     return R
 end
-function zonalmean(::UnstructuredGrid, A::ClimArray{T, 1}, W::AbstractArray) where {T}
+function zonalmean(::CoordinateSpace, A::ClimArray{T, 1}, W::AbstractArray) where {T}
 	@assert size(A) == size(W)
     idxs, lats = uniquelats(A)
     res = zeros(T, length(lats))
@@ -115,7 +115,7 @@ end
 #########################################################################
 # Special latitude splitting
 #########################################################################
-function hemispheric_functions(::UnstructuredGrid, A)
+function hemispheric_functions(::CoordinateSpace, A)
     c = gnv(dims(A, Coord))
     nhi, shi = hemisphere_indices(c)
     nh = A[Coord(nhi)]
@@ -131,14 +131,14 @@ function hemispheric_functions(::UnstructuredGrid, A)
     return nh, sh
 end
 
-function hemispheric_means(::UnstructuredGrid, A::AbDimArray)
+function hemispheric_means(::CoordinateSpace, A::AbDimArray)
     nhi, shi = hemisphere_indices(A)
     nh = dropagg(mean, A[Coord(nhi)], Coord)
     sh = dropagg(mean, A[Coord(shi)], Coord)
     return nh, sh
 end
 
-function hemispheric_means(::UnstructuredGrid, A::AbDimArray, W)
+function hemispheric_means(::CoordinateSpace, A::AbDimArray, W)
 	@assert size(A) == size(W)
     nhi, shi = hemisphere_indices(A)
     nh = dropagg(mean, A[Coord(nhi)], Coord, W[Coord(nhi)])
@@ -160,9 +160,9 @@ function hemisphere_indices(c)
     return nhi, shi
 end
 
-latitudes(::UnstructuredGrid, A) = unique!([x[2] for x in dims(A, Coord)])
+latitudes(::CoordinateSpace, A) = unique!([x[2] for x in dims(A, Coord)])
 
-function tropics_extratropics(::UnstructuredGrid, A; lower_lat=30)
+function tropics_extratropics(::CoordinateSpace, A; lower_lat=30)
     # TODO: Support `higher_lat` keyword
     c = gnv(dims(A, Coord))
     idxs, lats = uniquelats(c)

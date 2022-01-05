@@ -30,7 +30,7 @@ gnv(x::Dimension) = parent(parent(x))
 export At, (..), Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, dims, dimindex
 export Time, Lon, Lat, dims, Coord, Hei, Pre, Ti
-export UnstructuredGrid, LonLatGrid, spacestructure
+export CoordinateSpace, OrthogonalSpace, spacestructure
 export DimensionalData # for accessing its functions
 export gnv
 
@@ -69,54 +69,53 @@ const COMMONNAMES = Dict(
 ##########################################################################################
 
 # the following traits for the the way space is configured. currently the options are
-# UnstructuredGrid, which is for equal area "grids" (or better points/coordinates)
-# while the LonLatGrid is for standard Longitude x Latitude dimensions.
-# Dispatch on `UnstructuredGrid` or other types is type-stable
+# CoordinateSpace, which is for points/coordinates
+# while the OrthogonalSpace is for standard Longitude x Latitude dimensions.
+# Dispatch on `CoordinateSpace` or other types is type-stable
 # because it comes from the underlying dimension
 
 abstract type SpaceType end
 
 """
-Space coordinates are represented by two orthogonal dimensions `Lon, Lat`,
+Space information is represented by two orthogonal dimensions `Lon, Lat`,
 one being longitude and the other being latitude.
 """
-struct LonLatGrid <: SpaceType end
+struct OrthogonalSpace <: SpaceType end
 
 """
-Space coordinates are represented by a single dimension `Coord`, whose
-elements are coordinate locations, i.e. 2-element `SVector(longitude, latitude)`.
-Each coordinate represents an **equal area polygon** corresponding to the point in space.
+Space information is represented by a single dimension `Coord`, whose
+elements are coordinates, i.e. 2-element `SVector(longitude, latitude)`.
+Each coordinate represents the center of an arbitrary polygon in space.
 The actual limits of each polygon are not included in the dimension for performance reasons.
 
-This dimension also allows indexing by latitude, e.g. you can do
+In statistical functions such as [`spaceagg`](@ref), it is assumed that entry of the
+coordinates covers **an equal amount of area**. If this is not the case, you can simply
+provide an additional weights vector which would correspond to the area covered.
+
+This dimension also allows indexing by latitude ranges, e.g. you can do
 ```julia
-A # some `ClimArray` with unstructured grid type.
+A # some `ClimArray` with a `Coord` dimension
 A[Coord(Lat(-30..30)))]
 ```
 
-To use functions such as [`zonalmean`](@ref) or [`hemispheric_means`](@ref) with this grid,
-you must first sort the `ClimArray` so that the latitudes
-of its coordinates are sorted in ascending order. I.e.
+Most functions of ClimateBase.jl implicitly assume that the coordinates are
+sorted by latidude. You can achieve this with the following code:
 ```julia
-A # some `ClimArray` with unstructured grid type.
-coords = dims(A, Coord).val
-si = sortperm(coords, by = reverse)
+A # some `ClimArray` with a `Coord` dimension
+coords = gnv(dims(A, Coord))
+si = sortperm(coords; by = reverse)
 A = A[Coord(si)]
 ```
 **This is done automatically by [`ncread`](@ref).**
-
-!!! warn
-    `UnstructuredGrid` functionality is currently in an **experimental phase**!
-    Notice that non-equal area unstructured grids are not supported yet.
 """
-struct UnstructuredGrid <: SpaceType end
+struct CoordinateSpace <: SpaceType end
 
 spacestructure(a::AbDimArray) = spacestructure(dims(a))
 function spacestructure(dims)
     if hasdim(dims, Coord)
-        UnstructuredGrid()
+        CoordinateSpace()
     elseif hasdim(dims, Lon) || hasdim(dims, Lat)
-        LonLatGrid()
+        OrthogonalSpace()
     else
         error("Array does not have any spatial dimensions: `Lon`, `Lat`, or `Coord`.")
     end
