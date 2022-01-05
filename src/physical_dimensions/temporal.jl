@@ -33,6 +33,7 @@ temporal_sampling(t::Dimension) = temporal_sampling(t.val)
 
 function temporal_sampling(t::AbstractVector{<:TimeType})
     function issame(f)
+        f === hour && eltype(t) <: Date && return true
         x0 = f(t[1])
         return all(i -> f(t[i]) == x0, 2:length(t))
     end
@@ -228,7 +229,7 @@ function sametimespan(Xs...)
         mint = Date(year(mint), 1, 1)
         maxt = Date(year(maxt), 12, 31)
     end
-    map(X -> X[Time(Between(mint, maxt))], Xs)
+    map(X -> X[Time(mint..maxt)], Xs)
 end
 sametimespan(Xs::Tuple) = sametimespan(Xs...)
 
@@ -301,7 +302,7 @@ function timeagg_monthly(f, A::AbDimArray, w)
     elseif w isa Vector
         tw .* w
     elseif w isa AbDimArray
-        _w = dimwise(*, w, ClimArray(tw, (Time(t),)))
+        _w = broadcast_dims(*, w, ClimArray(tw, (Time(t),)))
         @view _w[Time(1:mys)]
     end
     other = otherdims(A, Time)

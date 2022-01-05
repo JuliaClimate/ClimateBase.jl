@@ -113,8 +113,8 @@ NCDatasets.jl and then convert to some kind of dimensional container.
 
 ## Keywords
 * `name` optionally rename loaded array.
-* `grid = nothing` optionally specify whether the underlying grid is `grid = LonLatGrid()`
-  or `grid = UnstructuredGrid()`, see [Types of spatial coordinates](@ref).
+* `grid = nothing` optionally specify whether the underlying grid is `grid = OrthogonalSpace()`
+  or `grid = CoordinateSpace()`, see [Types of spatial information](@ref).
   If `nothing`, we try to deduce automatically based on
   the names of dimensions and other keys of the `NCDataset`.
 * `lon, lat`. These two keywords are useful in unstructured grid data where the grid
@@ -126,7 +126,7 @@ NCDatasets.jl and then convert to some kind of dimensional container.
   lon = Array(ds["clon"]);
   lat = Array(ds["clat"]);
   ```
-  If `lon, lat` are given, `grid` is automatically assumed `UnstructuredGrid()`.
+  If `lon, lat` are given, `grid` is automatically assumed `CoordinateSpace()`.
 """
 function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
@@ -147,14 +147,14 @@ function ncread(ds::NCDatasets.AbstractDataset, var, selection = nothing;
         name = var2name(var), grid = nothing, lon = nothing, lat = nothing,
     )
     if lon isa Vector && lat isa Vector
-        gridtype = UnstructuredGrid()
+        gridtype = CoordinateSpace()
     elseif isnothing(grid)
         gridtype = autodetect_grid(ds)
     else
         gridtype = grid
     end
 
-    if gridtype == UnstructuredGrid()
+    if gridtype == CoordinateSpace()
         return ncread_unstructured(ds, var, name, lon, lat, selection)
     else
         return ncread_lonlat(ds, var, name, selection)
@@ -163,11 +163,11 @@ end
 
 function autodetect_grid(ds)
     if haskey(ds, "reduced_points") || haskey(ds.dim, "ncells") || haskey(ds, "clon")
-        return UnstructuredGrid()
+        return CoordinateSpace()
     elseif haskey(ds, "lat") && length(size(ds["lat"])) > 1
-        return UnstructuredGrid()
+        return CoordinateSpace()
     else
-        return LonLatGrid()
+        return OrthogonalSpace()
     end
 end
 
@@ -175,7 +175,7 @@ var2name(var) = string(var)
 var2name(var::Tuple) = join(var, "_")
 
 #########################################################################
-# Reading: LonLatGrid and main reading functionality
+# Reading: OrthogonalSpace and main reading functionality
 #########################################################################
 # Notice that this function properly loads even without any spatial coordinate
 function ncread_lonlat(ds::NCDatasets.AbstractDataset, var, name, selection)
@@ -291,7 +291,7 @@ vector2range(r::AbstractRange) = r
 
 
 #########################################################################
-# Reading: UnstructuredGrid
+# Reading: CoordinateSpace
 #########################################################################
 export SVector
 
@@ -342,7 +342,7 @@ function ncread_unstructured(
 
     # Make coordinate dimension
     lonlat = lonlat[sel[i]]
-    si = sortperm(lonlat, by = reverse)
+    si = sortperm(lonlat; by = reverse)
     coords = Coord(lonlat, (Lon, Lat))
     insert!(actualdims, i, coords)
 
@@ -474,7 +474,7 @@ function ncwrite(file::String, Xs; globalattr = Dict())
     # into longitude and latitude.
     if any(X -> hasdim(X, Coord), Xs)
         error("""
-        Outputing `UnstructuredGrid` coordinates to .nc files is not yet supported,
+        Outputing `CoordinateSpace` coordinates to .nc files is not yet supported,
         but it is an easy fix, see source of `ncwrite`.
         """)
     end
@@ -511,7 +511,7 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
         eltype(v) == Date && (v = DateTime.(v))
         l = length(v)
         NCDatasets.defDim(ds, d, l) # add dimension entry
-        attrib = dimensions[i].metadata
+        attrib = DimensionalData.metadata(dimensions[i])
         if (isnothing(attrib) || attrib == DimensionalData.NoMetadata()) && haskey(DEFAULT_ATTRIBS, d)
             @warn "Dimension $d has no attributes, adding default attributes (mandatory)."
             attrib = DEFAULT_ATTRIBS[d]

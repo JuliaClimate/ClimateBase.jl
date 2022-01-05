@@ -5,10 +5,10 @@ function Base.show(io::IO, ::MIME"text/plain", A::ClimArray)
     summary(io, A)
     print(io, "and")
     printstyled(io, " data: "; color=:green)
-    dataA = data(A)
+    dataA = gnv(A)
     print(io, summary(dataA), "\n")
     x = 2length(dims(A)) + attriblength(A.attrib) + 5
-    custom_show(io, data(A), x)
+    custom_show(io, dataA, x)
 end
 
 attriblength(d::AbstractDict) = length(d)
@@ -23,8 +23,7 @@ function Base.summary(io::IO, A::ClimArray)
         print(io, ")")
     end
 
-    print(io, " with dimensions:")
-    DimensionalData._layout_dims(io, MIME"text/plain"(), dims(A))
+    DimensionalData.Dimensions.print_dims(io, MIME"text/plain"(), dims(A))
     print(io, "\n")
 
     if !isnothing(A.attrib)

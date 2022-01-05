@@ -10,7 +10,7 @@ DEFPROJ = ccrs.Mollweide()
 
 """
     earthscatter(A::ClimArray, projection = ccrs.Mollweide(); kwargs...) → fig, ax, cb
-Plot a `ClimArray` with space type `UnstructuredGrid` as a scatter plot with the color
+Plot a `ClimArray` with space type `CoordinateSpace` as a scatter plot with the color
 of the points being the value of `A` at these points. This requires that `A` has only
 one dimension, the coordinates.
 
@@ -62,7 +62,7 @@ end
 
 """
     earthsurface(A::ClimArray, projection = ccrs.Mollweide(); kwargs...) → fig, ax, cb
-Plot a `ClimArray` with space type `LonLatGrid` as a surface plot with the color
+Plot a `ClimArray` with space type `OrthogonalSpace` as a surface plot with the color
 of the surface being the value of `A`. This requires that `A` has exactly two dimensions,
 `Lon, Lat`.
 

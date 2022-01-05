@@ -21,7 +21,7 @@ end
 Works for all types of space (`...` is necessary because `i` is a `Tuple`).
 """
 spatialidxs(A::AbDimArray) = spatialidxs(spacestructure(A), A)
-function spatialidxs(::LonLatGrid, A)
+function spatialidxs(::OrthogonalSpace, A)
     lons = (Lon(i) for i in 1:size(A, Lon))
     lats = (Lat(i) for i in 1:size(A, Lat))
     return Iterators.product(lons, lats)
@@ -95,12 +95,12 @@ export latmean, spacemean, zonalmean, spaceagg, uniquelats
 
 """
     zonalmean(A::ClimArray [, W])
-Return the zonal mean of `A`. Works for both [`LonLatGrid`](@ref) as well as
-[`UnstructuredGrid`](@ref). Optionally provide statistical weights `W`.
+Return the zonal mean of `A`. Works for both [`OrthogonalSpace`](@ref) as well as
+[`CoordinateSpace`](@ref). Optionally provide statistical weights `W`.
 These can be the same `size` as `A` or only having the same latitude structure as `A`.
 """
 zonalmean(A::AbDimArray, W = nothing) = zonalmean(spacestructure(A), A, W)
-zonalmean(::LonLatGrid, A::AbDimArray, W) = dropagg(mean, A, Lon, W)
+zonalmean(::OrthogonalSpace, A::AbDimArray, W) = dropagg(mean, A, Lon, W)
 
 """
     latmean(A::ClimArray)
@@ -110,7 +110,7 @@ This function properly weights by the cosine of the latitude.
 function latmean(A::AbDimArray)
     lw = _latweights(A)
     if ndims(A) > 1
-        return dropagg(sum, dimwise(*, A, lw), Lat)
+        return dropagg(sum, broadcast_dims(*, A, lw), Lat)
     else
         return sum(A .* lw)
     end
@@ -143,7 +143,7 @@ longitude and latitude) of `A`, weighting every part of `A` by its spatial area.
 `ClimArray` with same spatial information as `A`, or having exactly same dimensions as `A`.
 """
 spaceagg(f, A::AbDimArray, exw=nothing) = spaceagg(spacestructure(A), f, A, exw)
-function spaceagg(::LonLatGrid, f, A::AbDimArray, w=nothing)
+function spaceagg(::OrthogonalSpace, f, A::AbDimArray, w=nothing)
     wtype = spaceweightassert(A, w)
     cosweights = repeat(cosd.(dims(A, Lat).val)', size(A, Lon))
     if dimindex(A, Lon) > dimindex(A, Lat)
@@ -165,8 +165,6 @@ function spaceagg(::LonLatGrid, f, A::AbDimArray, w=nothing)
     if wtype != :dany
         r = map(i -> f(view(A, i), W), oidxs)
     else
-        # TODO: This multiplication .* here assumes that the lon-lat grid is the
-        # first dimension.
         r = map(i -> f(view(A, i), weights(view(w, i) .* cosweights)), oidxs)
     end
     return ClimArray(r, other, A.name)
@@ -205,9 +203,9 @@ appropriately translating the latitudes of `south` so that both arrays have the 
 latitudinal dimension (and thus can be compared and do opperations between them).
 """
 hemispheric_functions(A) = hemispheric_functions(spacestructure(A), A)
-function hemispheric_functions(::LonLatGrid, A)
-    nh = A[Lat(Between(0,  90))]
-    sh = A[Lat(Between(-90, 0))]
+function hemispheric_functions(::OrthogonalSpace, A)
+    nh = A[Lat(0..90)]
+    sh = A[Lat(-90..0)]
     # TODO: this can be a function "reverse dim"
     di = dimindex(sh, Lat)
     newdims = [dims(sh)...]
@@ -226,20 +224,20 @@ Use [`hemispheric_functions`](@ref) to just split `A` into two hemispheres.
 Optionally provide weights `W` that need to have the same structure as [`spaceagg`](@ref).
 """
 hemispheric_means(A, args...) = hemispheric_means(spacestructure(A), A, args...)
-function hemispheric_means(::LonLatGrid, A::AbDimArray)
+function hemispheric_means(::OrthogonalSpace, A::AbDimArray)
     @assert hasdim(A, Lat)
     if hasdim(A, Lon)
         B = zonalmean(A)
     else
         B = A
     end
-    nh = latmean(B[Lat(Between(0,  90))])
-    sh = latmean(B[Lat(Between(-90, 0))])
+    nh = latmean(B[Lat(0..90)])
+    sh = latmean(B[Lat(-90..0)])
     return nh, sh
 end
 
 latitudes(A) = latitudes(spacestructure(A), A)
-latitudes(::LonLatGrid, A) = dims(A, Lat).val
+latitudes(::OrthogonalSpace, A) = dims(A, Lat).val
 #########################################################################
 # Tropics/extratropics
 #########################################################################
@@ -252,11 +250,11 @@ having [-higher_lat:-lower_lat, lower_lat:higher_lat].
 tropics_extratropics(A, args...; kwargs...) = 
 tropics_extratropics(spacestructure(A), A, args...; kwargs...)
 
-function tropics_extratropics(::LonLatGrid, A; lower_lat=30, higher_lat=90)
-    tropics = A[Lat(Between(-lower_lat, lower_lat))]
+function tropics_extratropics(::OrthogonalSpace, A; lower_lat=30, higher_lat=90)
+    tropics = A[Lat(-lower_lat..lower_lat)]
     latdim = dims(A, Lat)
-    extra_idxs_sh = DimensionalData.sel2indices(latdim, Between(-higher_lat, -lower_lat))
-    extra_idxs_nh = DimensionalData.sel2indices(latdim, Between(lower_lat, higher_lat))
+    extra_idxs_sh = DimensionalData.selectindices(latdim, -higher_lat..(-lower_lat))
+    extra_idxs_nh = DimensionalData.selectindices(latdim, lower_lat..higher_lat)
     extra_idxs = vcat(extra_idxs_sh, extra_idxs_nh)
     extratropics = A[Lat(extra_idxs)]
     return tropics, extratropics
