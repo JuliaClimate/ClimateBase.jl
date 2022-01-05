@@ -1,3 +1,31 @@
+#########################################################################
+# Basics
+#########################################################################
+"""
+    uniquelats(A::ClimArray) → idxs, lats
+    uniquelats(c::Vector{<:AbstractVector}) → idxs, lats
+Find the unique latitudes of `A`. Return the indices (vector of ranges) that each latitude
+in `lats` covers, as well as the latitudes themselves.
+"""
+uniquelats(A::AbDimArray) = uniquelats(gnv(dims(A, Coord)))
+function uniquelats(c)
+    @assert issorted(c; by = x -> x[2])
+    idxs = Vector{UnitRange{Int}}()
+    lats = eltype(eltype(c))[]
+    iprev = 1
+    for i in 2:length(c)
+        if c[i][2] != c[i-1][2]
+            push!(lats, c[i-1][2])
+            push!(idxs, iprev:(i-1))
+            iprev = i
+        end
+    end
+    push!(lats, c[end][2])
+    push!(idxs, iprev:length(c))
+    return idxs, lats
+end
+
+
 """
     transform_to_coord(A::ClimArray) → B
 Transform given `A` to a new `B::ClimArray` so that the `Lon, Lat` dimensions in `A`
@@ -6,13 +34,11 @@ are transformed to a `Coord` dimension in `B`.
 function transform_to_coord(A; name = A.name, attrib = A.attrib)
     hasdim(A, Coord) && return A
     @assert hasdim(A, Lon) && hasdim(A, Lat)
-    
     # First make coord dimension
     londim = dims(A, Lon)
     latdim = dims(A, Lat)
     lonlat = [SVector(l, lat) for lat in latdim for l in londim]
     coorddim = Coord(lonlat, (Lon, Lat))
-    
     # Then, reshape A to have this dimension
     is = dimindex(A, (Lon, Lat))
     sizes = [size(A)...]
@@ -20,19 +46,16 @@ function transform_to_coord(A; name = A.name, attrib = A.attrib)
     deleteat!(sizes, is[2])
     B = reshape(copy(A.data), sizes...)
     i = is[1]
-
     # Then, make new dimensions
-    newdims = [dims(A)...]
+    newdims = Any[dims(A)...]
     deleteat!(newdims, is)
     insert!(newdims, i, coorddim)
     X = ClimArray(B, Tuple(newdims))
-
     # Don't forget to sort lonlat coordinates
     si = sortperm(lonlat, by = reverse)
     X = X[Coord(si)]
     return ClimArray(X; name = Symbol(name), attrib)
 end
-
 
 #########################################################################
 # Spatial aggregation functions
@@ -89,30 +112,6 @@ function zonalmean(::UnstructuredGrid, A::ClimArray{T, 1}, W::AbstractArray) whe
 end
 
 
-"""
-    uniquelats(A::ClimArray) → idxs, lats
-    uniquelats(c::Vector{<:AbstractVector}) → idxs, lats
-Find the unique latitudes of `A`. Return the indices (vector of ranges) that each latitude
-in `lats` covers, as well as the latitudes themselves.
-"""
-uniquelats(A::AbDimArray) = uniquelats(gnv(dims(A, Coord)))
-function uniquelats(c)
-    @assert issorted(c; by = x -> x[2])
-    idxs = Vector{UnitRange{Int}}()
-    lats = eltype(eltype(c))[]
-    iprev = 1
-    for i in 2:length(c)
-        if c[i][2] != c[i-1][2]
-            push!(lats, c[i-1][2])
-            push!(idxs, iprev:(i-1))
-            iprev = i
-        end
-    end
-    push!(lats, c[end][2])
-    push!(idxs, iprev:length(c))
-    return idxs, lats
-end
-
 #########################################################################
 # Special latitude splitting
 #########################################################################
@@ -150,12 +149,14 @@ end
 """
 	hemisphere_indices(coords) → nhi, shi
 Return the indices of coordinates belonging to the north and south hemispheres.
+Coordinates with latitude exactly 0 are included in _both_ hemispheres.
 """
 function hemisphere_indices(c)
     idxs, lats = uniquelats(c)
     i = findfirst(x -> x > 0, lats)
+    j = findlast(x -> x < 0, lats)
     shi = idxs[1][1]:idxs[i-1][end]
-    nhi = idxs[i][1]:idxs[end][end]
+    nhi = idxs[j+1][1]:idxs[end][end]
     return nhi, shi
 end
 

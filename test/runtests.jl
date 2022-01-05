@@ -5,7 +5,7 @@ import StatsBase
 Time = ClimateBase.Time
 cd(@__DIR__)
 
-# Create the artificial dimensional array A that will be used in tests
+# Create the artificial dimensional arrays
 function monthly_insolation(t::TimeType, args...)
     d = ClimateBase.monthspan(t)
     mean(insolation(τ, args...) for τ in d)
@@ -33,6 +33,19 @@ end
 
 A = ClimArray(A, d; name = "insolation")
 B = ClimArray(B, d; attrib = Dict("a" => 2)) # on purpose without name
+
+# Create similar arrays with Coord dimension
+reduced_points = [round(Int, length(lons)*cosd(θ)) for θ in lats]
+coords = ClimateBase.reduced_grid_to_points(lats, reduced_points)
+sort!(coords; by = reverse) # critical!
+
+coord_dim = Coord(coords, (Lon, Lat))
+C = zeros(length(coords), length(t))
+for (i, (lon, θ)) in enumerate(coords)
+    C[i, :] .= monthly_insolation.(t, θ) .* cosd(lon)
+end
+
+C = ClimArray(C, (coord_dim, Time(t)); name = "has_coords", attrib = Dict("a" => 2))
 
 # %% 
 include("general_tests.jl")

@@ -125,6 +125,7 @@ end
 ##########################################################################################
 # ClimArray definition and DimensionalData.jl extensions
 ##########################################################################################
+# TODO: remove `refdims` field
 export ClimArray
 struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbDimArray{T,N,D,A}
     data::A
@@ -135,7 +136,7 @@ struct ClimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Me} <: AbDimArray{T
 end
 ClimArray(A::AbDimArray) = ClimArray(A.data, A.dims, A.refdims, A.name, A.metadata)
 ClimArray(A::ClimArray, dims::Tuple = A.dims; name = A.name, attrib = A.attrib) =
-ClimArray(A.data, dims, A.refdims, Symbol(name), attrib)
+ClimArray(A.data, format(dims, A.data), A.refdims, Symbol(name), attrib)
 
 """
     ClimArray(A::Array, dims::Tuple; name = "", attrib = nothing)

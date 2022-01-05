@@ -342,7 +342,7 @@ function ncread_unstructured(
 
     # Make coordinate dimension
     lonlat = lonlat[sel[i]]
-    si = sortperm(lonlat, by = reverse)
+    si = sortperm(lonlat; by = reverse)
     coords = Coord(lonlat, (Lon, Lat))
     insert!(actualdims, i, coords)
 
