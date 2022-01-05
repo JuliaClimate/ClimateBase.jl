@@ -202,7 +202,7 @@ end
 
 # This modifies what happens on A[Coord(Lat(x..y))]
 function DimensionalData.selectindices(c::Coord,
-    sel::Tuple{<:Lat{ <: DimensionalData.IntervalSets.AbstractInterval}})
+    sel::Tuple{<:Lat{ <: DimensionalData.LookupArrays.IntervalSets.AbstractInterval}})
     l1 = sel[1].val.left; l2 = sel.val.right
     return coord_latitudes_between(c.val, l1, l2) # this is Vector{Int}
 end
