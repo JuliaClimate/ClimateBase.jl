@@ -95,7 +95,7 @@ end
 Find the unique latitudes of `A`. Return the indices (vector of ranges) that each latitude
 in `lats` covers, as well as the latitudes themselves.
 """
-uniquelats(A::AbDimArray) = uniquelats(dims(A, Coord).val)
+uniquelats(A::AbDimArray) = uniquelats(gnv(dims(A, Coord)))
 function uniquelats(c)
     @assert issorted(c; by = x -> x[2])
     idxs = Vector{UnitRange{Int}}()
@@ -117,11 +117,11 @@ end
 # Special latitude splitting
 #########################################################################
 function hemispheric_functions(::UnstructuredGrid, A)
-    c = dims(A, Coord).val
+    c = gnv(dims(A, Coord))
     nhi, shi = hemisphere_indices(c)
     nh = A[Coord(nhi)]
     sh = A[Coord(shi)]
-    oldc = dims(sh, Coord).val
+    oldc = gnv(dims(sh, Coord))
     si = sortperm(oldc, by = x -> x[2], rev = true)
     newc = [SVector(x[1], abs(x[2])) for x in oldc[si]]
     di = dimindex(sh, Coord)
@@ -163,7 +163,7 @@ latitudes(::UnstructuredGrid, A) = unique!([x[2] for x in dims(A, Coord)])
 
 function tropics_extratropics(::UnstructuredGrid, A; lower_lat=30)
     # TODO: Support `higher_lat` keyword
-    c = dims(A, Coord).val
+    c = gnv(dims(A, Coord))
     idxs, lats = uniquelats(c)
     i1 = findlast(x -> x < -lower_lat, lats)
     i2 = findfirst(x -> x > lower_lat, lats)
@@ -197,12 +197,12 @@ end
 # This modifies what happens on A[Coord(Lat(Between(x,y)))]
 function DimensionalData.selectindices(c::Coord, sel::Tuple{<:Lat{ <: Between}})
     l1, l2 = sel[1].val.val
-    return coord_latitudes_between(c.val, l1, l2) # this is Vector{Int}
+    return coord_latitudes_between(gnv(c), l1, l2) # this is Vector{Int}
 end
 
 # This modifies what happens on A[Coord(Lat(x..y))]
 function DimensionalData.selectindices(c::Coord,
     sel::Tuple{<:Lat{ <: DimensionalData.LookupArrays.IntervalSets.AbstractInterval}})
     l1 = sel[1].val.left; l2 = sel.val.right
-    return coord_latitudes_between(c.val, l1, l2) # this is Vector{Int}
+    return coord_latitudes_between(gnv(c), l1, l2) # this is Vector{Int}
 end
