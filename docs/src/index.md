@@ -56,6 +56,7 @@ where in this averaging process each data point is weighted by the cosine of its
 You can create a `ClimArray` yourself, or you can load data from an `.nc` file with CF-conventions, see [NetCDF IO](@ref).
 ```@docs
 ClimArray(::AbstractArray, ::Tuple)
+gnv
 ```
 It is strongly recommended to use the dimensions we export (because we dispatch on them and use their information):
 ```@example
@@ -72,4 +73,12 @@ DimensionalData
 ```
 
 ## Available selectors
-**TODO**
+| Selector                | Description                                                         |
+| :---------------------- | :------------------------------------------------------------------ |
+| [`At(x)`]               | get the index exactly matching the passed in value(s)               |
+| [`Near(x)`]             | get the closest index to the passed in value(s)                     |
+| [`Contains(x)`]         | get indices where the value x falls within an interval              |
+| [`Where(f)`]            | filter the array axis by a function of the dimension index values.  |
+| [`a..b`]                | get all indices between two values, inclusively.                    |
+| [`OpenInterval(a, b)`]  | get all indices between `a` and `b`, exclusively.                   |
+| [`Interval{A,B}(a, b)`] | get all indices between `a` and `b`, as `:closed` or `:open`.       |

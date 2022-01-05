@@ -150,7 +150,8 @@ all basic handling of `ClimArray` is offered by `DimensionalData` (see below).
 
 `ClimArray` is created by passing in standard array data `A` and a
 tuple of dimensions `dims`. See [`ncread`](@ref) to automatically create a `ClimArray`
-from a .nc file.
+from a .nc file. For obtaining the raw numeric values of a `ClimArray` or any of its
+dimensions, use the function [`gnv`](@ref).
 
 ## Example
 ```julia
