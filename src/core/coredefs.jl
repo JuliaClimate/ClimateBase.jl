@@ -88,11 +88,10 @@ elements are coordinate locations, i.e. 2-element `SVector(longitude, latitude)`
 Each coordinate represents an **equal area polygon** corresponding to the point in space.
 The actual limits of each polygon are not included in the dimension for performance reasons.
 
-This dimension allows indexing according to the underlying `Lon, Lat` representation,
-e.g. you can do
+This dimension also allows indexing by latitude, e.g. you can do
 ```julia
 A # some `ClimArray` with unstructured grid type.
-A[Coord(Lon(Between(0, 30)), Lat(Between(-30, 30)))]
+A[Coord(Lat(-30..30)))]
 ```
 
 To use functions such as [`zonalmean`](@ref) or [`hemispheric_means`](@ref) with this grid,

@@ -204,8 +204,8 @@ latitudinal dimension (and thus can be compared and do opperations between them)
 """
 hemispheric_functions(A) = hemispheric_functions(spacestructure(A), A)
 function hemispheric_functions(::LonLatGrid, A)
-    nh = A[Lat(Between(0,  90))]
-    sh = A[Lat(Between(-90, 0))]
+    nh = A[Lat(0..90)]
+    sh = A[Lat(-90..0)]
     # TODO: this can be a function "reverse dim"
     di = dimindex(sh, Lat)
     newdims = [dims(sh)...]
@@ -231,8 +231,8 @@ function hemispheric_means(::LonLatGrid, A::AbDimArray)
     else
         B = A
     end
-    nh = latmean(B[Lat(Between(0,  90))])
-    sh = latmean(B[Lat(Between(-90, 0))])
+    nh = latmean(B[Lat(0..90)])
+    sh = latmean(B[Lat(-90..0)])
     return nh, sh
 end
 
@@ -251,10 +251,10 @@ tropics_extratropics(A, args...; kwargs...) =
 tropics_extratropics(spacestructure(A), A, args...; kwargs...)
 
 function tropics_extratropics(::LonLatGrid, A; lower_lat=30, higher_lat=90)
-    tropics = A[Lat(Between(-lower_lat, lower_lat))]
+    tropics = A[Lat(-lower_lat..lower_lat)]
     latdim = dims(A, Lat)
-    extra_idxs_sh = DimensionalData.selectindices(latdim, Between(-higher_lat, -lower_lat))
-    extra_idxs_nh = DimensionalData.selectindices(latdim, Between(lower_lat, higher_lat))
+    extra_idxs_sh = DimensionalData.selectindices(latdim, -higher_lat..(-lower_lat))
+    extra_idxs_nh = DimensionalData.selectindices(latdim, lower_lat..higher_lat)
     extra_idxs = vcat(extra_idxs_sh, extra_idxs_nh)
     extratropics = A[Lat(extra_idxs)]
     return tropics, extratropics

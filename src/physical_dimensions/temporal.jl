@@ -229,7 +229,7 @@ function sametimespan(Xs...)
         mint = Date(year(mint), 1, 1)
         maxt = Date(year(maxt), 12, 31)
     end
-    map(X -> X[Time(Between(mint, maxt))], Xs)
+    map(X -> X[Time(mint..maxt)], Xs)
 end
 sametimespan(Xs::Tuple) = sametimespan(Xs...)
 
