@@ -18,7 +18,7 @@
         zC = zonalmean(C)
         @test hasdim(zC, Lat)
         @test gnv(dims(zC, Lat)) == lats
-        @test maximum(C) < 1 # because we aggregate over cosine Lon, the result is small
+        @test maximum(zC) < 1 # because we aggregate over cosine Lon, the result is small
         # TODO: test with weights
     end
 
@@ -34,10 +34,10 @@
         @test hasdim(Cnh, Coord) && hasdim(Csh, Coord)
         @test size(Cnh, Coord) == size(Csh, Coord)
 
-        # hemispheric_Functions makes latitudes the same by convention:
+        # hemispheric_functions makes latitudes the same by convention:
         @test gnv(dims(Cnh, Coord)) == gnv(dims(Csh, Coord))
         @test minimum(uniquelats(Cnh)[2]) ≥ 0
-        @test maximum(uniquelats(Csh)[2]) ≤ 0
+        @test minimum(uniquelats(Csh)[2]) ≥ 0
 
         Cnh, Csh = hemispheric_means(C)
         @test !hasdim(Cnh, Coord) && !hasdim(Csh, Coord)

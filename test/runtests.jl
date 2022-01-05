@@ -47,10 +47,12 @@ end
 
 C = ClimArray(C, (coord_dim, Time(t)); name = "has_coords", attrib = Dict("a" => 2))
 
-# %% 
+# %%
+@testset "ClimateBase.jl tests" begin
 include("general_tests.jl")
 include("temporal_tests.jl")
 include("space_tests.jl")
 include("space_coord_tests.jl")
 include("io_tests.jl")
 include("advanced_tests.jl")
+end
