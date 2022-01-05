@@ -3,7 +3,7 @@
 ##########################################################################################
 using DimensionalData
 using DimensionalData.Dimensions, DimensionalData.LookupArrays
-using DimensionalData: basetypeof
+using DimensionalData: basetypeof, broadcast_dims
 using Dates
 
 Time = DimensionalData.Ti
@@ -178,6 +178,9 @@ Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalDa
 DimensionalData.metadata(A::ClimArray) = A.attrib
 DimensionalData.basetypeof(::ClimArray) = ClimArray
 
+DimensionalData.rebuild(
+    ::ClimArray, data, dims, refdims, name, metadata
+) = ClimArray(data, format(dims, data), refdims, name, metadata)
 DimensionalData.rebuild(
     A::ClimArray;
     data=gnv(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)

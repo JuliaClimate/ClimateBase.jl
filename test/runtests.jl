@@ -34,7 +34,12 @@ end
 A = ClimArray(A, d; name = "insolation")
 B = ClimArray(B, d; attrib = Dict("a" => 2)) # on purpose without name
 
-# %% General Tests
+# %% Pretty printing
+@testset "pretty printing" begin
+    P = sprint
+end
+
+# %% General Statistics Tests
 @testset "Dropping dimensions" begin
     dt = timemean(A)
     @test dt isa ClimArray

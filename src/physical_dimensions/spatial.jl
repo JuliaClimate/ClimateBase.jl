@@ -110,7 +110,7 @@ This function properly weights by the cosine of the latitude.
 function latmean(A::AbDimArray)
     lw = _latweights(A)
     if ndims(A) > 1
-        return dropagg(sum, dimwise(*, A, lw), Lat)
+        return dropagg(sum, boardcast_dims(*, A, lw), Lat)
     else
         return sum(A .* lw)
     end
@@ -165,8 +165,6 @@ function spaceagg(::LonLatGrid, f, A::AbDimArray, w=nothing)
     if wtype != :dany
         r = map(i -> f(view(A, i), W), oidxs)
     else
-        # TODO: This multiplication .* here assumes that the lon-lat grid is the
-        # first dimension.
         r = map(i -> f(view(A, i), weights(view(w, i) .* cosweights)), oidxs)
     end
     return ClimArray(r, other, A.name)
