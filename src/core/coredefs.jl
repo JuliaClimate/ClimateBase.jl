@@ -4,6 +4,7 @@
 using DimensionalData
 using DimensionalData.Dimensions, DimensionalData.LookupArrays
 using DimensionalData: basetypeof, broadcast_dims
+using DimensionalData.Dimensions: setdims
 using Dates
 
 Time = DimensionalData.Ti
@@ -32,6 +33,7 @@ export hasdim, dims, dimindex
 export Time, Lon, Lat, dims, Coord, Hei, Pre, Ti
 export CoordinateSpace, OrthogonalSpace, spacestructure
 export DimensionalData # for accessing its functions
+export setdims
 export gnv
 
 @dim Lon IndependentDim "Longitude"

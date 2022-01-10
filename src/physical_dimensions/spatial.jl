@@ -81,7 +81,7 @@ function longitude_circshift(X::ClimArray, l = nothing; wrap = true)
     shifted_lon = circshift(dims(X, Lon).val, l)
     if wrap; shifted_lon = wrap_lon.(shifted_lon); end
     shifted_lon = vector2range(shifted_lon)
-    shifted_dim = Lon(shifted_lon; metadata = dims(X, Lon).metadata)
+    shifted_dim = Lon(shifted_lon; metadata = DimensionalData.metadata(dims(X, Lon)))
     new_dims = map(d -> d isa Lon ? shifted_dim : d, dims(X))
     return ClimArray(shifted_data, new_dims; name = X.name, attrib = X.attrib)
 end
