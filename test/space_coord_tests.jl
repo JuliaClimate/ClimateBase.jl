@@ -1,17 +1,15 @@
 @testset "Spatial Coordinates Tests" begin
     @testset "Indexing and Basics" begin
-        # Needs https://github.com/rafaqz/DimensionalData.jl/issues/357
-        # subsel = C[Lat(0..8)]
-        # @test hasdim(subsel, Coord)
-        # @test size(subsel, Coord) < size(C, Coord)
-        # @test all(0 ≤ c[2] ≤ 8 for c in gnv(dims(subsel, Coord)))
+        subsel = C[Coord(Lat(0..8))]
+        @test hasdim(subsel, Coord)
+        @test size(subsel, Coord) < size(C, Coord)
+        @test all(0 ≤ c[2] ≤ 8 for c in gnv(dims(subsel, Coord)))
 
         @test length(collect(spatialidxs(C))) == size(C, Coord)
 
         Atran = transform_to_coord(A)
         @test hasdim(Atran, Coord)
         @test lons == sort!(unique!([c[1] for c in gnv(dims(Atran, Coord))]))
-
     end
 
     @testset "Zonal mean" begin
@@ -44,6 +42,5 @@
         @test hasdim(Cnh, Time)
         # TODO: test actual numeric values
     end
-
 
 end
