@@ -22,19 +22,9 @@ function climplot(A, args...; scatter = spacestructure(A) == CoordinateSpace(),
     # vmax = haskey(kwargs, :vmax) ? kwargs[:vmax] : quantile(data, 0.975)
 
     fig = GeoMakie.Figure()
-    ax = GeoMakie.GeoAxis(fig[1,1]; source, dest, title = GeoMakie.Observable(""))
-    
-    coastplot = lines!(ax, GeoMakie.coastlines(); color = :black, overdraw = true, coastkwargs...)
-    translate!(coastplot, 0, 0, 99) # ensure they are on top of other plotted elements
+    ax = GeoMakie.GeoAxis(fig[1,1]; source, dest, title = GeoMakie.Observable(""), coastlines = true)
 
-    # TODO: @assert A has only space dimension
-
-    if scatter
-        el = climscatter!(ax, A; kwargs...)
-    else
-        el = climsurface!(ax, A; kwargs...)
-    end
-
+    el = scatter ? climscatter!(ax, A; kwargs...) : climsurface!(ax, A; kwargs...)
     if colorbar
         cb = GeoMakie.Colorbar(fig[1, 2], el; label = name)
     else
@@ -43,12 +33,24 @@ function climplot(A, args...; scatter = spacestructure(A) == CoordinateSpace(),
     return fig, ax, el, cb
 end
 
+function has_only_space_dim(A)
+    d = dims(A)
+    if length(dims) == 1
+        return d[1] <: Coord
+    elseif length(dims) == 2
+        return (Lon ∈ basetypeof.(d)) && (Lat ∈ basetypeof.(d))
+    else
+        return false
+    end
+end
+
 ##########################################################################################
 # # Scatter
 ##########################################################################################
 # Notice that `A` is not declared as `ClimArray`, but assumed to be.
 # Duck-typing for Observables.
 function climscatter!(ax, A; colormap = :dense, kwargs...)
+    @assert has_only_space_dim(A)
     if hasdim(A, Coord)
         lonlat = dims(A, Coord).val
     elseif dims(A)[1] isa Lon
@@ -70,7 +72,7 @@ end
 # Notice that `A` is not declared as `ClimArray`, but assumed to be.
 # Duck-typing for Observables.
 function climsurface!(ax, A; colormap = :dense, kwargs...)
-    # TODO: @assert A has only space
+    @assert has_only_space_dim(A)
     if hasdim(A, Coord)
         # TODO: @pkeil this is for you
         error("Surface plots for `Coord` arrays are not supported yet!")
@@ -82,7 +84,6 @@ function climsurface!(ax, A; colormap = :dense, kwargs...)
     data = GeoMakie.lift(B -> B.data, B)
     GeoMakie.surface!(ax, lon, lat, data; shading = false, colormap, kwargs...)
 end
-
 
 ##########################################################################################
 # # Observables overloads
