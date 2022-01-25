@@ -192,7 +192,6 @@ function coord_latitudes_between(c, l1, l2)
     idxs, lats = uniquelats(c)
     i1 = searchsortedfirst(lats, l1)
     i2 = searchsortedlast(lats, l2)
-    i1 > i2 && ((i1, i2) = (i2, i1)) # in case bounds are given in reverse order
     return idxs[i1][1]:idxs[i2][end]
 end
 
