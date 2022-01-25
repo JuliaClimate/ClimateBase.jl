@@ -196,8 +196,10 @@ function coord_latitudes_between(c, l1, l2)
 end
 
 # This modifies what happens on A[Coord(Lat(Between(x,y)))]
+# Notice that `Between` is deprecated from DimensionalData.jl.
 function DimensionalData.selectindices(c::Coord, sel::Tuple{<:Lat{ <: Between}})
     l1, l2 = sel[1].val.val
+    l1, l2 = min(l1, l2), max(l1, l2)
     return coord_latitudes_between(gnv(c), l1, l2) # this is Vector{Int}
 end
 
@@ -205,5 +207,6 @@ end
 function DimensionalData.selectindices(c::Coord,
     sel::Tuple{<:Lat{ <: DimensionalData.LookupArrays.IntervalSets.AbstractInterval}})
     l1 = sel[1].val.left; l2 = sel.val.right
+    l1, l2 = min(l1, l2), max(l1, l2)
     return coord_latitudes_between(gnv(c), l1, l2) # this is Vector{Int}
 end
