@@ -188,14 +188,15 @@ end
 # The code here is exclusively a performance optimization that relies
 # on the fact that we sort coordinates by latitude
 function coord_latitudes_between(c, l1, l2)
+    l1, l2 = min(l1, l2), max(l1, l2)
     idxs, lats = uniquelats(c)
     i1 = searchsortedfirst(lats, l1)
     i2 = searchsortedlast(lats, l2)
-    i1 > i2 && ((i1, i2) = (i2, i1)) # in case bounds are given in reverse order
     return idxs[i1][1]:idxs[i2][end]
 end
 
 # This modifies what happens on A[Coord(Lat(Between(x,y)))]
+# Notice that `Between` is deprecated from DimensionalData.jl.
 function DimensionalData.selectindices(c::Coord, sel::Tuple{<:Lat{ <: Between}})
     l1, l2 = sel[1].val.val
     return coord_latitudes_between(gnv(c), l1, l2) # this is Vector{Int}
@@ -204,6 +205,6 @@ end
 # This modifies what happens on A[Coord(Lat(x..y))]
 function DimensionalData.selectindices(c::Coord,
     sel::Tuple{<:Lat{ <: DimensionalData.LookupArrays.IntervalSets.AbstractInterval}})
-    l1 = sel[1].val.left; l2 = sel.val.right
+    l1 = sel[1].val.left; l2 = sel[1].val.right
     return coord_latitudes_between(gnv(c), l1, l2) # this is Vector{Int}
 end
