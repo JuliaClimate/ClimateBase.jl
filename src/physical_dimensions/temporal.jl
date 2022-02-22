@@ -210,13 +210,24 @@ realtime_milliseconds(A) = realtime_milliseconds(dims(A, Ti).val)
 
 
 """
-    sametimespan(Xs...) → Ys
-Given several `ClimArray`s, return the same `ClimArray`s but now accessed in the `Time`
-dimension so that they all have span the same time interval.
+    sametimespan(Xs) → Ys
+Given a container of `ClimArray`s, return the same `ClimArray`s but now accessed in the
+`Time` dimension so that they all have span the same time interval.
+Also works for dictionaries with values `ClimArray`s.
 
-`sametimespan` also has more intelligent handling of monthly or yearly sampled data.
+`sametimespan` takes into consideration the temporal sampling of the arrays for
+better accuracy.
 """
-function sametimespan(Xs...)
+function sametimespan(Xs)
+   mint, maxt = findsametimespan(Xs)
+   map(X -> X[Time(mint..maxt)], Xs)
+end
+function sametimespan(Xs::AbstractDict)
+    mint, maxt = findsametimespan(values(Xs))
+    return Dict(k => X[Time(mint..maxt)] for (k, X) in Xs)
+ end
+
+function findsametimespan(Xs)
     mint = maximum(minimum(dims(X, Time).val) for X in Xs)
     maxt = minimum(maximum(dims(X, Time).val) for X in Xs)
     # Make an intelligent decision for monthly/yearly sampled data
@@ -229,9 +240,9 @@ function sametimespan(Xs...)
         mint = Date(year(mint), 1, 1)
         maxt = Date(year(maxt), 12, 31)
     end
-    map(X -> X[Time(mint..maxt)], Xs)
+    return mint, maxt
 end
-sametimespan(Xs::Tuple) = sametimespan(Xs...)
+
 
 #########################################################################
 # temporal statistics
