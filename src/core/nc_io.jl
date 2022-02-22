@@ -281,8 +281,8 @@ function vector2range(t::Vector{<:Dates.AbstractTime})
     tsamp = temporal_sampling(t)
     period = tsamp2period(tsamp)
     isnothing(period) && return t
-    t1 = period < Day(1) ? t[1] : Date(t[1])
-    tf = period < Day(1) ? t[end] : Date(t[end])
+    t1 = tsamp == :hourly ? t[1] : Date(t[1])
+    tf = tsamp == :hourly ? t[end] : Date(t[end])
     r = t1:period:tf
     return r == t ? r : t # final safety check to ensure equal values
 end
