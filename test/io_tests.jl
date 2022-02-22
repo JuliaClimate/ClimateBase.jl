@@ -1,4 +1,11 @@
-@testset "NetCDF IO" begin 
+@testset "NetCDF IO" begin
+
+@testset "vector2range" begin
+    th = collect(thourly)
+    th2 = ClimateBase.vector2range(th)
+    @test th2 isa AbstractRange
+    @test th2 == th
+end
 
 @testset "NetCDF standard tests" begin
     globat = Dict("history" => "test")

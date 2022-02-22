@@ -129,7 +129,7 @@ using StatsBase
 
 """
     spacemean(A::ClimArray [, W]) = spaceagg(mean, A, W)
-Average given `A` over its spatial coordinates.
+Average `A` over its spatial coordinates.
 Optionally provide statistical weights in `W`.
 """
 spacemean(A, exw=nothing) = spaceagg(mean, A, exw)
@@ -147,7 +147,7 @@ function spaceagg(::OrthogonalSpace, f, A::AbDimArray, w=nothing)
     wtype = spaceweightassert(A, w)
     cosweights = repeat(cosd.(dims(A, Lat).val)', size(A, Lon))
     if dimindex(A, Lon) > dimindex(A, Lat)
-        error("At the moment this function assumes that Lon preceeds Lat, use `permutdims`.")
+        error("At the moment this function assumes that Lon preceeds Lat, use `permutedims`.")
     end
     other = otherdims(A, (Lon, Lat))
     # pre-calculate weights if possible
