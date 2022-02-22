@@ -15,6 +15,7 @@ lats = -86:4:86
 lons = collect(0.5:10:360)
 t = Date(2000, 3, 15):Month(1):Date(2020, 2, 15)
 tdaily = Date(2000, 3, 15):Day(1):Date(2020, 3, 14)
+thourly = DateTime(2000, 3, 15):Hour(1):DateTime(2000, 6, 14)
 
 d = (Lon(lons), Lat(lats), Time(t))
 A = zeros([length(x) for x in (lons, lats, t)]...)
