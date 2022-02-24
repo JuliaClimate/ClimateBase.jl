@@ -12,7 +12,6 @@ include("physical_dimensions/spatial_equalarea.jl")
 include("physical_dimensions/temporal.jl")
 
 include("climate/solar.jl")
-include("climate/albedo.jl")
 
 include("tsa/continuation.jl")
 include("tsa/decomposition.jl")
