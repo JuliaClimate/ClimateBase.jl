@@ -1,5 +1,5 @@
 # %% Time Tests
-@testset "Temporal Tests" begin 
+@testset "Temporal Tests" begin
 
 @testset "Temporal weighting" begin
     # spatiotemporal weights:
@@ -54,13 +54,20 @@ end
         tm2 = Date(2001, 1, 1):Month(1):Date(2011, 1, 1)
         A1 = ClimArray(rand(length(tm1)), (Time(tm1),))
         A2 = ClimArray(rand(length(tm2)), (Time(tm2),))
-        B1, B2 = sametimespan(A1, A2)
-        @test size(B1) == size(B2)
-        @test dims(B1, Time)[1] == Date(2001, 1, 15)
-        @test dims(B1, Time)[end] == Date(2010, 3, 15)
-        @test dims(B2, Time)[end] == Date(2010, 3, 1)
+        Bv = sametimespan(A1, A2)
+        # dict version
+        d = Dict(:A1 => A1, :A2 => A2)
+        d2 = sametimespan(d)
+        Bd = (d[:A1], d[:A2])
+        for B in (Bv, Bd)
+            B1, B2 = B
+            @test size(B1) == size(B2)
+            @test dims(B1, Time)[1] == Date(2001, 1, 15)
+            @test dims(B1, Time)[end] == Date(2010, 3, 15)
+            @test dims(B2, Time)[end] == Date(2010, 3, 1)
+        end
     end
-    
+
     @testset "monthlyagg and co." begin
         # test yearly temporal weights (i.e., no weighting)
         X = ClimArray(rand(3,3), (Lon(1:3), Time(tyearly[1:3])))

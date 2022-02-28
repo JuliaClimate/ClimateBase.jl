@@ -22,8 +22,6 @@ interpolate_pressure2height
 Functions that calculate climate-related quantities.
 ```@docs
 insolation
-surface_atmosphere_contributions
-total_toa_albedo
 ```
 
 ## Timeseries Analysis
