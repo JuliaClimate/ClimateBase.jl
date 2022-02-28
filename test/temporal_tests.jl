@@ -54,7 +54,7 @@ end
         tm2 = Date(2001, 1, 1):Month(1):Date(2011, 1, 1)
         A1 = ClimArray(rand(length(tm1)), (Time(tm1),))
         A2 = ClimArray(rand(length(tm2)), (Time(tm2),))
-        Bv = sametimespan(A1, A2)
+        Bv = sametimespan((A1, A2))
         # dict version
         d = Dict(:A1 => A1, :A2 => A2)
         d2 = sametimespan(d)
@@ -66,6 +66,9 @@ end
             @test dims(B1, Time)[end] == Date(2010, 3, 15)
             @test dims(B2, Time)[end] == Date(2010, 3, 1)
         end
+        B1, B2 = sametimespan(A1, A2; mintime = Date(2005,1,1), maxtime = Date(2008,12,30))
+        @test year(gnv(dims(B1, Time))[1]) == year(gnv(dims(B2, Time))[1]) == 2005
+        @test year(gnv(dims(B1, Time))[end]) == year(gnv(dims(B2, Time))[end]) == 2008
     end
 
     @testset "monthlyagg and co." begin
