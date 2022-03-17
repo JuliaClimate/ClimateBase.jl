@@ -385,7 +385,7 @@ function monthlyagg(A::ClimArray, f = mean; mday = 15)
     finaldate = Date(year(t0[end]), month(t0[end]), mday+1)
     t = startdate:Month(1):finaldate
     tranges = temporalrange(t0, Dates.month)
-    return timegroup(A, f, t, tranges, "monthly")
+    return timegroup(A, f, t, tranges)
 end
 
 """
@@ -400,13 +400,13 @@ function yearlyagg(A::ClimArray, f = mean)
     finaldate = Date(year(t0[end]), 2, 1)
     t = startdate:Year(1):finaldate
     tranges = temporalrange(t0, Dates.year)
-    return timegroup(A, f, t, tranges, "yearly")
+    return timegroup(A, f, t, tranges)
 end
 
-function timegroup(A, f, t, tranges, name)
+function timegroup(A, f, t, tranges)
     other = otherdims(A, Time)
-    n = A.name == Symbol("") ? A.name : Symbol(A.name, ", $(name)")
-    B = ClimArray(zeros(eltype(A), length.(other)..., length(t)), (other..., Time(t)), n)
+    B = ClimArray(zeros(eltype(A), length.(other)..., length(t)),
+        (other..., Time(t)); name = A.name)
     for i in 1:length(tranges)
         B[Time(i)] .= dropagg(f, view(A, Time(tranges[i])), Time)
     end
@@ -453,7 +453,7 @@ function seasonalyagg(A::ClimArray, f = mean)
     finaldate = to_seasonal_date(t0[end])
     t = startdate:Month(3):finaldate
     tranges = temporalrange(t0, season)
-    return timegroup(A, f, t, tranges, "seasonaly")
+    return timegroup(A, f, t, tranges)
 end
 
 function to_seasonal_date(t)
