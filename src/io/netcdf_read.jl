@@ -96,9 +96,12 @@ function ncread(ds::NCDatasets.AbstractDataset, var, selection = nothing;
 end
 
 function autodetect_grid(ds)
-    if haskey(ds, "reduced_points") || haskey(ds.dim, "ncells") || haskey(ds, "clon")
+    if haskey(ds, "reduced_points") || haskey(ds, "clon") ||
+        any(x -> x ∈ ds.dim, POSSIBLE_CELL_NAMES)
+        # Common cases of coordinate spaces in NetCDF
         return CoordinateSpace()
     elseif haskey(ds, "lat") && length(size(ds["lat"])) > 1
+        # Uncommon case of storing lon/lat as matrices, used in some weird ocean grids
         return CoordinateSpace()
     else
         return OrthogonalSpace()
@@ -262,8 +265,6 @@ function ncread_unstructured(
     end
     return ClimArray(X; name = Symbol(name), attrib)
 end
-
-const POSSIBLE_CELL_NAMES = ["ncells", "cell", "rgrid", "grid"]
 
 function has_unstructured_key(ds)
     any(x -> haskey(ds.dim, x), POSSIBLE_CELL_NAMES) ||

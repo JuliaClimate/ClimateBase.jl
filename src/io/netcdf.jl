@@ -13,6 +13,10 @@ dim_to_commonname(::Lon) = "lon"
 dim_to_commonname(::Time) = "time"
 dim_to_commonname(::Pre) = "level"
 dim_to_commonname(D::Dim) = string(DimensionalData.name(D))
+dim_to_commonname(::Coord) = "cell"
+
+const POSSIBLE_CELL_NAMES = ("ncells", "cell", "rgrid", "grid")
+
 
 """
     nckeys(file::String)

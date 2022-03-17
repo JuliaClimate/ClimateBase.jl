@@ -53,7 +53,6 @@ function ncwrite(file::String, Xs; globalattr = Dict())
         """)
     end
 
-    # ds = NCDataset(file, "c"; attrib = globalattr)
     NCDataset(file, "c"; attrib = globalattr) do ds
         for (i, X) in enumerate(Xs)
             n = string(X.name)
@@ -71,7 +70,6 @@ function ncwrite(file::String, Xs; globalattr = Dict())
             data = Array(X)
             NCDatasets.defVar(ds, n, data, (dnames...,); attrib)
         end
-        # close(ds)
     end
 end
 
@@ -94,3 +92,7 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
         NCDatasets.defVar(ds, d, v, (d, ); attrib = attrib)
     end
 end
+
+#########################################################################
+# Write: CoordinateSpace
+#########################################################################
