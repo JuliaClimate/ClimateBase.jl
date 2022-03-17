@@ -1,6 +1,3 @@
-#########################################################################
-# Defaults
-#########################################################################
 const DEFAULT_ATTRIBS = Dict(
     "time" => Dict(
         "units" => "days since 0000-00-01 00:00:00",
@@ -22,9 +19,8 @@ const DEFAULT_ATTRIBS = Dict(
     ),
 )
 
-#########################################################################
-# Write: standard data
-#########################################################################
+
+
 """
     ncwrite(file::String, Xs; globalattr = Dict())
 Write the given `ClimArray` instances (any iterable of `ClimArray`s or a single `ClimArray`)
@@ -62,6 +58,8 @@ function ncwrite(file::String, Xs; globalattr = Dict())
     end
 end
 
+
+
 function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
     dnames = dim_to_commonname.(dimensions)
     dims_in_ds = [x[1] for x in ds.dim]
@@ -89,7 +87,3 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
         end
     end
 end
-
-#########################################################################
-# Write: CoordinateSpace
-#########################################################################
