@@ -42,17 +42,6 @@ function ncwrite(file::String, X::ClimArray; globalattr = Dict())
     ncwrite(file, (X,); globalattr)
 end
 function ncwrite(file::String, Xs; globalattr = Dict())
-
-    # TODO: Fixing this is very easy. Simply make a `"ncells"` dimension, and then write
-    # the `"lon"` and `"lat"` cfvariables to the nc file by decomposing the coordinates
-    # into longitude and latitude.
-    if any(X -> hasdim(X, Coord), Xs)
-        error("""
-        Outputing `CoordinateSpace` coordinates to .nc files is not yet supported,
-        but it is an easy fix, see source of `ncwrite`.
-        """)
-    end
-
     NCDataset(file, "c"; attrib = globalattr) do ds
         for (i, X) in enumerate(Xs)
             n = string(X.name)
@@ -75,21 +64,29 @@ end
 
 function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
     dnames = dim_to_commonname.(dimensions)
-    for (i, d) ∈ enumerate(dnames)
-        haskey(ds, d) && continue
-        println("writing dimension $d...")
-        v = dimensions[i].val
-        # this conversion to DateTime is necessary because CFTime.jl doesn't support Date
-        eltype(v) == Date && (v = DateTime.(v))
-        l = length(v)
-        NCDatasets.defDim(ds, d, l) # add dimension entry
-        attrib = DimensionalData.metadata(dimensions[i])
-        if (isnothing(attrib) || attrib == DimensionalData.NoMetadata()) && haskey(DEFAULT_ATTRIBS, d)
-            @warn "Dimension $d has no attributes, adding default attributes (mandatory)."
-            attrib = DEFAULT_ATTRIBS[d]
+    dims_in_ds = [x[1] for x in ds.dim]
+    for (d, dname) ∈ zip(dimensions, dnames)
+        dname ∈ dims_in_ds && continue
+        println("writing dimension $dname...")
+        v = gnv(d); l = length(v)
+        NCDatasets.defDim(ds, dname, l) # add dimension entry
+        if d isa Coord
+            # Define clon/clat variables with this dimension
+            lons = getindex.(v, 1); lats = getindex.(v, 2)
+            NCDatasets.defVar(ds, "clon", lons, (dname, ); attrib = DEFAULT_ATTRIBS["lon"])
+            NCDatasets.defVar(ds, "clat", lats, (dname, ); attrib = DEFAULT_ATTRIBS["lat"])
+        else
+            # this conversion to DateTime is necessary because CFTime.jl doesn't support Date
+            eltype(v) == Date && (v = DateTime.(v))
+            attrib = DimensionalData.metadata(d)
+            if (isnothing(attrib) || attrib == DimensionalData.NoMetadata()) &&
+                    haskey(DEFAULT_ATTRIBS, dname)
+                @warn "Dimension $dname has no attributes, adding default attributes."
+                attrib = DEFAULT_ATTRIBS[dname]
+            end
+            # write dimension values as a variable as well (mandatory)
+            NCDatasets.defVar(ds, dname, v, (dname, ); attrib = attrib)
         end
-        # write dimension values as a variable as well (mandatory)
-        NCDatasets.defVar(ds, d, v, (d, ); attrib = attrib)
     end
 end
 

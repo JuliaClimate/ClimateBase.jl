@@ -1,10 +1,11 @@
 #=
 Code related with input output (IO) of .nc files directly to/from ClimArrays
+utilizing the NCDatasets.jl package and a buttload of convenience code.
 An initial version of parts of this code was taken from:
 https://github.com/rafaqz/GeoData.jl
 =#
 using NCDatasets: NCDatasets, NCDataset
-export NCDataset
+export NCDatasets, NCDataset
 export nckeys, ncdetails, globalattr, ncsize
 export ncread, ncwrite
 
