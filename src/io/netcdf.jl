@@ -85,7 +85,7 @@ function vector2range(t::Vector{<:Dates.AbstractTime})
     return r == t ? r : t # final safety check to ensure equal values
 end
 
-vector2range(r::AbstractRange) = r
+vector2range(r) = r
 
 #########################################################################
 # Imports

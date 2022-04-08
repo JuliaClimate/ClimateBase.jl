@@ -10,7 +10,7 @@ function nomissing(da::AbstractArray{Union{T,Missing},N}, check = any(ismissing,
     check && error("array contains missing values")
     return Array{T,N}(da)
 end
-nomissing(da::AbstractArray{<:Union{Real, Dates.TimeType}}, args...) = da
+nomissing(da, args...) = da
 nomissing(da::ClimArray) = ClimArray(nomissing(da.data), da.dims, da.refdims, da.name, da.attrib)
 
 
@@ -69,7 +69,7 @@ If `A` is one dimensional, `dropagg` will return the single number of applying `
 Optionally you can provide statistical weights in the form of a `W::ClimArray`.
 `W` must either have same size as `A` or have only one dimension and satisfy
 `length(W) == length(dims(A, d))` (i.e., a weight for each value of the dimension `d`).
-The latter case can only work when `d` is a single dimension. See also 
+The latter case can only work when `d` is a single dimension. See also
 [`missing_weights`](@ref) for (properly) dealing with data that have `missing` values.
 """
 function dropagg(f, A, dims)
