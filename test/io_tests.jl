@@ -28,6 +28,16 @@ end
     rm("test.nc")
 end
 
+@testset "NetCDF Coord tests" begin
+    ncwrite("test.nc", C)
+    n = string(DimensionalData.name(C))
+    Cloaded = ncread("test.nc", "has_coords")
+    @test size(Cloaded) == size(C)
+    @test hasdim(Cloaded, Coord)
+    @test gnv(dims(Cloaded, Coord)) == gnv(dims(C, Coord))
+    @test gnv(Cloaded) == gnv(C)
+end
+
 @testset "Missings handling" begin
     m = rand(Float64, length.((lons, lats)))
     midx = CartesianIndices(m)[1:2, :]

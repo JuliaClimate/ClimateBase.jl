@@ -226,10 +226,12 @@ function ncread_unstructured(
 
     # Set up the remaining dimensions of the dataset
     if original_grid_dim isa Tuple
-        # TODO: I'm not sure I've set up this to work correctly in the case
-        # of `selection` given by user... Not important to test now.
-
         # stupid case where `lon` data are `Matrix`
+
+        # TODO: I'm not sure I've set up this to work correctly in the case
+        # of `selection` given by user... But the `Matrix` case is so rare
+        # I honestly don't care at the moment.
+
         A = cfvar[sel...]
         sizes = [size(A)...]
         # First, find where lon, lat dimensions are positioned
@@ -279,17 +281,17 @@ function load_coordinate_points(ds)
         # This is the case of having a non-orthogonal grid, but
         # still saving the lon/lat information as matrices whose dimensions are lon/lat
         # (this is a rather stupid way to format things, unfortunately)
-        lons = ds["lon"] |> Matrix .|> wrap_lon |> vec
+        lons = ds["lon"] |> Matrix |> vec
         lats = ds["lat"] |> Matrix |> vec
         original_grid_dim = ("lon", "lat")
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
     elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
-            lons = ds["lon"] |> Vector .|> wrap_lon
+            lons = ds["lon"] |> Vector
             lats = ds["lat"] |> Vector
             original_grid_dim = NCDatasets.dimnames(ds["lon"])[1]
         elseif haskey(ds, "clon")
-            lons = ds["clon"] |> Vector .|> wrap_lon
+            lons = ds["clon"] |> Vector
             lats = ds["clat"] |> Vector
             original_grid_dim = NCDatasets.dimnames(ds["clon"])[1]
         else
