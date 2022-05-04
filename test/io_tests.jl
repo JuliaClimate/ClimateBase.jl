@@ -36,6 +36,10 @@ end
     @test hasdim(Cloaded, Coord)
     @test gnv(dims(Cloaded, Coord)) == gnv(dims(C, Coord))
     @test gnv(Cloaded) == gnv(C)
+
+    # TODO: Here we need a lot of tests for all the super weird different
+    # ways that there are to save a Coord datafile... But we can't creat them.
+    # So we need to upload files somewhere and load them here.
 end
 
 @testset "Missings handling" begin
