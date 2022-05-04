@@ -1,64 +1,3 @@
-#=
-Code related with input output (IO) of .nc files directly to/from ClimArrays
-An initial version of parts of this code was taken from:
-https://github.com/rafaqz/GeoData.jl
-=#
-using NCDatasets: NCDatasets, NCDataset
-export NCDataset
-export nckeys, ncdetails, globalattr, ncsize
-export ncread, ncwrite
-
-dim_to_commonname(::Lat) = "lat"
-dim_to_commonname(::Lon) = "lon"
-dim_to_commonname(::Time) = "time"
-dim_to_commonname(::Pre) = "level"
-dim_to_commonname(D::Dim) = string(DimensionalData.name(D))
-
-#########################################################################
-# Utilities
-#########################################################################
-"""
-    nckeys(file::String)
-Return all keys of the `.nc` file in `file`.
-"""
-function nckeys(path::String)
-    NCDataset(path) do ds
-        return keys(ds)
-    end
-end
-nckeys(a::NCDataset) = keys(a)
-
-"""
-    ncdetails(file, io = stdout)
-Print details about the `.nc` file in `file` on `io`.
-"""
-function ncdetails(file, io = stdout)
-    NCDataset(file) do ds
-        show(io, MIME"text/plain"(), ds)
-    end
-end
-ncdetails(ds::NCDataset, io = stdout) = show(io, MIME"text/plain"(), ds)
-
-"""
-    ncsize(file, var)
-Return the size of the variable of the `.nc` file without actually loading any data.
-"""
-function ncsize(file, var)
-    NCDataset(file) do ds
-        return size(ds[var])
-    end
-end
-
-
-"""
-    globalattr(file::String) → Dict
-Return the global attributes of the .nc file.
-"""
-function globalattr(file::String)
-    NCDataset(file) do ds
-        return Dict(ds.attrib)
-    end
-end
 
 #########################################################################
 # Reading
@@ -67,7 +6,7 @@ end
     ncread(file, var [, selection]; kwargs...) → A
 Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref)
 with proper dimension mapping and also containing the variable attributes as a dictionary.
-Dimension attributes are also given to the dimensions of `A`, if any exist. 
+Dimension attributes are also given to the dimensions of `A`, if any exist.
 See keywords below for specifications for unstructured grids.
 
 `file` can be a string to a `.nc` file. Or, it can be an
@@ -135,11 +74,6 @@ function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     end
 end
 
-# TODO: Allow this function to take as input a tuple of indices, e.g. (:, :, 1:5)
-# and only load this part, and correctly and instantly make it a ClimArray, which
-# can solve "large memory" or "large data" problems. This funcionality
-# must be sure to load the correct ranges of dimensions as well though!
-#
 # TODO: Allow reading multiple variables at once. This has the performance benefit
 # of not re-creating dimensions all the time.
 
@@ -162,9 +96,12 @@ function ncread(ds::NCDatasets.AbstractDataset, var, selection = nothing;
 end
 
 function autodetect_grid(ds)
-    if haskey(ds, "reduced_points") || haskey(ds.dim, "ncells") || haskey(ds, "clon")
+    if haskey(ds, "reduced_points") || haskey(ds, "clon") ||
+        any(x -> x ∈ ds.dim, POSSIBLE_CELL_NAMES)
+        # Common cases of coordinate spaces in NetCDF
         return CoordinateSpace()
     elseif haskey(ds, "lat") && length(size(ds["lat"])) > 1
+        # Uncommon case of storing lon/lat as matrices, used in some weird ocean grids
         return CoordinateSpace()
     else
         return OrthogonalSpace()
@@ -216,8 +153,8 @@ function create_dims(ds::NCDatasets.AbstractDataset, dnames, sel = selecteveryth
     end
     optimal_values = vector2range.(dim_values)
     attribs = [
-        (haskey(ds, d) && ds[d].attrib isa NCDatasets.BaseAttributes) ? 
-            Dict(ds[d].attrib) : 
+        (haskey(ds, d) && ds[d].attrib isa NCDatasets.BaseAttributes) ?
+            Dict(ds[d].attrib) :
             Dict()
         for d in dnames
     ]
@@ -265,32 +202,6 @@ end
 
 
 #########################################################################
-# Making vectors → ranges
-#########################################################################
-function vector2range(x::Vector{<:Real})
-    length(x) < 3 && return x
-    dx = x[2]-x[1]
-    for i in 3:length(x)
-        x[i]-x[i-1] ≠ dx && return x # if no constant step, return array as is
-    end
-    # do not check value equality, only difference equality
-    return x[1]:dx:x[end]
-end
-
-function vector2range(t::Vector{<:Dates.AbstractTime})
-    tsamp = temporal_sampling(t)
-    period = tsamp2period(tsamp)
-    isnothing(period) && return t
-    t1 = period == :hourly ? t[1] : Date(t[1])
-    tf = period == :hourly ? t[end] : Date(t[end])
-    r = t1:period:tf
-    return r == t ? r : t # final safety check to ensure equal values
-end
-
-vector2range(r::AbstractRange) = r
-
-
-#########################################################################
 # Reading: CoordinateSpace
 #########################################################################
 export SVector
@@ -315,10 +226,12 @@ function ncread_unstructured(
 
     # Set up the remaining dimensions of the dataset
     if original_grid_dim isa Tuple
-        # TODO: I'm not sure I've set up this to work correctly in the case
-        # of `selection` given by user... Not important to test now.
-
         # stupid case where `lon` data are `Matrix`
+
+        # TODO: I'm not sure I've set up this to work correctly in the case
+        # of `selection` given by user... But the `Matrix` case is so rare
+        # I honestly don't care at the moment.
+
         A = cfvar[sel...]
         sizes = [size(A)...]
         # First, find where lon, lat dimensions are positioned
@@ -355,8 +268,6 @@ function ncread_unstructured(
     return ClimArray(X; name = Symbol(name), attrib)
 end
 
-const POSSIBLE_CELL_NAMES = ["ncells", "cell", "rgrid", "grid"]
-
 function has_unstructured_key(ds)
     any(x -> haskey(ds.dim, x), POSSIBLE_CELL_NAMES) ||
     haskey(ds, "lon") || haskey(ds, "clon")
@@ -367,20 +278,20 @@ function load_coordinate_points(ds)
         lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
         original_grid_dim = "rgrid" # Specific to CDO Gaussian grid
     elseif haskey(ds, "lon") && length(size(ds["lon"])) == 2
-        # This is the case of having a non-orthogonal grid, but 
+        # This is the case of having a non-orthogonal grid, but
         # still saving the lon/lat information as matrices whose dimensions are lon/lat
         # (this is a rather stupid way to format things, unfortunately)
-        lons = ds["lon"] |> Matrix .|> wrap_lon |> vec
+        lons = ds["lon"] |> Matrix |> vec
         lats = ds["lat"] |> Matrix |> vec
         original_grid_dim = ("lon", "lat")
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
     elseif has_unstructured_key(ds)
         if haskey(ds, "lon")
-            lons = ds["lon"] |> Vector .|> wrap_lon
+            lons = ds["lon"] |> Vector
             lats = ds["lat"] |> Vector
             original_grid_dim = NCDatasets.dimnames(ds["lon"])[1]
         elseif haskey(ds, "clon")
-            lons = ds["clon"] |> Vector .|> wrap_lon
+            lons = ds["clon"] |> Vector
             lats = ds["clat"] |> Vector
             original_grid_dim = NCDatasets.dimnames(ds["clon"])[1]
         else
@@ -425,98 +336,4 @@ function convert_to_degrees(lonlat)
         lonlat = [SVector(lo*180/π, la*180/π) for (lo, la) in lonlat]
     end
     return lonlat
-end
-
-#########################################################################
-# Saving to .nc files
-#########################################################################
-const DEFAULT_ATTRIBS = Dict(
-    "time" => Dict(
-        "units" => "days since 0000-00-01 00:00:00",
-        "standard_name" => "time"
-    ),
-    "lon" => Dict(
-        "units" => "degrees_east",
-        "standard_name" => "longitude",
-        "valid_range" => Float32[-180.0, 360.0]
-    ),
-    "lat" => Dict(
-        "units" => "degrees_north",
-        "standard_name" => "latitude",
-        "valid_range" => Float32[-90.0, 90.0]
-    ),
-    "level" => Dict(
-        "units" => "millibars",
-        "long_name" => "pressure_level",
-    ),
-)
-
-"""
-    ncwrite(file::String, Xs; globalattr = Dict())
-Write the given `ClimArray` instances (any iterable of `ClimArray`s or a single `ClimArray`)
-to a `.nc` file following CF standard conventions using NCDatasets.jl.
-Optionally specify global attributes for the `.nc` file.
-
-The metadata of the arrays in `Xs`, as well as their dimensions, are properly written
-in the `.nc` file and any necessary type convertions happen automatically.
-
-**WARNING**: We assume that any dimensions shared between the `Xs` are identical.
-
-See also [`ncread`](@ref).
-"""
-function ncwrite(file::String, X::ClimArray; globalattr = Dict())
-    ncwrite(file, (X,); globalattr)
-end
-function ncwrite(file::String, Xs; globalattr = Dict())
-
-    # TODO: Fixing this is very easy. Simply make a `"ncells"` dimension, and then write
-    # the `"lon"` and `"lat"` cfvariables to the nc file by decomposing the coordinates
-    # into longitude and latitude.
-    if any(X -> hasdim(X, Coord), Xs)
-        error("""
-        Outputing `CoordinateSpace` coordinates to .nc files is not yet supported,
-        but it is an easy fix, see source of `ncwrite`.
-        """)
-    end
-
-    # ds = NCDataset(file, "c"; attrib = globalattr)
-    NCDataset(file, "c"; attrib = globalattr) do ds
-        for (i, X) in enumerate(Xs)
-            n = string(X.name)
-            if n == ""
-                n = "x$i"
-                @warn "$i-th ClimArray has no name, naming it $(n) instead."
-            end
-            println("processing variable $(n)...")
-            add_dims_to_ncfile!(ds, dims(X))
-            attrib = X.attrib
-            if (isnothing(attrib) || attrib == DimensionalData.NoMetadata())
-                attrib = Dict()
-            end
-            dnames = dim_to_commonname.(dims(X))
-            data = Array(X)
-            NCDatasets.defVar(ds, n, data, (dnames...,); attrib)
-        end
-        # close(ds)
-    end
-end
-
-function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
-    dnames = dim_to_commonname.(dimensions)
-    for (i, d) ∈ enumerate(dnames)
-        haskey(ds, d) && continue
-        println("writing dimension $d...")
-        v = dimensions[i].val
-        # this conversion to DateTime is necessary because CFTime.jl doesn't support Date
-        eltype(v) == Date && (v = DateTime.(v))
-        l = length(v)
-        NCDatasets.defDim(ds, d, l) # add dimension entry
-        attrib = DimensionalData.metadata(dimensions[i])
-        if (isnothing(attrib) || attrib == DimensionalData.NoMetadata()) && haskey(DEFAULT_ATTRIBS, d)
-            @warn "Dimension $d has no attributes, adding default attributes (mandatory)."
-            attrib = DEFAULT_ATTRIBS[d]
-        end
-        # write dimension values as a variable as well (mandatory)
-        NCDatasets.defVar(ds, d, v, (d, ); attrib = attrib)
-    end
 end

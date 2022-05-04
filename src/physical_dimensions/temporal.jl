@@ -210,15 +210,32 @@ realtime_milliseconds(A) = realtime_milliseconds(dims(A, Ti).val)
 
 
 """
-    sametimespan(Xs...) → Ys
-Given several `ClimArray`s, return the same `ClimArray`s but now accessed in the `Time`
-dimension so that they all have span the same time interval.
+    sametimespan(Xs; mintime = nothing, maxtime = nothing) → Ys
+Given a container of `ClimArray`s, return the same `ClimArray`s but now accessed in the
+`Time` dimension so that they all span the same time interval.
+Also works for dictionaries with values `ClimArray`s.
 
-`sametimespan` also has more intelligent handling of monthly or yearly sampled data.
+Optionally you can provide `Date` or `DateTime` values for the keywords `mintime, maxtime`
+that can further limit the minimum/maximum time span accessed.
+
+`sametimespan` takes into consideration the temporal sampling of the arrays for
+better accuracy.
 """
-function sametimespan(Xs...)
+function sametimespan(Xs; kwargs...)
+   mint, maxt = findsametimespan(Xs; kwargs...)
+   map(X -> X[Time(mint..maxt)], Xs)
+end
+function sametimespan(Xs::AbstractDict; kwargs...)
+    mint, maxt = findsametimespan(values(Xs); kwargs...)
+    return Dict(k => X[Time(mint..maxt)] for (k, X) in Xs)
+end
+
+function findsametimespan(Xs; maxtime = nothing, mintime = nothing)
     mint = maximum(minimum(dims(X, Time).val) for X in Xs)
     maxt = minimum(maximum(dims(X, Time).val) for X in Xs)
+    mint = isnothing(mintime) ? mint : max(mint, mintime)
+    maxt = isnothing(maxtime) ? maxt : min(maxt, maxtime)
+
     # Make an intelligent decision for monthly/yearly sampled data
     tsamps = temporal_sampling.(Xs)
     if all(isequal(:monthly), tsamps)
@@ -229,9 +246,9 @@ function sametimespan(Xs...)
         mint = Date(year(mint), 1, 1)
         maxt = Date(year(maxt), 12, 31)
     end
-    map(X -> X[Time(mint..maxt)], Xs)
+    return mint, maxt
 end
-sametimespan(Xs::Tuple) = sametimespan(Xs...)
+
 
 #########################################################################
 # temporal statistics
@@ -368,7 +385,7 @@ function monthlyagg(A::ClimArray, f = mean; mday = 15)
     finaldate = Date(year(t0[end]), month(t0[end]), mday+1)
     t = startdate:Month(1):finaldate
     tranges = temporalrange(t0, Dates.month)
-    return timegroup(A, f, t, tranges, "monthly")
+    return timegroup(A, f, t, tranges)
 end
 
 """
@@ -383,13 +400,13 @@ function yearlyagg(A::ClimArray, f = mean)
     finaldate = Date(year(t0[end]), 2, 1)
     t = startdate:Year(1):finaldate
     tranges = temporalrange(t0, Dates.year)
-    return timegroup(A, f, t, tranges, "yearly")
+    return timegroup(A, f, t, tranges)
 end
 
-function timegroup(A, f, t, tranges, name)
+function timegroup(A, f, t, tranges)
     other = otherdims(A, Time)
-    n = A.name == Symbol("") ? A.name : Symbol(A.name, ", $(name)")
-    B = ClimArray(zeros(eltype(A), length.(other)..., length(t)), (other..., Time(t)), n)
+    B = ClimArray(zeros(eltype(A), length.(other)..., length(t)),
+        (other..., Time(t)); name = A.name)
     for i in 1:length(tranges)
         B[Time(i)] .= dropagg(f, view(A, Time(tranges[i])), Time)
     end
@@ -436,7 +453,7 @@ function seasonalyagg(A::ClimArray, f = mean)
     finaldate = to_seasonal_date(t0[end])
     t = startdate:Month(3):finaldate
     tranges = temporalrange(t0, season)
-    return timegroup(A, f, t, tranges, "seasonaly")
+    return timegroup(A, f, t, tranges)
 end
 
 function to_seasonal_date(t)
