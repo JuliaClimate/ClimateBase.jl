@@ -1,3 +1,7 @@
+# 0.16
+- Data with `Coord` dimension can now be saved as .nc files with `ncwrite`.
+- When loading data with `Coord`, the longitude was automatically wrapped to -180 to 180 degrees. There was no reason for this, now no wrapping is done, the user may want to do it on their own after loading.
+
 # 0.15
 - Removed functions for calculating some decompositions of albedo to atmosphere/surface contributions. They were not basic enough for this package.
 

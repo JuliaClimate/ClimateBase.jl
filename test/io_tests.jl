@@ -28,6 +28,20 @@ end
     rm("test.nc")
 end
 
+@testset "NetCDF Coord tests" begin
+    ncwrite("test.nc", C)
+    n = string(DimensionalData.name(C))
+    Cloaded = ncread("test.nc", "has_coords")
+    @test size(Cloaded) == size(C)
+    @test hasdim(Cloaded, Coord)
+    @test gnv(dims(Cloaded, Coord)) == gnv(dims(C, Coord))
+    @test gnv(Cloaded) == gnv(C)
+
+    # TODO: Here we need a lot of tests for all the super weird different
+    # ways that there are to save a Coord datafile... But we can't creat them.
+    # So we need to upload files somewhere and load them here.
+end
+
 @testset "Missings handling" begin
     m = rand(Float64, length.((lons, lats)))
     midx = CartesianIndices(m)[1:2, :]
