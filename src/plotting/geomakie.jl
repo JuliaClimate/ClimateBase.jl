@@ -14,15 +14,19 @@ You can update the values of the observable with another `ClimArray` with the sa
 dimension, and the plot will be updated. See documentation online for examples.
 """
 function climplot(A, args...; scatter = spacestructure(A) == CoordinateSpace(),
-    source = "+proj=longlat +datum=WGS84", dest = "+proj=eqearth", 
+    source = "+proj=longlat +datum=WGS84", dest = "+proj=eqearth",
     colorbar = true, name = string(DimensionalData.name(A)), kwargs...)
-    
+
     # TODO: Perhaps setting custom colorrange leads to better plots?
     # vmin = haskey(kwargs, :vmin) ? kwargs[:vmin] : quantile(data, 0.025)
     # vmax = haskey(kwargs, :vmax) ? kwargs[:vmax] : quantile(data, 0.975)
 
     fig = GeoMakie.Figure()
-    ax = GeoMakie.GeoAxis(fig[1,1]; source, dest, title = GeoMakie.Observable(""), coastlines = true)
+
+    ax = GeoMakie.GeoAxis(fig[1,1];
+        source, dest, title = GeoMakie.Observable(""), coastlines = true,
+        args...,
+    )
 
     el = scatter ? climscatter!(ax, A; kwargs...) : climsurface!(ax, A; kwargs...)
     if colorbar
@@ -35,10 +39,11 @@ end
 
 function has_only_space_dim(A)
     d = dims(A)
-    if length(dims) == 1
+    if length(d) == 1
         return d[1] <: Coord
-    elseif length(dims) == 2
-        return (Lon ∈ basetypeof.(d)) && (Lat ∈ basetypeof.(d))
+    elseif length(d) == 2
+        dimtypes = basetypeof.(d)
+        return (Lon ∈ dimtypes) && (Lat ∈ dimtypes)
     else
         return false
     end
@@ -50,7 +55,7 @@ end
 # Notice that `A` is not declared as `ClimArray`, but assumed to be.
 # Duck-typing for Observables.
 function climscatter!(ax, A; colormap = :dense, kwargs...)
-    @assert has_only_space_dim(A)
+    @assert has_only_space_dim(A) "ClimArray must have only spatial dimension!"
     if hasdim(A, Coord)
         lonlat = dims(A, Coord).val
     elseif dims(A)[1] isa Lon
@@ -60,7 +65,7 @@ function climscatter!(ax, A; colormap = :dense, kwargs...)
     else
         error("Unknown spatial dimensions for input.")
     end
-    data = GeoMakie.lift(A -> vec(A.data), A)
+    data = GeoMakie.lift(A -> vec(gnv(A)), A)
     GeoMakie.scatter!(ax, lonlat; color = data, colormap, kwargs...)
 end
 
@@ -72,7 +77,7 @@ end
 # Notice that `A` is not declared as `ClimArray`, but assumed to be.
 # Duck-typing for Observables.
 function climsurface!(ax, A; colormap = :dense, kwargs...)
-    @assert has_only_space_dim(A)
+    @assert has_only_space_dim(A) "ClimArray must have only spatial dimension!"
     if hasdim(A, Coord)
         # TODO: @pkeil this is for you
         error("Surface plots for `Coord` arrays are not supported yet!")
@@ -81,7 +86,7 @@ function climsurface!(ax, A; colormap = :dense, kwargs...)
     B = GeoMakie.lift(A -> longitude_circshift(A), A)
     lon = dims(B, Lon).val
     lat = dims(B, Lat).val
-    data = GeoMakie.lift(B -> B.data, B)
+    data = GeoMakie.lift(B -> gnv(B), B)
     GeoMakie.surface!(ax, lon, lat, data; shading = false, colormap, kwargs...)
 end
 

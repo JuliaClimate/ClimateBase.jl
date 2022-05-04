@@ -2,7 +2,6 @@ using ClimateBase, Test, Dates
 using Statistics
 using ClimateBase.Interpolations
 import StatsBase
-Time = ClimateBase.Time
 cd(@__DIR__)
 
 # Create the artificial dimensional arrays
@@ -17,7 +16,7 @@ t = Date(2000, 3, 15):Month(1):Date(2020, 2, 15)
 tdaily = Date(2000, 3, 15):Day(1):Date(2020, 3, 14)
 thourly = DateTime(2000, 3, 15):Hour(1):DateTime(2000, 6, 14)
 
-d = (Lon(lons), Lat(lats), Time(t))
+d = (Lon(lons), Lat(lats), Ti(t))
 A = zeros([length(x) for x in (lons, lats, t)]...)
 B = copy(A)
 
@@ -46,7 +45,7 @@ for (i, (lon, θ)) in enumerate(coords)
     C[i, :] .= monthly_insolation.(t, θ) .* cosd(lon)
 end
 
-C = ClimArray(C, (coord_dim, Time(t)); name = "has_coords", attrib = Dict("a" => 2))
+C = ClimArray(C, (coord_dim, Ti(t)); name = "has_coords", attrib = Dict("a" => 2))
 
 # %%
 @testset "ClimateBase.jl tests" begin
