@@ -2,7 +2,7 @@ import StatsBase
 export quantile_space
 
 """
-    quantile_space(A, B; n = 50) → q, Aq, Bq
+    quantile_space(A, B; n = 50) → q, Aq, Bq, m
 Express the array `B` into the quantile space of `A`. `B, A` must have the same indices.
 
 The array `B` is binned according to the quantile values of the elements of `A`.
@@ -11,12 +11,13 @@ The `i`-th bin contains data whose `A`-quantile values are ∈ [`q[i]`, `q[i+1]`
 The indices of these `A` values are used to group `B`.
 
 In each bin, the binned values of `A, B` are averaged, resulting in `Aq, Bq`.
+
+The amount of datapoints per quantile is by definition `length(A)/n`.
 """
 function quantile_space(A, B; n = 50)
     @assert size(A) == size(B)
     bin_idxs, qs = quantile_decomposition(A, n)
-    Aquant = map_to_quantile(A, bin_idxs)
-    Bquant = map_to_quantile(B, bin_idxs)
+    Aquant, Bquant = averages_from_indices(bin_idxs, A, B)
     return qs, Aquant, Bquant
 end
 
@@ -34,6 +35,6 @@ function quantile_decomposition(A, n)
     return bin_idxs, qs
 end
 
-function map_to_quantile(A, bin_idxs)
-    map(idxs -> StatsBase.mean(view(vec(A), idxs)), bin_idxs)
+function averages_from_indices(idxs, As...)
+    map(A -> map(i -> StatsBase.mean(view(vec(A), i)), idxs), As)
 end
