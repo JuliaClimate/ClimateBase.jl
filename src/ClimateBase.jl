@@ -14,7 +14,7 @@ include("io/vector2range.jl")
 include("io/netcdf.jl")
 
 include("interpolations/height_interpolation.jl")
-include("interpolations/percentile_space.jl")
+include("interpolations/quantile_space.jl")
 
 # All following will be moved to ClimateTools.jl once its updated
 include("climate/solar.jl")
