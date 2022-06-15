@@ -25,6 +25,8 @@ function climplot(A, args...; scatter = spacestructure(A) == CoordinateSpace(),
 
     ax = GeoMakie.GeoAxis(fig[1,1];
         source, dest, title = GeoMakie.Observable(""), coastlines = true,
+        xtickformat = GeoMakie.geoformat_ticklabels,
+        ytickformat = GeoMakie.geoformat_ticklabels,
         args...,
     )
 
@@ -40,7 +42,7 @@ end
 function has_only_space_dim(A)
     d = dims(A)
     if length(d) == 1
-        return d[1] <: Coord
+        return d[1] isa Coord
     elseif length(d) == 2
         dimtypes = basetypeof.(d)
         return (Lon ∈ dimtypes) && (Lat ∈ dimtypes)
