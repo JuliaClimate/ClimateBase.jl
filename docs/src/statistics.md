@@ -8,7 +8,7 @@ timeagg
 monthlyagg
 yearlyagg
 seasonalyagg
-temporalrange
+temporalranges
 maxyearspan
 temporal_sampling
 realtime_days

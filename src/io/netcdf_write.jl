@@ -66,8 +66,8 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
     for (d, dname) ∈ zip(dimensions, dnames)
         dname ∈ dims_in_ds && continue
         println("writing dimension $dname...")
-        v = gnv(d); l = length(v)
-        NCDatasets.defDim(ds, dname, l) # add dimension entry
+        v = gnv(d)
+        NCDatasets.defDim(ds, dname, length(v)) # add dimension entry
         if d isa Coord
             # Define clon/clat variables with this dimension
             lons = getindex.(v, 1); lats = getindex.(v, 2)
@@ -75,12 +75,17 @@ function add_dims_to_ncfile!(ds::NCDatasets.AbstractDataset, dimensions::Tuple)
             NCDatasets.defVar(ds, "clat", lats, (dname, ); attrib = DEFAULT_ATTRIBS["lat"])
         else
             # this conversion to DateTime is necessary because CFTime.jl doesn't support Date
-            eltype(v) == Date && (v = DateTime.(v))
+            if eltype(v) == Date; v = DateTime.(v); end
             attrib = DimensionalData.metadata(d)
             if (isnothing(attrib) || attrib == DimensionalData.NoMetadata()) &&
                     haskey(DEFAULT_ATTRIBS, dname)
                 @warn "Dimension $dname has no attributes, adding default attributes."
                 attrib = DEFAULT_ATTRIBS[dname]
+            end
+            # Notice that if we have a subtype of CFTime, then
+            # we need different attributes
+            if eltype(v) <: NCDatasets.CFTime.AbstractCFDateTime
+                attrib = Dict("standard_name" => "time")
             end
             # write dimension values as a variable as well (mandatory)
             NCDatasets.defVar(ds, dname, v, (dname, ); attrib = attrib)

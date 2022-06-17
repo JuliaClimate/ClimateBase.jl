@@ -66,4 +66,45 @@ end
     rm("missing_test.nc")
 end
 
+@testset "CFTime dates" begin
+    using NCDatasets.CFTime: DateTime360Day
+    cfdates = collect(DateTime360Day(1900,01,01):Day(1):DateTime360Day(1919,12,30))
+    x = float.(month.(cfdates))
+    X = ClimArray(x, (Tim(cfdates),); name = "x")
+
+    @testset "temporal stats" begin
+        @test temporal_sampling(cfdates) == :daily
+        @test monthday_indices(cfdates) == 1:360:length(cfdates)
+        trange = temporalranges(cfdates)
+        for i in 1:length(trange)
+            @test trange[i] == (1 + (i-1)*30):(i*30)
+        end
+
+
+        Y = monthlyagg(X)
+        @test length(Y) == 20*12
+        ty = gnv(dims(Y, Tim))
+        @test temporal_sampling(ty) == :monthly
+        @test step(ty) == Month(1)
+        for (i, y) in enumerate(Y)
+            @test y == mod1(i, 12)
+        end
+        Z = yearlyagg(X)
+        @test length(Z) == 20
+        # The mean of 1 to 12 is by definition 6.5
+        @test all(isequal(6.5), Z)
+        tz = gnv(dims(Z, Tim))
+        @test temporal_sampling(tz) == :yearly
+        @test step(tz) == Year(1)
+    end
+    @testset "Writing/Reading CFTime" begin
+        ncwrite("cftime_test.nc", X)
+        @test isfile("cftime_test.nc")
+        X2 = ncread("cftime_test.nc", "x")
+        @test eltype(dims(X2, Tim)) == DateTime360Day
+        @test gnv(dims(X2, Tim)) == cfdates
+    end
+
+end
+
 end # NetCDF tests

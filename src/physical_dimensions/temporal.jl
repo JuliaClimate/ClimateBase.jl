@@ -10,11 +10,18 @@ using Dates
 const DAYS_IN_ORBIT = 365.26
 const HOURS_IN_ORBIT = 365.26*24
 
+"""
+    no_hour_datetype(d::TimeType) → D
+Return a type `D` that contains no hour (or less) information, if possible.
+"""
+no_time_datetime(::DateTime) = Date
+no_time_datetime(::T) where {T<:TimeType} = T
+
 "daymonth(t) = day(t), month(t)"
 daymonth(t) = day(t), month(t)
 
 maxyearspan(A::AbstractDimArray, tsamp = temporal_sampling(A)) =
-maxyearspan(dims(A, Time).val, tsamp)
+maxyearspan(gnv(dims(A, Time)), tsamp)
 
 """
     temporal_sampling(x) → symbol
@@ -28,7 +35,7 @@ Possible return values are:
 - `:yearly`, where all dates have the same month and day, but different year.
 - `:other`, which means that `x` doesn't fall to any of the above categories.
 """
-temporal_sampling(A::AbstractDimArray) = temporal_sampling(dims(A, Time).val)
+temporal_sampling(A::AbstractDimArray) = temporal_sampling(gnv(dims(A, Time)))
 temporal_sampling(t::Dimension) = temporal_sampling(t.val)
 
 function temporal_sampling(t::AbstractVector{<:TimeType})
@@ -122,12 +129,12 @@ end
 
 """
     monthday_indices(times, date = times[1])
-Find the indices in `times` (which is a `Vector{Date}`) at which
+Find the indices in `times` at which
 the date in `times` gives the same day and month as `date`.
 """
 function monthday_indices(times, date = times[1])
     d1, m1 = daymonth(date)
-    a = findall(i -> daymonth(times[i]) == (d1, m1), 1:length(times))
+    findall(i -> daymonth(times[i]) == (d1, m1), 1:length(times))
 end
 
 """
@@ -150,7 +157,7 @@ function monthspan(t::TimeType)
     n = mod1(m+1, 12)
     y = year(t)
     u = m == 12 ? y+1 : y
-    d = collect(Date(y, m, 1):Day(1):Date(u, n, 1))[1:end-1]
+    collect(Date(y, m, 1):Day(1):Date(u, n, 1))[1:end-1]
 end
 
 """
@@ -289,6 +296,9 @@ function timeagg(f, A::AbDimArray, w = nothing)
     if tsamp == :other
         return dropagg(f, A, Time, w)
     end
+    # The reason to have three versions of code here is because,
+    # quanti unfortunately, each version needs different weighting
+    # and collection up to full year. Sad sad life.
     r = if tsamp == :daily
         timeagg_daily(f, A, w)
     elseif tsamp == :monthly
@@ -311,7 +321,7 @@ function timeagg_yearly(f, A, w)
 end
 
 function timeagg_monthly(f, A::AbDimArray, w)
-    t = dims(A, Time).val
+    t = gnv(dims(A, Time))
     mys = maxyearspan(t, :monthly)
     tw = daysinmonth.(t)
     W = if isnothing(w)
@@ -333,7 +343,7 @@ function timeagg_monthly(f, A::AbDimArray, w)
 end
 
 function timeagg_daily(f, A::AbDimArray, w)
-    t = dims(A, Time).val
+    t = gnv(dims(A, Time))
     mys = maxyearspan(t)
     _A = view(A, Time(1:mys))
     if w isa AbDimArray
@@ -380,11 +390,12 @@ using the function `f`.
 The dates of the new array always have day number of `mday`.
 """
 function monthlyagg(A::ClimArray, f = mean; mday = 15)
-    t0 = dims(A, Time).val
-    startdate = Date(year(t0[1]), month(t0[1]), mday)
-    finaldate = Date(year(t0[end]), month(t0[end]), mday+1)
+    t0 = gnv(dims(A, Time))
+    DT = no_time_datetime(t0[1])
+    startdate = DT(year(t0[1]), month(t0[1]), mday)
+    finaldate = DT(year(t0[end]), month(t0[end]), mday+1)
     t = startdate:Month(1):finaldate
-    tranges = temporalrange(t0, Dates.month)
+    tranges = temporalranges(t0, Dates.month)
     return timegroup(A, f, t, tranges)
 end
 
@@ -395,11 +406,11 @@ using the function `f`.
 By convention, the dates of the new array always have month and day number of `1`.
 """
 function yearlyagg(A::ClimArray, f = mean)
-    t0 = dims(A, Time).val
+    t0 = gnv(dims(A, Time))
     startdate = Date(year(t0[1]), 1, 1)
     finaldate = Date(year(t0[end]), 2, 1)
     t = startdate:Year(1):finaldate
-    tranges = temporalrange(t0, Dates.year)
+    tranges = temporalranges(t0, Dates.year)
     return timegroup(A, f, t, tranges)
 end
 
@@ -408,14 +419,14 @@ function timegroup(A, f, t, tranges)
     B = ClimArray(zeros(eltype(A), length.(other)..., length(t)),
         (other..., Time(t)); name = A.name)
     for i in 1:length(tranges)
-        B[Time(i)] .= dropagg(f, view(A, Time(tranges[i])), Time)
+        B[Time(i)] = dropagg(f, view(A, Time(tranges[i])), Time)
     end
     return B
 end
 
 """
-    temporalrange(A::ClimArray, f = Dates.month) → r
-    temporalrange(t::AbstractVector{<:TimeType}}, f = Dates.month) → r
+    temporalranges(A::ClimArray, f = Dates.month) → r
+    temporalranges(t::AbstractVector{<:TimeType}}, f = Dates.month) → r
 Return a vector of ranges so that each range of indices are values of `t` that
 belong in either the same month, year, day, or season, depending on `f`.
 `f` can take the values: `Dates.year, Dates.month, Dates.day` or `season`
@@ -423,7 +434,7 @@ belong in either the same month, year, day, or season, depending on `f`.
 
 Used in e.g. [`monthlyagg`](@ref), [`yearlyagg`](@ref) or [`seasonalyagg`](@ref).
 """
-function temporalrange(t::AbstractArray{<:TimeType}, f = Dates.month)
+function temporalranges(t::AbstractArray{<:TimeType}, f = Dates.month)
     @assert issorted(t) "Sorted time required."
     L = length(t)
     r = Vector{UnitRange{Int}}()
@@ -437,7 +448,7 @@ function temporalrange(t::AbstractArray{<:TimeType}, f = Dates.month)
     push!(r, i:L) # final range not included in for loop
     return r
 end
-temporalrange(A::AbstractDimArray, f = Dates.month) = temporalrange(dims(A, Time).val, f)
+temporalranges(A::AbstractDimArray, f = Dates.month) = temporalranges(gnv(dims(A, Time)), f)
 
 
 """
@@ -448,11 +459,11 @@ By convention, seasons are represented as Dates spaced 3-months apart, where onl
 months December, March, June and September are used to specify the date, with day 1.
 """
 function seasonalyagg(A::ClimArray, f = mean)
-    t0 = dims(A, Time).val
+    t0 = gnv(dims(A, Time))
     startdate = to_seasonal_date(t0[1])
     finaldate = to_seasonal_date(t0[end])
     t = startdate:Month(3):finaldate
-    tranges = temporalrange(t0, season)
+    tranges = temporalranges(t0, season)
     return timegroup(A, f, t, tranges)
 end
 
@@ -521,5 +532,5 @@ end
 
 function seasonality(A::ClimArray; kwargs...)
     @assert length(dims(A)) == 1
-    return seasonality(dims(A, Time).val, A.data; kwargs...)
+    return seasonality(gnv(dims(A, Time)), A.data; kwargs...)
 end
