@@ -50,71 +50,69 @@ end
 # Quantile space
 ###########################################################################################
 """
-    value_space(A, B; Arange) → Aq, Bq, weights
+    value_space(A, B; Arange) → Bmeans, bin_indices
 Express the array `B` into the value space of `A`. `B, A` must have the same indices.
 This means that `A` is binned according to the given `Arange`,
 and the same indices that binned `A` are also used to bin `B`.
 The `i`-th bin contains data whose `A` values ∈ [`Arange[i]`, `Arange[i+1]`).
-In each bin, the binned values of `A, B` are averaged, resulting in `Aq, Bq`.
+In each bin, the binned values of `B` are averaged, resulting in `Bmeans`.
 
 Elements of `A` that are not ∈ `Arange` are skipped.
-The returned `weights` are the amount of datapoints in each bin.
+The returned `bin_indices` are the indices in each bin (hence, the weights
+for the means are just `length.(bin_indices)`)
 
 By default `Arange = range(minimum(A), nextfloat(maximum(A)); length = 100)`.
 """
 function value_space(A, B; Arange = _default_val_range(A))
     @assert size(A) == size(B)
     @assert issorted(Arange)
-    bin_idxs, weights = value_decomposition(A, Arange)
-    Aquant, Bquant = averages_from_indices(bin_idxs, A, B)
-    return Aquant, Bquant, weights
+    bin_idxs = indices_in_values(A, Arange)
+    Bmeans, = averages_from_indices(bin_idxs, B)
+    return Bmeans, bin_idxs
 end
 
 _default_val_range(A) = range(minimum(A), nextfloat(maximum(A)); length = 100)
 
-function value_decomposition(A, Arange)
+function indices_in_values(A, Arange)
     bin_idxs = [Int[] for _ in 1:length(Arange)-1]
-    weights = zeros(Int, length(Arange)-1)
     # `li` are linear indices of `A`. `bi` are bin indices of the values of `A`.
     for (li, a) in enumerate(vec(A))
         a > maximum(Arange) && continue
         bi = searchsortedlast(Arange, a)
         bi == 0 && continue
         push!(bin_idxs[bi], li)
-        weights[bi] += 1
     end
-    return bin_idxs, weights
+    return bin_idxs
 end
 
 # 2D version
 """
-    value_space(A, B, C; Arange, Brange) → Cmeans, weights
+    value_space(A, B, C; Arange, Brange) → Cmeans, bin_indices
 Express the array `C` into the joint value space of `A, B`.
 `A, B, C` must have the same indices.
 
 A 2D histogram is created based on the given ranges, the and elements of `C` are binned
 according to the values of `A, B`. Then, the elements are averaged, which returns a matrix
 `Cmeans`, defined over the joint space S = `Arange × Brange`.
-`weights` is also a matrix counting the point occurences within the bin.
-Whenever `weights` is 0, `Cmeans` is `NaN`.
+`bin_indices` is also a matrix (with vector elements).
+`Cmeans` is `NaN` for bins without any elements.
 """
 function value_space(A, B, C;
         Arange = _default_val_range(A), Brange = _default_val_range(B)
     )
     @assert size(A) == size(B) == size(C)
     @assert issorted(Arange)
-    bin_idxs_1D, _ = value_decomposition(A, Arange)
-    bin_idxs_2D, weights = refine_value_decomposition(bin_idxs_1D, Arange, B, Brange)
+    bin_idxs_1D = indices_in_values(A, Arange)
+    bin_idxs_2D = refine_indices_in_values(bin_idxs_1D, Arange, B, Brange)
     Cmeans, = averages_from_indices(bin_idxs_2D, C)
-    return Cmeans, weights
+    return Cmeans, bin_idxs_2D
 end
 
 
-function refine_value_decomposition(bin_idxs_1D, Arange, B, Brange)
+function refine_indices_in_values(bin_idxs_1D, Arange, B, Brange)
     vecB = vec(B)
     bin_idxs = Matrix{Vector{Int}}(undef, length(Arange)-1, length(Brange)-1)
     for k in eachindex(bin_idxs); bin_idxs[k] = Int[]; end
-    weights = zeros(Int, length(Arange)-1 , length(Brange)-1)
     for (bi, idxs) in enumerate(bin_idxs_1D) # iterate over bins of A
         # notice that `idxs` is a container of linear indices for B!
         for li in idxs
@@ -123,8 +121,7 @@ function refine_value_decomposition(bin_idxs_1D, Arange, B, Brange)
             bj = searchsortedlast(Brange, b)
             bj == 0 && continue
             push!(bin_idxs[bi, bj], li)
-            weights[bi, bj] += 1
         end
     end
-    return bin_idxs, weights
+    return bin_idxs
 end
