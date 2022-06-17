@@ -20,7 +20,6 @@ end
 
 @testset "quantile space" begin
 
-
 end
 
 @testset "value space" begin
@@ -30,7 +29,7 @@ end
     rx = range(-1.0, nextfloat(1.0); length = 21)
     @testset "1D" begin
         using StatsBase
-        ymeans, bin_indices = value_space(x, y; Arange = r)
+        ymeans, bin_indices = value_space(x, y; Arange = rx)
         weights = length.(bin_indices)
         @test sum(weights) == length(y)
         # trigonometric functions have conentrated value weight at the edges
