@@ -26,8 +26,8 @@ end
     thourly = DateTime(2000, 3, 1):Hour(1):DateTime(2001, 4, 15)
     mdates = unique!([(year(d), month(d)) for d in tdaily])
     ydates = unique!([year(d) for d in tdaily])
-    tranges = temporalrange(tdaily, Dates.month)
-    yranges = temporalrange(tdaily, Dates.year)
+    tranges = temporalranges(tdaily, Dates.month)
+    yranges = temporalranges(tdaily, Dates.year)
     @testset "time sampling" begin
         @test length(tranges) == length(mdates)
         @test length(yranges) == length(ydates)
