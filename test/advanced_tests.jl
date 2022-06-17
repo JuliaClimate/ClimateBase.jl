@@ -17,3 +17,40 @@
     @test D_back[Hei(1)] < D_back[Hei(2)] < D_back[Hei(3)] < D_back[Hei(4)] < D_back[Hei(5)]
     @test D[Hei(1)] < D_pre[Pre(3)] < D[Hei(11)]
 end
+
+@testset "quantile space" begin
+
+end
+
+@testset "value space" begin
+    t = 0:0.01:5π
+    x = cos.(t)
+    y = sin.(t)
+    rx = range(-1.0, nextfloat(1.0); length = 21)
+    @testset "1D" begin
+        using StatsBase
+        ymeans, bin_indices = value_space(x, y; Arange = rx)
+        weights = length.(bin_indices)
+        @test sum(weights) == length(y)
+        # trigonometric functions have conentrated value weight at the edges
+        @test weights[1] > weights[length(weights)÷2]
+        # sine must be very small when cosine is large
+        @test ymeans[1] < weights[length(weights)÷2]
+        @test mean(ymeans, Weights(weights)) ≈ StatsBase.mean(y)
+    end
+    @testset "2D" begin
+        z = y
+        zmeans, bin_indices = value_space(x, y, z; Arange = rx, Brange = rx)
+        # Because cozine and size cannever be 1 at the same time, all corners
+        # of z must be nan:
+        L = length(rx)-1
+        @test all(isnan, [zmeans[1,1], zmeans[1,L], zmeans[L,1], zmeans[L,L]])
+        # and again because of where cosines and sines may have values at the same time
+        # zmeans only is non NaN at specific locations one can derive (depends on step size)
+        non_nan_i = 6:15
+        @test all(!isnan, zmeans[1, non_nan_i])
+        @test all(!isnan, zmeans[non_nan_i, end])
+        # and because z is y, it must increase along the second dimension
+        @test issorted(zmeans[1, non_nan_i])
+    end
+end

@@ -8,6 +8,7 @@ using DimensionalData.Dimensions: setdims
 using Dates
 
 Time = DimensionalData.Ti
+Tim = DimensionalData.Ti
 
 AbDimArray = DimensionalData.AbstractDimArray
 
@@ -30,7 +31,7 @@ gnv(x::Dimension) = parent(parent(x))
 
 export At, (..), Between, Near # Selectors from DimensionalArrays.jl
 export hasdim, dims, dimindex
-export Time, Lon, Lat, dims, Coord, Hei, Pre, Ti
+export Time, Lon, Lat, dims, Coord, Hei, Pre, Ti, Tim
 export CoordinateSpace, OrthogonalSpace, spacestructure
 export DimensionalData # for accessing its functions
 export setdims
@@ -174,8 +175,6 @@ ClimArray(A::AbstractArray, dims::Tuple, name; refdims=(), attrib=nothing) =
     ClimArray(A, format(dims, A), refdims, Symbol(name), attrib)
 
 Base.parent(A::ClimArray) = A.data
-Base.@propagate_inbounds Base.setindex!(A::ClimArray, x, I::Vararg{DimensionalData.StandardIndices}) =
-    setindex!(A.data, x, I...)
 
 DimensionalData.metadata(A::ClimArray) = A.attrib
 DimensionalData.basetypeof(::ClimArray) = ClimArray

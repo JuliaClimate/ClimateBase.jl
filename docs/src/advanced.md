@@ -18,6 +18,12 @@ interpolate_height2pressure
 interpolate_pressure2height
 ```
 
+## Quantile/value space
+```@docs
+quantile_space
+value_space
+```
+
 ## Climate quantities
 Functions that calculate climate-related quantities.
 ```@docs
