@@ -6,7 +6,7 @@
 
 # Temporal
 export monthday_indices, maxyearspan, daymonth, realtime_days, realtime_milliseconds,
-temporal_sampling, timemean, timeagg, monthlyagg, yearlyagg, temporalrange, seasonalyagg, 
+temporal_sampling, timemean, timeagg, monthlyagg, yearlyagg, temporalranges, seasonalyagg,
 season, DAYS_IN_ORBIT, HOURS_IN_ORBIT, seasonality, sametimespan
 
 # Spatial
