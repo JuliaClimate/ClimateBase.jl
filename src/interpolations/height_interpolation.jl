@@ -5,44 +5,52 @@ const gravity = 9.8076
 const Rd = 287.053
 
 using Interpolations
-export interpolation2pressure, interpolate_height2pressure, interpolate_pressure2height, pressure2height, height2pressure, hello, Line
+export interpolation2pressure, interpolate_height2pressure, interpolate_pressure2height,
+       pressure2height, height2pressure, Line
 
 """
-interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_levels::Vector; heightname=Hei(), extrapolation_bc=NaN )
-Return a ClimArray where the vertical coordinate is pressure. Pressure values need to be ascending or descending in order.
+    interpolation2pressure(A::ClimArray, P::ClimArray, plevels::Vector; kwargs...) → B
+Interpolate `A`, which has some arbitrary height dimension (height, model levels, etc.),
+into a new `B::ClimArray` where the vertical dimension is pressure.
+`P` is another `ClimArray`, that has the pressure values in Pascal, and otherwise same
+spatiotemporal structure as `A`. The `plevels` variable denotes which
+pressure levels `B` should have.
 
-`A`: `ClimArray` with some arbitrary height coordinate (height above ground, model levels, etc...) with the variable that should be interpolated
-`pressure`: `ClimArray` with pressure values in Pascal and the same coordinates as `A`.
-`pressure_levels`: Vector which contains the pressure levels in Pascal that A should be interpolated on.
-`vertical_coord` : Name of the vertical coordinate, which is usually `Hei` but can be model levels or something else that does not represent physical height.
-`extrapolation_bc`: Extrapolation is set to `NaN` by default, but can be any value or linear extrapolation with `extrapolation_bc = Line()` For other extrapolation methods use the `Interpolations` package.
-`descending` : specifies whether pressure is ordered descendingly or ascendingly along the vertical coordinate. Descending by default.
+The keword `vertical_dim = Hei()` denotes which dimension of `A` denotes "height".
+The keyword `extrapolation_bc = Line()` configures extrapolation. It is linear by default,
+but can be any value such as `extrapolation_bc = NaN`.
+For other extrapolation methods use the Interpolations.jl package.
+
+Keyword `descending = true` specifies whether pressure is ordered descendingly or
+ascendingly along the vertical dimension.
 """
-function interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_levels::Vector; vertical_coord=Hei(), extrapolation_bc=NaN,descending=true )
+function interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_levels::Vector;
+    vertical_dim = Hei(), extrapolation_bc = Line(), descending = true)
 
     dims(A) == dims(pressure) || error("Pressure and Variable Array do not have the same dimensions")
-    hasdim(A, vertical_coord) || error("Vertical dimension " + string(vertical_coord) +  " not found in array")
+    hasdim(A, vertical_dim) || error("Vertical dimension $vertical_dim not found in array")
 
     # The interplation requires ascending pressure values:
     if descending == true
-        A = reverse(A,dims=vertical_coord)
-        pressure = reverse(pressure,dims=vertical_coord)
+        A = reverse(A; dims = vertical_dim)
+        pressure = reverse(pressure; dims = vertical_dim)
     end
 
     # construct output Array:
     pre = Pre(pressure_levels; metadata = Dict())
-    dims_no_height = otherdims(A, vertical_coord)
+    dims_no_height = otherdims(A, vertical_dim)
     out_dims = (dims_no_height...,pre)
     dimension_lengths = length.(out_dims)
 
-    int_array = ClimArray(zeros(eltype(A), Tuple(dimension_lengths)), out_dims ; name = A.name, attrib = A.attrib)
-    for i in otheridxs(A, vertical_coord)
+    B = ClimArray(
+        zeros(eltype(A), Tuple(dimension_lengths)), out_dims;
+        name = A.name, attrib = A.attrib
+    )
+    for i in otheridxs(A, vertical_dim)
         itp = LinearInterpolation(pressure[i],A[i],extrapolation_bc=extrapolation_bc)
-        int_array[i] = itp(pressure_levels)
-
+        B[i] = itp(pressure_levels)
     end
-
-    return int_array
+    return B
 end
 
 """
