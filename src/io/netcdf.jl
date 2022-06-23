@@ -6,7 +6,7 @@ https://github.com/rafaqz/GeoData.jl
 =#
 using NCDatasets: NCDatasets, NCDataset
 export NCDatasets, NCDataset
-export nckeys, ncdetails, globalattr, ncsize
+export nckeys, ncdetails, ncglobalattr, ncsize
 export ncread, ncwrite
 
 dim_to_commonname(::Lat) = "lat"
@@ -53,10 +53,10 @@ end
 
 
 """
-    globalattr(file::String) → Dict
+    ncglobalattr(file::String) → Dict
 Return the global attributes of the .nc file.
 """
-function globalattr(file::String)
+function ncglobalattr(file::String)
     NCDataset(file) do ds
         return Dict(ds.attrib)
     end
