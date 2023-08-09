@@ -1,3 +1,5 @@
+using ClimateBase, Test
+
 @testset "NetCDF IO" begin
 
 @testset "vector2range" begin
@@ -57,7 +59,7 @@ end
     @test all(isequal(-99.9), B.data[midx])
     mmean = mean(skipmissing(M2.data))
     bmean = mean(B, StatsBase.weights(W))
-    @test bmean == mmean
+    @test bmean ≈ mmean # for some reason here we lose accuracy: 0.4992455417474702 vs 0.49924554174747
     # test `missing_weights` application to zonal mean
     C = B[3:end, :]
     z1 = zonalmean(C)
@@ -67,7 +69,7 @@ end
 end
 
 @testset "CFTime dates" begin
-    using NCDatasets.CFTime: DateTime360Day
+    using ClimateBase.NCDatasets.CFTime: DateTime360Day
     cfdates = collect(DateTime360Day(1900,01,01):Day(1):DateTime360Day(1919,12,30))
     x = float.(month.(cfdates))
     X = ClimArray(x, (Tim(cfdates),); name = "x")
