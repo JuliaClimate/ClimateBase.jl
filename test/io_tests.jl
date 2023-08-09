@@ -1,3 +1,5 @@
+using ClimateBase, Test
+
 @testset "NetCDF IO" begin
 
 @testset "vector2range" begin
@@ -67,7 +69,7 @@ end
 end
 
 @testset "CFTime dates" begin
-    using NCDatasets.CFTime: DateTime360Day
+    using ClimateBase.NCDatasets.CFTime: DateTime360Day
     cfdates = collect(DateTime360Day(1900,01,01):Day(1):DateTime360Day(1919,12,30))
     x = float.(month.(cfdates))
     X = ClimArray(x, (Tim(cfdates),); name = "x")
