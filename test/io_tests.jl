@@ -57,7 +57,7 @@ end
     @test all(isequal(-99.9), B.data[midx])
     mmean = mean(skipmissing(M2.data))
     bmean = mean(B, StatsBase.weights(W))
-    @test bmean == mmean
+    @test bmean ≈ mmean # for some reason here we lose accuracy: 0.4992455417474702 vs 0.49924554174747
     # test `missing_weights` application to zonal mean
     C = B[3:end, :]
     z1 = zonalmean(C)
