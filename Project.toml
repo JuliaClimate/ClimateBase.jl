@@ -1,7 +1,7 @@
 name = "ClimateBase"
 uuid = "35604d93-0fb8-4872-9436-495b01d137e2"
 authors = ["Datseris <datseris.george@gmail.com>", "Philippe Roy <borghor@yahoo.ca>"]
-version = "0.16.4"
+version = "0.16.5"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -21,7 +21,7 @@ NCDatasets = "0.11, 0.12"
 Requires = "1"
 SignalDecomposition = "1"
 StaticArrays = "0.12, 1.0"
-StatsBase = "0.33"
+StatsBase = "0.33, 0.34"
 julia = "1.5"
 
 [extras]
