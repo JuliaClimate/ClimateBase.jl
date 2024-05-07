@@ -187,12 +187,6 @@ DimensionalData.rebuild(
     data=gnv(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 ) = ClimArray(data, format(dims, data), refdims, name, metadata)
 
-
-# The following basic methods allow indexing with tuples, (Time(5), Lon(3))
-Base.getindex(A::ClimArray, i::Tuple) = A[i...]
-Base.setindex!(A::ClimArray, x, i::Tuple) = setindex!(A, x, i...)
-Base.view(A::ClimArray, i::Tuple) = view(A, i...)
-
 # Convenience
 Base.ones(A::AbDimArray) = basetypeof(A)(ones(eltype(A), size(A)), dims(A))
 Base.zeros(A::AbDimArray) = basetypeof(A)(zeros(eltype(A), size(A)), dims(A))

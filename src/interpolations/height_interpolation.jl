@@ -39,7 +39,7 @@ function interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_leve
     # construct output Array:
     pre = Pre(pressure_levels; metadata = Dict())
     dims_no_height = otherdims(A, vertical_dim)
-    out_dims = (dims_no_height...,pre)
+    out_dims = (dims_no_height..., pre)
     dimension_lengths = length.(out_dims)
 
     B = ClimArray(
@@ -47,8 +47,8 @@ function interpolation2pressure(A::ClimArray, pressure::ClimArray, pressure_leve
         name = A.name, attrib = A.attrib
     )
     for i in otheridxs(A, vertical_dim)
-        itp = LinearInterpolation(pressure[i],A[i],extrapolation_bc=extrapolation_bc)
-        B[i] = itp(pressure_levels)
+        itp = LinearInterpolation(pressure[i], A[i...]; extrapolation_bc)
+        B[i...] = itp(pressure_levels)
     end
     return B
 end
@@ -105,8 +105,8 @@ function interpolate_height2pressure(A::ClimArray,pressure_levels::Vector; extra
     int_array = ClimArray(zeros(eltype(A), Tuple(dimension_lengths)), out_dims; name = A.name, attrib = A.attrib)
 
     for i in otheridxs(A, Hei())
-        itp = LinearInterpolation(pressure,A[i],extrapolation_bc=extrapolation_bc)
-        int_array[i] = itp(pressure_levels)
+        itp = LinearInterpolation(pressure, A[i...]; extrapolation_bc)
+        int_array[i...] = itp(pressure_levels)
     end
     return int_array
 end
@@ -136,8 +136,8 @@ function interpolate_pressure2height(A::ClimArray,heights::Vector; extrapolation
 
     for i in otheridxs(A, Pre())
 
-        itp = LinearInterpolation(height,A[i],extrapolation_bc=extrapolation_bc)
-        int_array[i] = itp(heights)
+        itp = LinearInterpolation(height,A[i...]; extrapolation_bc)
+        int_array[i...] = itp(heights)
 
     end
     return int_array
