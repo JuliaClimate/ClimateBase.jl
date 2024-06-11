@@ -1,5 +1,8 @@
 # Statistics
 
+```@index
+```
+
 ## Temporal
 Functions related with the `Time` dimension.
 ```@docs
@@ -8,6 +11,7 @@ timeagg
 monthlyagg
 yearlyagg
 seasonalyagg
+dailyagg
 temporalranges
 maxyearspan
 temporal_sampling
