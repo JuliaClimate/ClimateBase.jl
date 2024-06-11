@@ -1,6 +1,7 @@
 # Statistics
 
 ```@index
+Pages   = ["statistics.md"]
 ```
 
 ## Temporal
