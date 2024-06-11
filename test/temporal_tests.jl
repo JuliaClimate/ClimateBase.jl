@@ -128,6 +128,17 @@ end
         Asea = seasonalyagg(A)
         tsea = dims(Asea, Ti).val
         @test Base.step(tsea) == Month(3)
+
+        @testset "dailyagg" begin
+            t = DateTime(1,1,1,0):Hour(12):DateTime(1,1,3, 12)
+            x = [float(isodd(i)) for i in 1:length(t)]
+            x = hcat([copy(x) for j in 1:4]...)
+            X = ClimArray(x, (Tim(t), Lon(1:4)))
+            D = dailyagg(X, mean)
+            @test all(isequal(0.5), D)
+            @test step(gnv(dims(D, Tim))) == Day(1)
+            @test length(dims(D, Tim)) == length(t)÷2
+        end
     end
 
     @testset "interannual variability" begin

@@ -20,9 +20,6 @@ no_time_datetime(::T) where {T<:TimeType} = T
 "daymonth(t) = day(t), month(t)"
 daymonth(t) = day(t), month(t)
 
-maxyearspan(A::AbstractDimArray, tsamp = temporal_sampling(A)) =
-maxyearspan(gnv(dims(A, Time)), tsamp)
-
 """
     temporal_sampling(x) → symbol
 Return the temporal sampling type of `x`, which is either an array of `Date`s or
@@ -83,7 +80,8 @@ end
 
 """
     maxyearspan(A::ClimArray) = maxyearspan(dims(A, Time))
-    maxyearspan(t::Vector{<:DateTime}) → i
+    maxyearspan(t::AbstractVector{<:DateTime}) → i
+
 Find the maximum index `i` of `t` so that `t[1:i]` covers exact(*) multiples of years.
 
 (*) For monthly spaced data `i` is a multiple of `12` while for daily data we find
@@ -125,6 +123,9 @@ function maxyearspan(times, tsamp = temporal_sampling(times))
         error("maxyearspan: not implemented yet for $(tsamp)-sampled data")
     end
 end
+
+maxyearspan(A::AbstractDimArray, tsamp = temporal_sampling(A)) =
+maxyearspan(gnv(dims(A, Time)), tsamp)
 
 
 """
@@ -400,6 +401,22 @@ function monthlyagg(A::ClimArray, f = mean; mday = 15)
 end
 
 """
+    dailyagg(A::ClimArray, f = mean) -> B
+Create a new array where the temporal information has been aggregated into days
+using the function `f`.
+"""
+function dailyagg(A::ClimArray, f = mean)
+    t0 = gnv(dims(A, Time))
+    ts, tf = extrema(t0)
+    DT = no_time_datetime(ts)
+    startdate = DT(year(ts), month(ts), day(ts))
+    finaldate = DT(year(tf), month(tf), day(tf))
+    t = startdate:Day(1):finaldate
+    tranges = temporalranges(t0, Dates.day)
+    return timegroup(A, f, t, tranges)
+end
+
+"""
     yearlyagg(A::ClimArray, f = mean) -> B
 Create a new array where the temporal information has been aggregated into years
 using the function `f`.
@@ -414,6 +431,8 @@ function yearlyagg(A::ClimArray, f = mean)
     return timegroup(A, f, t, tranges)
 end
 
+# TODO: this function does not respect the order of dimensions.
+# it always puts time last
 function timegroup(A, f, t, tranges)
     other = otherdims(A, Time)
     B = ClimArray(zeros(eltype(A), length.(other)..., length(t)),
