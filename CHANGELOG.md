@@ -1,3 +1,9 @@
+# 0.17.0
+
+- New function `dailyagg`
+- Many bug fixes in terms of compatibility with other packages
+- Usage of Julia Package extensions for GeoMakie integration
+
 # 0.16.3
 - New functions `value_space, quantile_space`.
 - `globalattr` has been renamed to `ncglobalattr`.
