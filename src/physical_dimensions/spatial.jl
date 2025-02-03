@@ -50,14 +50,16 @@ end
 export lon_distance, wrap_lon, longitude_circshift
 """
     wrap_lon(x)
+
 Wrap given longitude to -180 to 180 degrees.
 """
 wrap_lon(x) = @. -180 + (360 + ((x+180) % 360)) % 360
 
 """
     lon_distance(λ1, λ2, Δλ = 360) → δ
+
 Calculate distance `δ` (also in degrees) between longitudes `λ1, λ2`, but taking into
-account the periodic nature of longitude, which has period `Δλ = 360ᵒ`.
+account the periodic nature of longitude, which has period `Δλ = 360`ᵒ.
 """
 function lon_distance(x, y, p = eltype(x)(360))
     moddis = mod(abs(x - y), p)
@@ -66,6 +68,7 @@ end
 
 """
     longitude_circshift(X::ClimArray [, l]; wrap = true) → Y::ClimArray
+
 Perform the same action as `Base.circshift`, but only for the longitudinal dimension
 of `X` with shift `l`. If `wrap = true` the longitudes are wrapped to (-180, 180) degrees
 using the modulo operation.
@@ -247,7 +250,7 @@ export tropics_extratropics
 Separate the given array into two arrays: one having latitudes ℓ ∈ [-lower_lat, +lower_lat], and one
 having [-higher_lat:-lower_lat, lower_lat:higher_lat].
 """
-tropics_extratropics(A, args...; kwargs...) = 
+tropics_extratropics(A, args...; kwargs...) =
 tropics_extratropics(spacestructure(A), A, args...; kwargs...)
 
 function tropics_extratropics(::OrthogonalSpace, A; lower_lat=30, higher_lat=90)

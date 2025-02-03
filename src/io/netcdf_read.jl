@@ -4,6 +4,7 @@
 #########################################################################
 """
     ncread(file, var [, selection]; kwargs...) → A
+
 Load the variable `var` from the `file` and convert it into a [`ClimArray`](@ref)
 with proper dimension mapping and also containing the variable attributes as a dictionary.
 Dimension attributes are also given to the dimensions of `A`, if any exist.
@@ -39,6 +40,7 @@ The function [`ncsize`](@ref) can be useful for `selection`.
 See also [`ncdetails`](@ref), [`nckeys`](@ref) and [`ncwrite`](@ref).
 
 ## Smart loading
+
 The following things make loading data with `ncread` smarter than directly trying to use
 NCDatasets.jl and then convert to some kind of dimensional container.
 1. Data are directly transformed into `ClimArray`, conserving metadata and dimension names.
@@ -51,6 +53,7 @@ NCDatasets.jl and then convert to some kind of dimensional container.
    grid or not, and creating a single `Coord` dimension if not.
 
 ## Keywords
+
 * `name` optionally rename loaded array.
 * `grid = nothing` optionally specify whether the underlying grid is `grid = OrthogonalSpace()`
   or `grid = CoordinateSpace()`, see [Types of spatial information](@ref).
