@@ -16,8 +16,8 @@ dim_to_commonname(::Pre) = "level"
 dim_to_commonname(D::Dim) = string(DimensionalData.name(D))
 dim_to_commonname(::Coord) = "cell"
 
+"Names of dimensions that represent (lon, lat) cells in Coordinate (unstructured) grids"
 const POSSIBLE_CELL_NAMES = ("ncells", "cell", "rgrid", "grid")
-
 
 """
     nckeys(file::String)

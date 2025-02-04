@@ -69,6 +69,7 @@ NCDatasets.jl and then convert to some kind of dimensional container.
   lat = Array(ds["clat"]);
   ```
   If `lon, lat` are given, `grid` is automatically assumed `CoordinateSpace()`.
+* `celldim = nothing`: only used for `CoordinateSpace`: when `
 """
 function ncread(path::Union{String, Vector{String}}, args...; kwargs...)
     NCDataset(path) do ds
@@ -83,7 +84,7 @@ end
 function ncread(ds::NCDatasets.AbstractDataset, var, selection = nothing;
         name = var2name(var), grid = nothing, lon = nothing, lat = nothing,
     )
-    if lon isa Vector && lat isa Vector
+    if lon isa AbstractVector && lat isa AbstractVector
         gridtype = CoordinateSpace()
     elseif isnothing(grid)
         gridtype = autodetect_grid(ds)
@@ -222,7 +223,12 @@ function ncread_unstructured(
         lonlat, original_grid_dim = load_coordinate_points(ds)
     else
         lonlat = [SVector(lo, la) for (lo, la) in zip(lon, lat)]
-        original_grid_dim = intersect(NCDatasets.dimnames(cfvar), POSSIBLE_CELL_NAMES)[1]
+        possible_name = intersect(NCDatasets.dimnames(cfvar), POSSIBLE_CELL_NAMES)
+        if isempty(possible_name)
+            error("Name of dimension of cell coordinates not recognized,
+            augment `POSSIBLE_CELL_NAMES`")
+        end
+        original_grid_dim = possible_name[1]
     end
 
     alldims = Any[NCDatasets.dimnames(cfvar)...]
@@ -271,12 +277,8 @@ function ncread_unstructured(
     return ClimArray(X; name = Symbol(name), attrib)
 end
 
-function has_unstructured_key(ds)
-    any(x -> haskey(ds.dim, x), POSSIBLE_CELL_NAMES) ||
-    haskey(ds, "lon") || haskey(ds, "clon")
-end
-
 function load_coordinate_points(ds)
+    @show keys(ds)
     if haskey(ds, "reduced_points")
         lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
         original_grid_dim = "rgrid" # Specific to CDO Gaussian grid
@@ -288,32 +290,30 @@ function load_coordinate_points(ds)
         lats = ds["lat"] |> Matrix |> vec
         original_grid_dim = ("lon", "lat")
         lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
-    elseif has_unstructured_key(ds)
-        if haskey(ds, "lon")
-            lons = ds["lon"] |> Vector
-            lats = ds["lat"] |> Vector
-            original_grid_dim = NCDatasets.dimnames(ds["lon"])[1]
-        elseif haskey(ds, "clon")
-            lons = ds["clon"] |> Vector
-            lats = ds["clat"] |> Vector
-            original_grid_dim = NCDatasets.dimnames(ds["clon"])[1]
-        else
-            error("""
-            We didn't find key `"lon"` or `"clon"` that represents the longitude of each
-            polygon in a non-orthogonal grid.
-            """)
-        end
-        lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
+    elseif haskey(ds, "lon")
+        lons = ds["lon"] |> Vector
+        lats = ds["lat"] |> Vector
+        original_grid_dim = NCDatasets.dimnames(ds["lon"])[1]
+    elseif haskey(ds, "clon")
+        lons = ds["clon"] |> Vector
+        lats = ds["clat"] |> Vector
+        original_grid_dim = NCDatasets.dimnames(ds["clon"])[1]
+    elseif haskey(ds, "longitude")
+        lons = ds["longitude"] |> Vector
+        lats = ds["latitude"] |> Vector
+        original_grid_dim = NCDatasets.dimnames(ds["longitude"])[1]
     else
         error("""
         We couldn't automatically identify the lon/lat values of cell centers.
         Please provide explicitly keywords `lon, lat` in `ncread`.
         """)
     end
+    lonlat = [SVector(lo, la) for (lo, la) in zip(lons, lats)]
     lonlat = convert_to_degrees(lonlat, ds)
     return lonlat, original_grid_dim
 end
 
+"Assumes a gaussian grid information for efficient storage"
 function reduced_grid_to_points(lat, reduced_points)
     lonlat = SVector{2, Float32}[]
     for (i, θ) in enumerate(lat)
