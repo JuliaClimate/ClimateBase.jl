@@ -74,19 +74,33 @@ of `X` with shift `l`. If `wrap = true` the longitudes are wrapped to (-180, 180
 using the modulo operation.
 
 If `l` is not given, it is as much as necessary so that all longitudes > 180 are
-wrapped.
+circshifted (and also wrapped if `wrap`).
+
+If `X` has a `CoordinateSpace`, then no circshift is happening (the lon-lat
+are one dimension), but the longitude is still shifted.
 """
 function longitude_circshift(X::ClimArray, l = nothing; wrap = true)
-    if isnothing(l); l = count(≥(180), dims(X, Lon).val); end
-    isnothing(l) && return X
+    hasdim(X, Coord) && return longitude_circshift_coord(X, wrap)
+    if isnothing(l); l = count(≥(180), dims(X, Lon)); end
+    l == 0 && return X
     shifts = map(d -> d isa Lon ? l : 0, dims(X))
     shifted_data = circshift(X.data, shifts)
-    shifted_lon = circshift(dims(X, Lon).val, l)
+    shifted_lon = circshift(gnv(dims(X, Lon)), l)
     if wrap; shifted_lon = wrap_lon.(shifted_lon); end
     shifted_lon = vector2range(shifted_lon)
     shifted_dim = Lon(shifted_lon; metadata = DimensionalData.metadata(dims(X, Lon)))
     new_dims = map(d -> d isa Lon ? shifted_dim : d, dims(X))
     return ClimArray(shifted_data, new_dims; name = X.name, attrib = X.attrib)
+end
+
+# this is just longitude wrapping
+function longitude_circshift_coord(X, wrap = true)
+    !wrap && return X
+    coords = dims(X, Coord)
+    lons = getindex.(coords, 1)
+    wlons = wrap_lon.(lons)
+    newcoords = [SVector(wlons[i], coords[i][2]) for i in eachindex(coords)]
+    return DimensionalData.set(X, Coord => newcoords)
 end
 
 #########################################################################

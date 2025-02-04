@@ -278,7 +278,6 @@ function ncread_unstructured(
 end
 
 function load_coordinate_points(ds)
-    @show keys(ds)
     if haskey(ds, "reduced_points")
         lonlat = reduced_grid_to_points(ds["lat"], ds["reduced_points"])
         original_grid_dim = "rgrid" # Specific to CDO Gaussian grid
