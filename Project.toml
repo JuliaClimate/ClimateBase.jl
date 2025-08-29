@@ -1,7 +1,7 @@
 name = "ClimateBase"
 uuid = "35604d93-0fb8-4872-9436-495b01d137e2"
 authors = ["Datseris <datseris.george@gmail.com>", "Philippe Roy <borghor@yahoo.ca>"]
-version = "0.17.3"
+version = "0.17.4"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -20,7 +20,7 @@ GeoMakie = "db073c08-6b98-4ee5-b6a4-5efafb3259c6"
 ClimateBaseVisualizations = "GeoMakie"
 
 [compat]
-DimensionalData = "0.27"
+DimensionalData = ">= 0.27"
 GeoMakie = "0.6"
 Interpolations = "0.13.2, 0.14, 0.15"
 NCDatasets = "0.11, 0.12"
