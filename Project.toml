@@ -21,7 +21,7 @@ ClimateBaseVisualizations = "GeoMakie"
 
 [compat]
 DimensionalData = "0.29"
-GeoMakie = "0.6"
+GeoMakie = "0.6, 0.7"
 Interpolations = "0.13.2, 0.14, 0.15"
 NCDatasets = "0.11, 0.12"
 SignalDecomposition = "1.1"
