@@ -157,7 +157,7 @@ function create_dims(ds::NCDatasets.AbstractDataset, dnames, sel = selecteveryth
     end
     optimal_values = vector2range.(dim_values)
     attribs = [
-        (haskey(ds, d) && ds[d].attrib isa NCDatasets.BaseAttributes) ?
+        (haskey(ds, d) && ds[d].attrib isa NCDatasets.CommonDataModel.Attributes) ?
             Dict(ds[d].attrib) :
             Dict()
         for d in dnames
