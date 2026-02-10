@@ -101,7 +101,7 @@ end
 
 function autodetect_grid(ds)
     if haskey(ds, "reduced_points") || haskey(ds, "clon") ||
-        any(x -> x ∈ ds.dim, POSSIBLE_CELL_NAMES)
+        any(x -> x ∈ keys(ds.dim), POSSIBLE_CELL_NAMES)
         # Common cases of coordinate spaces in NetCDF
         return CoordinateSpace()
     elseif haskey(ds, "lat") && length(size(ds["lat"])) > 1
