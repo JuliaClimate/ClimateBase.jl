@@ -22,10 +22,11 @@ ClimateBaseVisualizations = "GeoMakie"
 [compat]
 DimensionalData = "0.29"
 GeoMakie = "0.6, 0.7"
-Interpolations = "0.13.2, 0.14, 0.15"
+Interpolations = "0.13.2, 0.14, 0.15, 0.16"
 NCDatasets = "0.11, 0.12"
 SignalDecomposition = "1.1"
 StaticArrays = "0.12, 1.0"
+Statistics = "1"
 StatsBase = "0.33, 0.34"
 julia = "1.9"
 
