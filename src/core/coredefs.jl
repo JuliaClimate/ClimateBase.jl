@@ -2,7 +2,7 @@
 # Basic imports and dimension definitions
 ##########################################################################################
 using DimensionalData
-using DimensionalData.Dimensions, DimensionalData.LookupArrays
+using DimensionalData.Dimensions, DimensionalData.Lookups
 using DimensionalData: basetypeof, broadcast_dims
 using DimensionalData.Dimensions: setdims
 using Dates
@@ -26,7 +26,7 @@ of the given object. Convenience function for quickly getting the numeric data o
 dimensional arrays or dimensions.
 """
 gnv(x) = x
-gnv(x::Union{AbDimArray, LookupArray}) = parent(x)
+gnv(x::Union{AbDimArray, Lookup}) = parent(x)
 gnv(x::Dimension) = parent(parent(x))
 
 export At, (..), Between, Near # Selectors from DimensionalArrays.jl

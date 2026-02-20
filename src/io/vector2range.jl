@@ -11,11 +11,11 @@ function vector2range(x::AbstractVector{<:Real})
     return x[1]:dx:x[end]
 end
 
-function vector2range(t::AbstractVector{<:Z}) where {Z<:Dates.AbstractTime}
+function vector2range(t::AbstractVector{<:Dates.AbstractTime})
     tsamp = temporal_sampling(t)
     period = tsamp2period(tsamp)
     isnothing(period) && return t
-    special_format = Z <: NCDatasets.CFTime.AbstractCFDateTime
+    special_format = eltype(t) <: NCDatasets.CFTime.AbstractCFDateTime
     use_base_date = (tsamp == :hourly || special_format)
     ti = use_base_date ? t[1] : Date(t[1])
     tf = use_base_date ? t[end] : Date(t[end])

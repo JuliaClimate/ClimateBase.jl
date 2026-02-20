@@ -101,7 +101,7 @@ end
 
 function autodetect_grid(ds)
     if haskey(ds, "reduced_points") || haskey(ds, "clon") ||
-        any(x -> x ∈ ds.dim, POSSIBLE_CELL_NAMES)
+        any(x -> x ∈ keys(ds.dim), POSSIBLE_CELL_NAMES)
         # Common cases of coordinate spaces in NetCDF
         return CoordinateSpace()
     elseif haskey(ds, "lat") && length(size(ds["lat"])) > 1
@@ -157,7 +157,7 @@ function create_dims(ds::NCDatasets.AbstractDataset, dnames, sel = selecteveryth
     end
     optimal_values = vector2range.(dim_values)
     attribs = [
-        (haskey(ds, d) && ds[d].attrib isa NCDatasets.BaseAttributes) ?
+        (haskey(ds, d) && ds[d].attrib isa NCDatasets.CommonDataModel.Attributes) ?
             Dict(ds[d].attrib) :
             Dict()
         for d in dnames

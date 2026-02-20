@@ -120,6 +120,7 @@ export otheridxs
 
 """
     otheridxs(A::ClimArray, Dim)
+
 Return an iterator of indices, that when used can access all indices of `A` *except* those
 belonging to dimension(s) `Dim`.
 

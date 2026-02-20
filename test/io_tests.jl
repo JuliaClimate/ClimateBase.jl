@@ -103,7 +103,7 @@ end
         ncwrite("cftime_test.nc", X)
         @test isfile("cftime_test.nc")
         X2 = ncread("cftime_test.nc", "x")
-        @test eltype(dims(X2, Tim)) == DateTime360Day
+        @test eltype(dims(X2, Tim)) <: DateTime360Day
         @test gnv(dims(X2, Tim)) == cfdates
     end
 
